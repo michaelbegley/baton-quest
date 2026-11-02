@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Baton Quest</title>
+<meta name="description" content="Baton Quest: a small platforming RPG about a conductor, three agents and a tangle called SCOPE CREEP. Plays on a phone, a computer or a controller.">
+<meta name="theme-color" content="#0b1416">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Baton Quest">
+<meta property="og:title" content="Baton Quest">
+<meta property="og:description" content="A small platforming RPG about a conductor, three agents and a tangle called SCOPE CREEP. Plays on a phone, a computer or a controller.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://michaelbegley.github.io/baton-quest/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen&display=swap">
+<style>
+  /* The 9F POCKET: a handheld of our own (cream shell, the orange 9F badge, a teal light) holding Baton Quest's 320 by 200 screen.
+     Upright: the screen on top, the D-pad and A, B, C under it. On a phone turned sideways: the D-pad left of the screen, the buttons right of it. */
+  :root {
+    --night: #0b1416; --text: #e6efec; --muted: #93aaa6;
+    --shell: #efe6d2; --shell-lt: #fbf6ea; --shell-dk: #d3c6ac; --ink: #1d1d24; --bezel: #2a2622;
+    --teal: #2ec4b6; --orange: #ff8a1e; --walnut: #7a4a2a;
+    --f-pix: "Silkscreen", "Courier New", monospace;
+    --pw: min(calc(100vw - 24px), 560px, calc((100vh - 40px) / 1.42));
+    color-scheme: dark;
+  }
+  @supports (height: 100dvh) { :root { --pw: min(calc(100vw - 24px), 560px, calc((100dvh - 40px) / 1.42)); } }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--night); color: var(--text); }
+  body { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+    padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 14px; line-height: 1.45; -webkit-tap-highlight-color: transparent; }
+  button { font-family: var(--f-pix); cursor: pointer; }
+  .pocket { position: relative; width: var(--pw); display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "screen screen" "dpad btns" "mstart mtools";
+    gap: calc(var(--pw) * 0.035) 8px; padding: calc(var(--pw) * 0.045) calc(var(--pw) * 0.045) calc(var(--pw) * 0.07);
+    background: linear-gradient(180deg, var(--shell-lt), var(--shell) 40%); border-radius: 22px 22px calc(var(--pw) * 0.14) 22px;
+    box-shadow: inset 0 -6px 0 var(--shell-dk), inset 0 2px 0 #fffdf6, 0 18px 44px rgba(0, 0, 0, 0.55);
+    touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  .screen-wrap { grid-area: screen; background: var(--bezel); border-radius: 12px 12px calc(var(--pw) * 0.07) 12px; padding: calc(var(--pw) * 0.025) calc(var(--pw) * 0.04) calc(var(--pw) * 0.03); }
+  .bezel-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-family: var(--f-pix); font-size: max(9px, calc(var(--pw) * 0.022)); color: #8d867b; letter-spacing: 0.08em; }
+  .led { width: 7px; height: 7px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 7px var(--teal); }
+  .led.off { background: #3a4442; box-shadow: none; }
+  canvas { display: block; width: 100%; aspect-ratio: 16 / 10; image-rendering: pixelated; image-rendering: crisp-edges; background: #000; border-radius: 3px; outline: none; }
+  .brand { grid-area: screen; align-self: end; justify-self: start; transform: translateY(calc(100% + 2px)); font-family: var(--f-pix); font-size: max(10px, calc(var(--pw) * 0.026));
+    color: #8a7d66; letter-spacing: 0.1em; display: flex; align-items: center; gap: 6px; pointer-events: none; }
+  .badge { display: inline-block; width: 1.9em; height: 1.9em; border-radius: 50%; background: var(--orange); color: #fff; text-align: center; line-height: 1.9em; font-size: 0.85em; }
+  /* the D-pad: one pad, so a thumb can slide round it (diagonals too) */
+  .dpad { grid-area: dpad; position: relative; justify-self: center; align-self: center; width: calc(var(--pw) * 0.36); aspect-ratio: 1; margin-top: calc(var(--pw) * 0.05); touch-action: none; cursor: pointer; }
+  .dpad .bar { position: absolute; background: var(--ink); border-radius: 7px; box-shadow: inset 0 -4px 0 #0e0e12, 0 3px 0 rgba(0, 0, 0, 0.18); }
+  .dpad .h { left: 0; right: 0; top: 33.5%; height: 33%; }
+  .dpad .v { top: 0; bottom: 0; left: 33.5%; width: 33%; }
+  .dpad .hub { position: absolute; left: 41%; top: 41%; width: 18%; height: 18%; border-radius: 50%; background: #2b2b35; }
+  .dpad i { position: absolute; width: 0; height: 0; border: calc(var(--pw) * 0.018) solid transparent; opacity: 0.55; }
+  .dpad i.u { left: 50%; top: 7%; transform: translateX(-50%); border-bottom-color: #9aa0b4; border-top-width: 0; }
+  .dpad i.d { left: 50%; bottom: 7%; transform: translateX(-50%); border-top-color: #9aa0b4; border-bottom-width: 0; }
+  .dpad i.l { top: 50%; left: 7%; transform: translateY(-50%); border-right-color: #9aa0b4; border-left-width: 0; }
+  .dpad i.r { top: 50%; right: 7%; transform: translateY(-50%); border-left-color: #9aa0b4; border-right-width: 0; }
+  .dpad.on-up i.u { border-bottom-color: var(--teal); opacity: 1; } .dpad.on-down i.d { border-top-color: var(--teal); opacity: 1; }
+  .dpad.on-left i.l { border-right-color: var(--teal); opacity: 1; } .dpad.on-right i.r { border-left-color: var(--teal); opacity: 1; }
+  /* the face buttons: B and A on a slant, C (the dash) under A */
+  .btns { grid-area: btns; position: relative; justify-self: center; align-self: center; width: calc(var(--pw) * 0.42); aspect-ratio: 1.05; margin-top: calc(var(--pw) * 0.05); }
+  .face { position: absolute; width: 38%; aspect-ratio: 1; border-radius: 50%; border: 0; color: var(--ink); font-size: max(13px, calc(var(--pw) * 0.038));
+    box-shadow: inset 0 -5px 0 rgba(0, 0, 0, 0.25), 0 3px 0 rgba(0, 0, 0, 0.2); touch-action: none; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
+  .face small { font-size: 0.42em; margin-top: 2px; letter-spacing: 0.06em; }
+  .face.b { left: 2%; top: 40%; background: var(--teal); }
+  .face.a { left: 58%; top: 10%; background: var(--orange); }
+  .face.c { left: 66%; top: 63%; width: 30%; background: var(--walnut); color: var(--shell-lt); }
+  .face.on, .pill.on { transform: translateY(2px); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.25); filter: brightness(1.12); }
+  .menu { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: calc(var(--pw) * 0.03); }
+  .mstart { grid-area: mstart; justify-content: flex-end; } .mtools { grid-area: mtools; justify-content: flex-start; }
+  .pill { border: 0; border-radius: 999px; background: #4a4640; color: var(--shell-lt); font-size: max(9px, calc(var(--pw) * 0.022)); letter-spacing: 0.06em;
+    padding: 7px 12px; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.3); touch-action: none; }
+  .pill.start { background: var(--ink); padding: 8px 16px; }
+  .pill.tool { background: #cfc3aa; color: var(--ink); }
+  .pill[hidden] { display: none; }
+  .grille { position: absolute; right: calc(var(--pw) * 0.06); bottom: calc(var(--pw) * 0.04); display: flex; gap: 5px; transform: rotate(-28deg); pointer-events: none; }
+  .grille span { width: 5px; height: calc(var(--pw) * 0.08); border-radius: 3px; background: var(--shell-dk); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.2); }
+  .note { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); background: rgba(11, 20, 22, 0.92); color: var(--text); font-family: var(--f-pix); font-size: 11px;
+    padding: 6px 12px; border-radius: 8px; pointer-events: none; opacity: 0; transition: opacity 0.25s; white-space: nowrap; z-index: 3; }
+  .note.show { opacity: 1; }
+  .under { width: var(--pw); color: var(--muted); font-size: 13px; display: flex; flex-direction: column; gap: 6px; }
+  .under .keys { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+  kbd { font-family: var(--f-pix); font-size: 11px; color: var(--ink); background: var(--shell); border-radius: 4px; padding: 1px 6px; box-shadow: inset 0 -2px 0 var(--shell-dk); }
+  .under a { color: var(--teal); }
+  .tip-turn { display: none; }
+  @media (pointer: coarse) { .under .keys { display: none; } .tip-turn { display: block; } }
+  .help { position: fixed; inset: 0; background: rgba(5, 10, 11, 0.86); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 5; }
+  .help[hidden] { display: none; }
+  .help .card { background: var(--shell-lt); color: var(--ink); border-radius: 16px; max-width: 440px; width: 100%; padding: 18px 18px 14px; max-height: 92vh; overflow: auto; touch-action: pan-y; }
+  .help h2 { font-family: var(--f-pix); font-size: 15px; margin: 0 0 10px; letter-spacing: 0.06em; }
+  .help dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 0 0 12px; font-size: 13.5px; }
+  .help dt { font-family: var(--f-pix); font-size: 11px; padding-top: 2px; }
+  .help dd { margin: 0; }
+  .help p { margin: 0 0 10px; font-size: 13px; color: #4a4640; }
+  .help button { border: 0; border-radius: 999px; background: var(--ink); color: var(--shell-lt); padding: 9px 16px; font-size: 11px; }
+  /* sideways on a phone: the D-pad left, the screen in the middle, the buttons right */
+  @media (orientation: landscape) and (max-height: 600px) {
+    body { justify-content: center; padding-top: max(6px, env(safe-area-inset-top)); padding-bottom: max(6px, env(safe-area-inset-bottom)); }
+    .pocket { --ph: calc(100vh - 12px); --side: clamp(108px, 18vw, 150px); width: auto; height: var(--ph);
+      grid-template-columns: var(--side) auto var(--side); grid-template-rows: 1fr auto; grid-template-areas: "dpad screen btns" "mstart screen mtools";
+      gap: 6px 10px; padding: 10px 14px; border-radius: 26px; align-items: center; }
+    @supports (height: 100dvh) { .pocket { --ph: calc(100dvh - 12px); } }
+    .screen-wrap { align-self: center; padding: 8px 12px 10px; border-radius: 12px; }
+    .screen-wrap canvas { width: min(calc((var(--ph) - 52px) * 1.6), calc(100vw - 2 * var(--side) - 84px)); }
+    .brand { display: none; }
+    .dpad { width: calc(var(--side) - 12px); margin-top: 0; }
+    .btns { width: calc(var(--side) - 6px); margin-top: 0; }
+    .menu { margin-top: 0; align-self: end; justify-content: center; gap: 6px; }
+    .grille { display: none; }
+    .under { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="pocket" id="pocket">
+  <div class="screen-wrap">
+    <div class="bezel-top"><span class="led" id="led"></span><span>BATON QUEST</span></div>
+    <canvas id="screen" width="320" height="200" tabindex="0" aria-label="Baton Quest's screen"></canvas>
+  </div>
+  <div class="brand" aria-hidden="true"><span class="badge">9F</span>POCKET</div>
+  <div class="dpad" id="dpad" role="group" aria-label="D-pad"><span class="bar h"></span><span class="bar v"></span><span class="hub"></span><i class="u"></i><i class="d"></i><i class="l"></i><i class="r"></i></div>
+  <div class="btns" role="group" aria-label="Buttons">
+    <button class="face b" type="button" data-k="b" aria-label="B, the baton">B</button>
+    <button class="face a" type="button" data-k="a" aria-label="A, jump">A</button>
+    <button class="face c" type="button" data-k="c" aria-label="C, dash">C<small>DASH</small></button>
+  </div>
+  <div class="menu mstart">
+    <button class="pill start" type="button" data-k="start">START</button>
+    <button class="pill tool" type="button" id="helpBtn" aria-haspopup="dialog" aria-label="How to play">?</button>
+  </div>
+  <div class="menu mtools">
+    <button class="pill tool" type="button" id="snd" aria-pressed="false">SOUND OFF</button>
+    <button class="pill tool" type="button" id="shot">PHOTO</button>
+    <button class="pill tool" type="button" id="share">SHARE</button>
+    <button class="pill tool" type="button" id="full" hidden>FULL</button>
+  </div>
+  <div class="grille" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+  <div class="note" id="note" role="status" aria-live="polite"></div>
+</div>
+<div class="under">
+  <div class="keys" aria-label="Keys">
+    <span><kbd>&larr;</kbd> <kbd>&rarr;</kbd> move, <kbd>&darr;</kbd> drop</span>
+    <span><kbd>SPACE</kbd> jump</span>
+    <span><kbd>X</kbd> baton (hold for a note)</span>
+    <span><kbd>C</kbd> dash</span>
+    <span><kbd>&uarr;</kbd> doors</span>
+    <span><kbd>ENTER</kbd> pause</span>
+  </div>
+  <div class="tip-turn">Turn your phone sideways for a bigger screen. Add it to your home screen to play full screen.</div>
+  <div>Saves stay in this browser (three files). A controller works too. <a href="https://github.com/michaelbegley/baton-quest/issues">Feedback</a> &middot; version <span id="ver">116</span></div>
+</div>
+<div class="help" id="help" role="dialog" aria-modal="true" aria-labelledby="helpTitle" hidden>
+  <div class="card">
+    <h2 id="helpTitle">HOW TO PLAY</h2>
+    <dl>
+      <dt>MOVE</dt><dd>The D-pad, the arrow keys or W A S D, or a controller's stick.</dd>
+      <dt>A</dt><dd>Jump. Hold it to jump higher. Space or Z on a keyboard; the bottom button on a controller.</dd>
+      <dt>B</dt><dd>Swing the baton. Hold it, then let go, to throw a note. X on a keyboard; the right button on a controller.</dd>
+      <dt>C</dt><dd>Dash, once you have QUICK KEYS. C on a keyboard; the left or top button, or a bumper, on a controller.</dd>
+      <dt>DOWN</dt><dd>On a thin shelf: drop through it.</dd>
+      <dt>UP</dt><dd>Open a door at the end of a level.</dd>
+      <dt>START</dt><dd>Pause: the codex, the music, the codes and the map. Enter on a keyboard.</dd>
+    </dl>
+    <p>It saves at the coffee mugs, in this browser, in one of three files. On a phone, turn it sideways for a bigger screen, or add it to your home screen to play full screen.</p>
+    <button type="button" id="helpClose">GOT IT</button>
+  </div>
+</div>
+<script src="js/runtime.js"></script>
+<script src="js/pocket.js"></script>
+<script src="js/game.js"></script>
+<script>POCKET_OPEN();</script>
+</body>
+</html>

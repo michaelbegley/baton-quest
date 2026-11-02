@@ -1,0 +1,134 @@
+    // ---------- 75-ui-pause.js: the pause menu, over the level or the map (UI, builder 5) ----------
+    // Q.go('pause', { from: 'level' | 'map' }): the scene it came from is drawn under a dark veil (it does not move on). RESUME (or B, or Start) goes back
+    // with { resume: true }; CODEX opens the memos; MAP (from a level) and TITLE ask first, then Q.saveGame() and go (QUEST-API.md part 13, 2).
+    // Beside the menu: LV and the XP to the next, hearts, power, rhythm, tokens, memos found of 24, time; under it the abilities learned with their how lines.
+    // Version 116 (part 14): STARS n/32 at the right of the header; opening it (not coming back from the codex) sends the event 'pause'.
+    (function () {
+      var U = Q.ui, PA = { from: 'level', sel: 0, ask: '', askSel: 0, t: 0, warned: false };
+      function items() {   // the BOW TIE row once the GOLD BOW TIE is bought (part 13, 25)
+        var tie = !!(Q.SAVE && Q.SAVE.shop && Q.SAVE.shop.bowtie), l = ['RESUME', 'CODEX', 'MUSIC', 'TEXT'];
+        if (tie) l.push('BOW TIE');
+        l.push('CODES');   // the cheat codes (75-ui-codes.js, 14.10 item 11): after the settings, so MAP and TITLE stay last
+        if (PA.from !== 'map') l.push('MAP');
+        l.push('TITLE');
+        return l;
+      }
+      U.setOpt = function (name, v) {   // a player's setting: into Q.SAVE.opt, and into the stored save at once (nothing else in it changes)
+        var s = Q.SAVE, st = null;
+        if (!s) return;
+        if (!s.opt || typeof s.opt !== 'object') s.opt = {};
+        s.opt[name] = v;
+        try { st = Q.api && Q.api.load ? Q.api.load() : null; } catch (e) { st = null; }
+        if (st && typeof st === 'object') { if (!st.opt || typeof st.opt !== 'object') st.opt = {}; st.opt[name] = v; Q.api.save(st); }
+      };
+      U.tieOpt = function () { return Q.SAVE && Q.SAVE.opt && Q.SAVE.opt.bowtie === 'white' ? 'WHITE' : 'GOLD'; };
+      function tieSwap() { U.setOpt('bowtie', U.tieOpt() === 'GOLD' ? 'white' : 'gold'); }
+      // ---- the MUSIC row: FULL, LOW or OFF, as 1, 0.5 and 0 times AUDIO's own level (Q.au.MUSIC as it was made); kept in Q.SAVE.opt.music, put back at
+      // the title, written into the stored save at once (nothing else in it changes). The office's own sound switch still rules over everything.
+      var MUS = ['FULL', 'LOW', 'OFF'], MK = { FULL: 1, LOW: 0.5, OFF: 0 };
+      U.musicOpt = function () { var o = Q.SAVE && Q.SAVE.opt, m = o && o.music; return MK[m] !== undefined ? m : 'FULL'; };
+      U.applyOpt = function () {
+        if (!Q.au || typeof Q.au.MUSIC !== 'number') return;
+        if (U.musicBase === undefined) U.musicBase = Q.au.MUSIC;
+        Q.au.MUSIC = U.musicBase * MK[U.musicOpt()];
+      };
+      U.setMusic = function (m) { if (MK[m] === undefined) return; U.setOpt('music', m); U.applyOpt(); };
+      function textSwap() { U.setOpt('text', U.textFast() ? 'normal' : 'fast'); }   // TEXT: NORMAL or FAST (the box types about 2.5 times quicker)
+      function label(it) { return it === 'MUSIC' ? 'MUSIC: ' + U.musicOpt() : it === 'BOW TIE' ? 'BOW TIE: ' + U.tieOpt() : it === 'TEXT' ? 'TEXT: ' + (U.textFast() ? 'FAST' : 'NORMAL') : it; }
+      function resume() { var from = PA.from; Q.sfx('back'); U.later(function () { Q.go(from, { resume: true }); }); }   // next frame: the level never sees this Start
+      U.clock = function (secs) {   // seconds as H:MM:SS, or M:SS under an hour
+        var s = Math.max(0, Math.floor(secs || 0)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, r = s % 60;
+        return (h ? h + ':' + (m < 10 ? '0' : '') : '') + m + ':' + (r < 10 ? '0' : '') + r;
+      };
+      U.under = function (g, from) {   // the scene it came from, drawn still, then a dark veil
+        var sc = from && from !== 'pause' && from !== 'codex' ? Q.SCENE[from] : null;
+        if (sc && sc.draw) { try { sc.draw(g, Q); } catch (e) { if (!PA.warned) { PA.warned = true; Q.warn('pause: drawing ' + from + ' under the menu: ' + e); } } }
+        g.globalAlpha = 0.72; U.fill(g, 0, 0, 320, 200, '#07080c'); g.globalAlpha = 1;
+      };
+      function choose(what) {
+        if (what === 'RESUME') { resume(); return; }
+        if (what === 'CODEX') { Q.sfx('select'); Q.go('codex', { from: PA.from }); return; }
+        if (what === 'CODES') { Q.sfx('select'); Q.go('codes', { from: PA.from }); return; }
+        if (what === 'MUSIC') { U.setMusic(MUS[(MUS.indexOf(U.musicOpt()) + 1) % 3]); Q.sfx('select'); return; }
+        if (what === 'BOW TIE') { tieSwap(); Q.sfx('select'); return; }
+        if (what === 'TEXT') { textSwap(); Q.sfx('select'); return; }
+        PA.ask = what; PA.askSel = 0; Q.sfx('select');
+      }
+      function askDone() {
+        var what = PA.ask; PA.ask = '';
+        if (!PA.askSel) { Q.sfx('back'); return; }
+        Q.sfx('select'); Q.saveGame();
+        if (what === 'MAP') Q.go('map'); else Q.go('title');
+      }
+      Q.defScene('pause', {
+        enter: function (opts) { U.entered();
+          opts = opts || {};
+          PA.from = opts.from || (opts.back ? PA.from : 'level'); PA.ask = ''; PA.t = 0;
+          PA.sel = opts.back === 'codex' ? 1 : opts.back === 'codes' ? Math.max(0, items().indexOf('CODES')) : 0;
+          if (!opts.back) { Q.sfx('select'); U.emit('pause', { from: PA.from }); }   // part 14.1: only when it opens, not back from the codex
+        },
+        update: function (dt) {
+          PA.t += dt;
+          if (U.runLater()) return;
+          if (PA.ask) {
+            if (U.press('left') || U.press('right') || U.press('up') || U.press('down')) { PA.askSel = 1 - PA.askSel; Q.sfx('move'); }
+            if (U.press('b')) { PA.ask = ''; Q.sfx('back'); return; }
+            if (U.press('a') || U.press('start')) askDone();
+            return;
+          }
+          if (U.press('start') || U.press('b')) { resume(); return; }
+          PA.sel = U.menuMove(PA.sel, items().length);
+          if (items()[PA.sel] === 'BOW TIE' && (U.press('left') || U.press('right'))) { tieSwap(); Q.sfx('move'); }
+          if (items()[PA.sel] === 'TEXT' && (U.press('left') || U.press('right'))) { textSwap(); Q.sfx('move'); }
+          if (items()[PA.sel] === 'MUSIC') {
+            if (U.press('left')) { U.setMusic(MUS[(MUS.indexOf(U.musicOpt()) + 2) % 3]); Q.sfx('move'); }
+            else if (U.press('right')) { U.setMusic(MUS[(MUS.indexOf(U.musicOpt()) + 1) % 3]); Q.sfx('move'); }
+          }
+          if (U.press('a')) choose(items()[PA.sel]);
+        },
+        draw: function (g) {
+          var s = U.stat(), list = items(), i, x, y, n, ab = ['dash', 'hover', 'pound'], a, any = 0;
+          U.under(g, PA.from);
+          U.fill(g, 0, 0, 320, 27, '#0b0c10'); U.fill(g, 0, 27, 320, 1, '#2a2c3a');   // a header of its own, so the HUD under it never shows through
+          U.text('PAUSED', 160, 8, '#ffffff', 2, 'center');
+          n = U.starCount();   // GOLD STARS won (part 14.2), at the right of the header
+          U.starIcon(g, 312 - U.width('STARS ' + n.n + '/' + n.all) - 15, 8, n.n > 0);
+          U.text('STARS ' + n.n + '/' + n.all, 312, 11, n.n > 0 ? '#ffd23f' : '#8a93a8', 1, 'right');
+          U.box(g, 2, 30, 106, 78, '#2ec4b6', '#12141c');
+          for (i = 0; i < list.length; i++) U.item(label(list[i]), 18, (list.length > 6 ? 36 : list.length > 5 ? 37 : 38) + i * (list.length > 6 ? 10 : list.length > 5 ? 12 : 14), i === PA.sel && !PA.ask);
+          U.box(g, 112, 30, 206, 78, '#2ec4b6', '#12141c');
+          U.text('LV ' + s.lv, 119, 36, '#ffd23f');
+          U.text(s.next ? 'NEXT LV: ' + s.next + ' XP' : 'TOP LV!', 310, 36, '#c3c7d4', 1, 'right');
+          U.fill(g, 119, 46, 191, 4, '#000000'); U.fill(g, 120, 47, 189, 2, '#2a2c3a'); if (s.part > 0) U.fill(g, 120, 47, Math.max(1, Math.round(189 * s.part)), 2, '#2ec4b6');
+          U.text('HEARTS', 119, 56, '#8a93a8');
+          n = Q.clamp(Math.round(s.maxHp), 1, 8);
+          for (i = 0; i < n; i++) Q.spr(g, 'ui-heart', i < Math.round(s.hp) ? 0 : 1, 164 + i * 9, 55);
+          U.text(Math.round(s.hp) + '/' + n, 310, 56, '#f6efe2', 1, 'right');
+          U.text('POWER ' + s.power, 119, 70, '#f6efe2');
+          U.text('RHYTHM', 196, 70, '#8a93a8');
+          for (i = 0; i < Q.clamp(Math.round(s.rhythmMax), 0, 6); i++) Q.spr(g, 'ui-note', i < Math.floor(s.rhythm + 0.001) ? 0 : 1, 240 + i * 8, 69);
+          U.text('TOKENS ' + Math.floor(s.tokens), 119, 84, '#ffd23f');
+          U.text('MEMOS ' + s.memos + '/24', 310, 84, '#f6efe2', 1, 'right');
+          U.text('TIME ' + U.clock(s.time), 119, 96, '#8a93a8');
+          U.text('FALLS ' + s.falls, 310, 96, '#8a93a8', 1, 'right');
+          U.box(g, 2, 112, 316, 84, '#2ec4b6', '#12141c');
+          U.text('ABILITIES', 10, 117, '#2ec4b6');
+          for (i = 0; i < ab.length; i++) {
+            a = Q.ABILITY[ab[i]]; if (!a || !U.learned(ab[i])) continue;
+            y = 129 + any * 14; any++;
+            Q.spr(g, 'ic-' + ab[i], 0, 8, y - 3);
+            U.text(a.name, 24, y, '#ffffff'); U.text(a.how, 118, y, '#c3c7d4');
+          }
+          if (!any) U.text('NONE YET. SAVE AN AGENT TO LEARN ONE.', 160, 143, '#5d6378', 1, 'center');
+          U.fill(g, 8, 171, 304, 1, '#2a2c3a');
+          U.text('A: JUMP   B: BATON   HOLD B, LET GO: NOTE', 160, 177, '#8a93a8', 1, 'center');
+          if (PA.ask) {
+            x = 52; y = 70;
+            U.box(g, x, y, 216, 58, '#ffd23f', '#1d1d24');
+            U.text(PA.ask === 'MAP' ? 'LEAVE THIS LEVEL FOR THE MAP?' : 'QUIT TO THE TITLE?', 160, y + 9, '#ffffff', 1, 'center');
+            U.text('YOUR GAME IS SAVED FIRST.', 160, y + 21, '#c3c7d4', 1, 'center');
+            U.item('NO', 128, y + 40, PA.askSel === 0, false, 'center'); U.item('YES', 192, y + 40, PA.askSel === 1, false, 'center');
+          }
+        }
+      });
+    })();

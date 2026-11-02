@@ -1,0 +1,16 @@
+{
+  "name": "Baton Quest",
+  "short_name": "Baton Quest",
+  "description": "A small platforming RPG on the 9F POCKET.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#0b1416",
+  "theme_color": "#0b1416",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
