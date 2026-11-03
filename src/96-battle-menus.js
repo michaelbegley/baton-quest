@@ -91,14 +91,23 @@
         sides: BT.sides
       });
       BT.modesAt = function () { return { sel: MO.sel, id: MODES[MO.sel].id, soon: MO.soon > 0, soonAt: MO.soonAt, modes: MODES.map(function (m) { return m.id + (m.live ? '' : ':soon'); }) }; };
-      var SP = { t: 0 };
+      BT.splashAt = function () { return { sel: SP.sel, ways: SP.net ? WAYS.slice() : ['PLAY HERE'], t: Math.round(SP.t * 10) / 10 }; };   // B18, for checks
+      var SP = { t: 0, sel: 0, net: false }, WAYS = ['PLAY HERE', 'HOST ONLINE', 'JOIN ONLINE'];   // B18: the last two only where the page offers online play
+      function spGo() {
+        var code;
+        Q.sfx('select');
+        if (SP.sel === 1) { code = BT.hostOpen(); if (code) Q.go('blobby', { row: 4 }); else Q.go('bnote', { why: 'start' }); }
+        else if (SP.sel === 2) Q.go('bjoin');
+        else Q.go('bplayers');
+      }
       Q.defScene('bsplash', {
-        enter: function () { U.entered(); BT.padClear(); SP.t = 0; Q.music('map'); },
+        enter: function () { U.entered(); BT.padClear(); SP.t = 0; SP.sel = 0; SP.net = !!(BT.netOk && BT.netOk()); Q.music('map'); },
         update: function (dt) {
           var k = BT.keys(), B = BT.BIT;
           SP.t += dt;
           if (k & B.b) { Q.sfx('back'); Q.go('modes'); return; }
-          if (k & (B.a | B.start) || SP.t > 3.2) { Q.sfx('select'); Q.go('bplayers'); }
+          if (SP.net && k & (B.left | B.right)) { SP.sel = (SP.sel + (k & B.left ? 2 : 1)) % 3; Q.sfx('move'); }
+          if (k & (B.a | B.start) || (!SP.net && SP.t > 3.2)) spGo();   // with online play to choose from, it waits for a choice
         },
         draw: function (g) {
           var i, x, t = SP.t, f, s;
@@ -111,8 +120,8 @@
           }
           BT.big('BATTLE', 30 + Math.round(Math.sin(t * 2) * 1.5), '#ff8a1e', 5);
           s = 'UP TO FOUR CONDUCTORS. LAST ONE STANDING.'; U.text(s, 160 - (U.width(s) >> 1), 80, '#f6efe2');
-          if (Math.floor(t * 2) % 2) { s = 'PRESS A'; U.text(s, 160 - (U.width(s) >> 1), 172, '#ffd23f'); }
-          BT.foot('A: ON   B: BACK');
+          if (SP.net) { for (i = 0; i < 3; i++) U.item(WAYS[i], 58 + i * 102, 170, i === SP.sel, false, 'center'); BT.foot('LEFT AND RIGHT: CHOOSE   A: GO   B: BACK'); }
+          else { if (Math.floor(t * 2) % 2) { s = 'PRESS A'; U.text(s, 160 - (U.width(s) >> 1), 172, '#ffd23f'); } BT.foot('A: ON   B: BACK'); }
           U.drawTalk(g);
         },
         leave: function () {},

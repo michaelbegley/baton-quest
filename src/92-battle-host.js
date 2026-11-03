@@ -70,6 +70,7 @@
       }
       for (i = 0; i < cs.length; i++) {   // falls: off the bottom, or far past a side (a knock-off for the last hitter within KO_T)
         v = cs[i];
+        if (v.hold) continue;   // online (B18): a guest's conductor the host only guesses at (it has not yet heard back about a knock) is never judged to fall on the guess
         if (btLive(v) && (v.y > ar.th * 16 + N.FALL_Y || v.x < -N.SIDE_X || v.x > aw + N.SIDE_X)) M.ev.push({ k: 'fall', who: v.i, by: v.lastT <= N.KO_T ? v.lastBy : -1, x: Math.round(v.x + v.w / 2) });
         else if (btLive(v) && v.y < N.TOP_Y) v.vy = Math.max(v.vy, 0);
       }

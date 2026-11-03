@@ -45,10 +45,16 @@
       });
       BT.arenaAt = function () { var l = choices(); return { sel: AR.sel, id: l[AR.sel], list: l }; };
       // ---------- the results ----------
-      var RE = { M: null, setup: null, sel: 0, t: 0, order: [] }, BTN = ['REMATCH', 'NEW ARENA', 'BACK'];
+      var RE = { M: null, setup: null, sel: 0, t: 0, order: [], online: '' }, BTN = ['REMATCH', 'NEW ARENA', 'BACK'];
       function leave(what) {
         var st;
         Q.sfx(what === 'BACK' ? 'back' : 'select');
+        if (RE.online === 'host') {   // online (B18): the host's choice is everyone's
+          if (what === 'REMATCH') { if (RE.M) BT.S.arena = RE.M.arena; BT.hostStart(); Q.go('bfight'); }
+          else { BT.hostLobby(); Q.go('blobby', { row: what === 'NEW ARENA' ? 3 : 4 }); }
+          return;
+        }
+        if (RE.online === 'guest') { BT.guestClose(''); Q.music('map'); Q.go('bsplash'); return; }
         if (what === 'REMATCH') { st = BT.setupNow(); st.arena = RE.setup ? RE.setup.arena : st.arena; st.slots = RE.setup ? RE.setup.slots : st.slots; Q.go('battle', { setup: st }); }
         else if (what === 'NEW ARENA') { Q.music('map'); Q.go('barena'); }
         else { Q.music('map'); Q.go('bplayers'); }
@@ -56,15 +62,24 @@
       Q.defScene('bresults', {
         enter: function (opts) {
           var M = opts && opts.M, i;
-          U.entered(); BT.padClear(); RE.t = 0; RE.sel = 0; RE.M = M || null; RE.setup = opts && opts.setup || null; RE.order = [];
+          U.entered(); BT.padClear(); RE.t = 0; RE.sel = 0; RE.M = M || null; RE.setup = opts && opts.setup || null; RE.order = []; RE.online = opts && (opts.online === 'host' || opts.online === 'guest') ? opts.online : '';
           if (M) { for (i = 0; i < M.cs.length; i++) RE.order.push(M.cs[i]); RE.order.sort(function (a, b) { return M.wins[b.i] - M.wins[a.i] || M.stats[b.i].kos - M.stats[a.i].kos || a.i - b.i; }); }
           Q.music('rescue');
         },
         update: function (dt) {
-          var k = BT.keys(), B = BT.BIT;
+          var k = BT.keys(), B = BT.BIT, G = BT.NG;
           RE.t += dt;
           if (RE.t > 0.6 && Math.floor(RE.t / 1.4) !== Math.floor((RE.t - dt) / 1.4) && RE.M && RE.M.winner >= 0) BT.fx('confetti', 48, 40, '#ffd23f', 24);
           BT.fxStep(dt);
+          if (RE.online === 'host') { BT.hostPoll(); if (!BT.NH.on) { Q.go('bnote', { why: BT.NH.why || 'start' }); return; } }
+          if (RE.online === 'guest') {   // a guest waits for the host: a rematch, the lobby, or the game closed
+            BT.guestPoll(dt);
+            if (!G.on) { Q.go('bnote', { why: G.why || 'host' }); return; }
+            if (G.st === 'play' && G.M && G.M !== RE.M) { Q.go('bfight'); return; }
+            if (G.st === 'seat') { Q.go('blobby'); return; }
+            if (k & B.b) leave('LEAVE');
+            return;
+          }
           if (k & B.left) { RE.sel = (RE.sel + BTN.length - 1) % BTN.length; Q.sfx('move'); }
           if (k & B.right) { RE.sel = (RE.sel + 1) % BTN.length; Q.sfx('move'); }
           if (k & B.b) { leave('BACK'); return; }
@@ -85,9 +100,10 @@
             U.text(String(M.wins[c.i]), x + 110 - (U.width(String(M.wins[c.i])) >> 1), y + 1, '#ffd23f'); U.text(String(s.kos), x + 138 - (U.width(String(s.kos)) >> 1), y + 1, '#f6efe2'); U.text(String(s.falls), x + 168 - (U.width(String(s.falls)) >> 1), y + 1, '#f6efe2'); U.text(String(s.hits), x + 201 - (U.width(String(s.hits)) >> 1), y + 1, '#f6efe2');
           }
           if (M) { s = BT.arenaDef(M.arena).name + '   ' + M.rounds.length + (M.rounds.length === 1 ? ' ROUND' : ' ROUNDS'); U.text(s, 160 - (U.width(s) >> 1), 132, '#6b7186'); }
-          for (i = 0; i < BTN.length; i++) U.item(BTN[i], 70 + i * 90, 152, i === RE.sel, false, 'center');
+          if (RE.online === 'guest') { if (Math.floor(RE.t * 2) % 2) { s = 'WAITING FOR THE HOST'; U.text(s, 160 - (U.width(s) >> 1), 152, '#ffd23f'); } }
+          else for (i = 0; i < BTN.length; i++) U.item(BTN[i], 70 + i * 90, 152, i === RE.sel, false, 'center');
           BT.drawFxOnly(g);
-          BT.foot('LEFT AND RIGHT: CHOOSE   A: GO   B: BACK');
+          BT.foot(RE.online === 'guest' ? 'THE HOST CHOOSES WHAT IS NEXT   B: LEAVE' : RE.online === 'host' ? 'LEFT AND RIGHT: CHOOSE   A: GO (FOR EVERYONE)' : 'LEFT AND RIGHT: CHOOSE   A: GO   B: BACK');
           U.drawTalk(g);
         },
         leave: function () { BT.fxClear(); },

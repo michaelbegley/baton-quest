@@ -79,7 +79,8 @@
         rhythm: H.RHYTHM, rhythmMax: H.RHYTHM, rhythmT: 0, dashing: false, dashT: 0, dashDir: 1, dashCool: 0, dashBuf: 0, airDash: true, tapDir: 0, tapT: -9, now: 0,
         hovering: false, hoverT: 0, airHover: true, pounding: false, poundT: 0, poundId: 0, poundLand: false, lagT: 0, flying: false,
         stun: 0, grace: 0, safe: 0, wob: 0, hp: 3, out: false, outT: 0, gone: false, lastBy: -1, lastT: 99,
-        buff: { dash: 0, hover: 0, pound: 0, baton: 0, metro: 0 }, wantNote: false, frame: 0, animT: 0, runT: 0, landT: 0, fallV: 0, cheer: false, fx: [] };
+        buff: { dash: 0, hover: 0, pound: 0, baton: 0, metro: 0 }, wantNote: false, frame: 0, animT: 0, runT: 0, landT: 0, fallV: 0, cheer: false, fx: [],
+        jN: 0, nN: 0, pL: 0, bk: 0 };   // B18, online: jumps, notes thrown and pound landings counted (a lost message never loses one), and times back in (bk)
     };
     function btFx(c, k, a, b) { if (c.fx.length < 24) c.fx.push([k, a, b]); }   // for the screen only: a sound ('s', id) or dust ('d', x, y)
     function btDash(c, k) {

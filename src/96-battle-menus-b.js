@@ -30,7 +30,7 @@
         return true;
       };
       function cycleWho(i) {
-        var s = BT.S.slots[i], order = i === 0 ? ['human', 'cpu'] : BT.padsOn() ? ['cpu', 'human', 'off'] : ['cpu', 'off'], now = !s.on ? 'off' : s.who, k = order.indexOf(now);
+        var s = BT.S.slots[i], order = i === 0 ? ['human', 'cpu'] : BT.padsOn() && (BT.padOn(i + 1) || s.who === 'human') ? ['cpu', 'human', 'off'] : ['cpu', 'off'], now = !s.on ? 'off' : s.who, k = order.indexOf(now);   // PLAYER n only with controller n plugged in (B18)
         BT.setWho(i, order[(k + 1) % order.length]);
       }
       function change(i, row) {
@@ -99,7 +99,7 @@
       });
       BT.playersAt = function () { return { row: PL.row, col: PL.col, slots: BT.S.slots.map(function (s, i) { return { who: BT.whoText(i), col: s.col, name: BT.NAMES[s.name] }; }) }; };
       // ---------- the rules ----------
-      var RU = { sel: 0, t: 0 }, RROWS = ['ROUNDS', 'HEARTS', 'ITEMS', 'CPU LEVEL', 'DONE'];
+      var RU = { sel: 0, t: 0, back: 'bplayers' }, RROWS = ['ROUNDS', 'HEARTS', 'ITEMS', 'CPU LEVEL', 'DONE'];   // back: the screen it came from (the online lobby too, B18)
       function val(i) { var r = BT.S.rules; return i === 0 ? 'BEST OF ' + r.rounds : i === 1 ? String(r.hearts) : i === 2 ? (r.items ? 'ON' : 'OFF') : i === 3 ? BT.CPU[r.cpu] : ''; }
       var SAY = ['WIN MORE THAN HALF TO WIN THE MATCH', 'EACH, EVERY ROUND. A FALL COSTS ONE', 'POWER-UPS FLOAT IN NOW AND THEN', 'HOW SHARP THE CPUS ARE', 'BACK TO THE PLAYERS'];
       function turn(i, d) {
@@ -112,15 +112,16 @@
         Q.sfx('move');
       }
       Q.defScene('brules', {
-        enter: function () { U.entered(); BT.padClear(); RU.t = 0; RU.sel = 0; },
+        enter: function (opts) { U.entered(); BT.padClear(); RU.t = 0; RU.sel = 0; RU.back = opts && opts.back === 'blobby' ? 'blobby' : 'bplayers'; },
         update: function (dt) {
           var k = BT.keys(), B = BT.BIT;
           RU.t += dt;
+          if (RU.back === 'blobby' && BT.hostPoll) BT.hostPoll();   // an online host keeps answering while he sets the rules
           if (k & B.up) { RU.sel = (RU.sel + RROWS.length - 1) % RROWS.length; Q.sfx('move'); }
           if (k & B.down) { RU.sel = (RU.sel + 1) % RROWS.length; Q.sfx('move'); }
           if (k & B.left) turn(RU.sel, -1);
           if (k & B.right) turn(RU.sel, 1);
-          if (k & B.b || (k & (B.a | B.start) && RU.sel === 4)) { Q.sfx('back'); Q.go('bplayers'); return; }
+          if (k & B.b || (k & (B.a | B.start) && RU.sel === 4)) { Q.sfx('back'); Q.go(RU.back === 'blobby' && BT.NH && BT.NH.on ? 'blobby' : 'bplayers'); return; }
           if (k & B.a && RU.sel < 4) turn(RU.sel, 1);
         },
         draw: function (g) {
@@ -142,4 +143,5 @@
       });
       BT.rulesAt = function () { return { sel: RU.sel, rules: BT.copy(BT.S.rules) }; };
     })();
+    BT.padOn = function (n) { var p = BT.pad(n); return !!(p && p.on); };   // controller n is plugged in (B18)
     BT.keysDev = function () { var U = Q.ui, f = 0, k, n; for (k = 0; k < 8; k++) if (U.press(BT.KEYS[k])) f |= BT.BIT[BT.KEYS[k]]; if (BT.padsOn()) for (n = 2; n <= 4; n++) BT.keysBy[n] = BT.readPad(n).p; return f; };   // the device's presses only (the extra controllers' go to BT.keysBy)

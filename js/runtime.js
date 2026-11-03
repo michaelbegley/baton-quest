@@ -1,4 +1,4 @@
-  // ---------- the 9F computer's runtime: what its games run on (version 113; the same file runs the builders' test page) ----------
+  // ---------- the 9F computer's runtime: what its games run on (version 113, with version 118's controllers 2 to 4 and online play; the same file runs the builders' test page) ----------
   // A game draws into a screen of 320 by 200 pixels (a page on a wide window may widen it up to 712 with resize, and api.W says how wide) and reads six buttons; the runtime gives it our own pixel font, our own sounds, a save of its own in this browser, and
   // a line in the logbook for its big moments. It knows nothing of the office: the office's own part (or the test page) makes the runtime, feeds it keys, taps and the
   // controller, shows its screen and closes it.
@@ -9,6 +9,48 @@
     NAMES.forEach(function (n) { held[n] = false; was[n] = false; tapped[n] = false; edge[n] = false; });
     function setKey(n, on) { if (!(n in held)) return; if (on && !held[n]) tapped[n] = true; held[n] = on; }   // a tap shorter than a frame still counts (version 105's lesson)
     function release() { NAMES.forEach(function (n) { held[n] = false; }); }
+    // ---------- version 118 (B18): controllers 2 to 4 and online play, both fed by the page; a game that never asks never sees them ----------
+    // A page with more controllers feeds them with setPadOn(n, on) and setPadKey(n, name, on), n 2 to 4; each keeps held, was, tapped and edge exactly as the
+    // runtime's own buttons, its edges made at the start of each frame. A game reads api.pad(n): { n, on, held(name), pressed(name) }; api.pad(1) is the main buttons.
+    var PADS = {}, PADV = {}, net = null;
+    [2, 3, 4].forEach(function (n) {
+      var p = PADS[n] = { on: false, held: {}, was: {}, tapped: {}, edge: {} };
+      NAMES.forEach(function (k) { p.held[k] = false; p.was[k] = false; p.tapped[k] = false; p.edge[k] = false; });
+      PADV[n] = { n: n, on: false, held: function (k) { return p.on && !!p.held[k]; }, pressed: function (k) { return p.on && !!p.edge[k]; } };
+    });
+    function setPadKey(n, k, on) { var p = PADS[n]; if (!p || !(k in p.held)) return; if (on && !p.held[k]) p.tapped[k] = true; p.held[k] = !!on; }
+    function setPadOn(n, on) { var p = PADS[n]; if (!p) return; p.on = !!on; PADV[n].on = p.on; if (!p.on) NAMES.forEach(function (k) { p.held[k] = false; p.tapped[k] = false; }); }
+    function padEdges() { [2, 3, 4].forEach(function (n) { var p = PADS[n]; NAMES.forEach(function (k) { p.edge[k] = p.tapped[k] || (p.held[k] && !p.was[k]); p.was[k] = p.held[k]; p.tapped[k] = false; }); }); }
+    // Online play: the page gives setNet(its net, js/net.js). A game reads api.net: plain JSON both ways (sent as text, parsed here, 16000 characters at most), every
+    // call caught, nothing of the page's handed over. Without a net, api.net.ok() is false and every call does nothing.
+    function setNet(n) { net = n && typeof n === 'object' ? n : null; }
+    function netCall(name, a, b, def) { if (!net || typeof net[name] !== 'function') return def; try { var r = net[name](a, b); return r === undefined ? def : r; } catch (e) { return def; } }
+    function netApi() {
+      return {
+        ok: function () { return netCall('ok', 0, 0, false) === true; },   // this page can play online
+        state: function () { return String(netCall('state', 0, 0, 'off')); },   // 'off', 'host' (a room of our own), 'join' (in a room, looking for its host), 'guest' (the host found)
+        host: function () { return String(netCall('host', 0, 0, '') || ''); },   // opens a room of our own; gives its 4-letter code ('' if it cannot)
+        join: function (code) { return netCall('join', String(code || ''), 0, false) === true; },   // into the room of that code, to find its host
+        leave: function () { netCall('leave', 0, 0, null); },
+        code: function () { return String(netCall('code', 0, 0, '') || ''); },
+        me: function () { return String(netCall('self', 0, 0, '') || ''); },
+        peers: function () { var l = netCall('peers', 0, 0, null), out = [], i; if (l && l.length) for (i = 0; i < l.length && i < 16; i++) out.push(String(l[i])); return out; },
+        send: function (to, msg) { var s; try { s = JSON.stringify(msg); } catch (e) { return false; } if (!s || s.length > 16000) return false; return netCall('send', String(to), s, false) === true; },
+        poll: function () {   // what came since the last poll, in order: { k: 'msg' | 'join' | 'leave' | 'host' | 'lost' | 'clash', from, msg }
+          var l = netCall('poll', 0, 0, null), out = [], i, e, m;
+          if (!l || !l.length) return out;
+          for (i = 0; i < l.length && i < 400; i++) {
+            e = l[i]; if (!e || typeof e.k !== 'string') continue; m = null;
+            if (typeof e.data === 'string') { if (e.data.length > 16000) continue; try { m = JSON.parse(e.data); } catch (x) { continue; } }
+            out.push({ k: e.k, from: String(e.from || ''), msg: m });
+          }
+          return out;
+        },
+        invite: function () { return String(netCall('invite', 0, 0, '') || ''); },   // the code of a ?join= link this page was opened with, given once
+        share: function () { return netCall('share', 0, 0, false) === true; },   // the page shares (a phone) or copies the join link of the room we host
+        info: function () { var o = netCall('info', 0, 0, null) || {}; return { kind: typeof o.kind === 'string' ? o.kind : '', relays: +o.relays || 0, peers: +o.peers || 0, ready: !!o.ready }; }
+      };
+    }
     // ---------- our own pixel font: 5 by 7, capitals, numbers and the usual marks; small letters are drawn as capitals ----------
     var GL = {
       'A': '0e11111f111111', 'B': '1e11111e11111e', 'C': '0e11101010110e', 'D': '1e11111111111e', 'E': '1f10101e10101f', 'F': '1f10101e101010', 'G': '0e11101711110f',
@@ -58,6 +100,9 @@
         jot: function (s) { var now = life; if (jotAt[game.id] !== undefined && now - jotAt[game.id] < 2) return; jotAt[game.id] = now; if (o.jot) o.jot(game.name + ': ' + String(s).slice(0, 100)); },   // only its big moments, two seconds apart at least
         exit: function () { stop(); }, rand: rand, t: function () { return t; }, _tick: function (dt) { t += dt; }
       };
+      var pad1 = { n: 1, on: true, held: me.held, pressed: me.pressed };   // version 118: controller 1 is the main buttons
+      me.pad = function (n) { n = n | 0; return n === 1 ? pad1 : PADV[n] || null; };
+      me.net = netApi();
       return me;
     }
     function open(id) {   // start a game by its id; no id: the desktop
@@ -89,6 +134,7 @@
     function frame(dt) {   // one frame: the buttons' edges, then the game or the desktop
       dt = Math.max(0, Math.min(dt || 0, 0.05)); life += dt;
       NAMES.forEach(function (n) { edge[n] = tapped[n] || (held[n] && !was[n]); was[n] = held[n]; tapped[n] = false; });
+      padEdges();
       if (cur) { cur.api._tick(dt); try { if (cur.run.frame) cur.run.frame(dt); } catch (e) { var bad = cur; stop(); setTimeout(function () { throw e; }); g.fillStyle = '#300'; g.fillRect(0, 0, W, H); text('THAT GAME STOPPED: ' + (bad && bad.game.name), W >> 1, H / 2, '#fff', 1, 'center'); } }
       else desktop(dt);
     }
@@ -99,6 +145,7 @@
       return W;
     }
     var arc = { add: add, open: open, stop: stop, back: back, frame: frame, setKey: setKey, release: release, games: games, current: function () { return cur ? cur.game.id : ''; },
-             run: function () { return cur ? cur.run : null; }, text: text, width: width, W: W, H: H, g: g, canvas: cv, held: held, pick: function (i) { if (i !== undefined) pick = i; return pick; }, resize: resize };
+             run: function () { return cur ? cur.run : null; }, text: text, width: width, W: W, H: H, g: g, canvas: cv, held: held, pick: function (i) { if (i !== undefined) pick = i; return pick; }, resize: resize,
+             setPadKey: setPadKey, setPadOn: setPadOn, setNet: setNet, pads: function () { return { 2: PADV[2].on, 3: PADV[3].on, 4: PADV[4].on }; } };   // version 118
     return arc;
   }

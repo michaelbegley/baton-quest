@@ -42,7 +42,7 @@
       if (free && c.swingBuf > 0 && c.swingT <= 0 && !c.pounding) { c.swingT = H.SWING_T; c.swingId++; c.swingBuf = 0; c.chargeT = 0; c.charged = false; btFx(c, 's', 'swing'); }
       if (B && !c.pounding && free) { c.chargeT += dt; if (!c.charged && c.chargeT >= H.CHARGE_T) { c.charged = true; btFx(c, 's', 'charge'); } }
       else if (!B) {
-        if (c.charged && c.wasB) { if (c.rhythm >= 1) { c.rhythm--; c.throwT = 0.16; c.wantNote = true; btFx(c, 's', 'note'); } else btFx(c, 's', 'nope'); }
+        if (c.charged && c.wasB) { if (c.rhythm >= 1) { c.rhythm--; c.throwT = 0.16; c.wantNote = true; c.nN++; btFx(c, 's', 'note'); } else btFx(c, 's', 'nope'); }
         c.charged = false; c.chargeT = 0;
       }
       c.wasB = B;
@@ -51,7 +51,7 @@
       if (!c.drop && c.ground && free && !c.pounding && tD && btOnThin(ar, c)) { c.dropT = 0.22; c.drop = true; c.buffer = 0; c.ground = false; c.coyote = 0; c.vy = 40; }
       if (c.buffer > 0 && (c.ground || c.coyote > 0) && free && !c.pounding) {
         if (D && c.ground && btOnThin(ar, c)) { c.dropT = 0.22; c.drop = true; c.buffer = 0; c.ground = false; c.coyote = 0; c.vy = 40; }
-        else { c.vy = -H.JUMP; c.ground = false; c.coyote = 0; c.buffer = 0; c.dashing = false; btFx(c, 's', 'jump'); btFx(c, 'd', c.x + c.w / 2, c.y + c.h); }
+        else { c.vy = -H.JUMP; c.ground = false; c.coyote = 0; c.buffer = 0; c.dashing = false; c.jN++; btFx(c, 's', 'jump'); btFx(c, 'd', c.x + c.w / 2, c.y + c.h); }
       }
 
       // across
@@ -81,7 +81,7 @@
       if (c.dashing && (c.dashT <= 0 || c.wallL || c.wallR)) { c.dashing = false; if (!c.wallL && !c.wallR) c.vx = c.dashDir * H.DASH_END; }
       if (c.ground) {
         if (c.pounding && c.poundT <= 0) {   // FIRM HAND lands: the host's rules shake the ground round him (92)
-          c.pounding = false; c.lagT = 0.12; c.landT = 0.12; c.poundLand = true;
+          c.pounding = false; c.lagT = 0.12; c.landT = 0.12; c.poundLand = true; c.pL++;
           btFx(c, 's', 'pound'); btFx(c, 'd', c.x + c.w / 2 - 6, c.y + c.h); btFx(c, 'd', c.x + c.w / 2 + 6, c.y + c.h);
         } else if (!wasGround && c.fallV > 160) { btFx(c, 's', 'land'); btFx(c, 'd', c.x + c.w / 2, c.y + c.h); c.landT = 0.1; }
         c.airDash = true; c.airHover = true; c.hovering = false; c.fallV = 0; c.flying = false;

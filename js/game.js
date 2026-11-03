@@ -12921,7 +12921,8 @@
         rhythm: H.RHYTHM, rhythmMax: H.RHYTHM, rhythmT: 0, dashing: false, dashT: 0, dashDir: 1, dashCool: 0, dashBuf: 0, airDash: true, tapDir: 0, tapT: -9, now: 0,
         hovering: false, hoverT: 0, airHover: true, pounding: false, poundT: 0, poundId: 0, poundLand: false, lagT: 0, flying: false,
         stun: 0, grace: 0, safe: 0, wob: 0, hp: 3, out: false, outT: 0, gone: false, lastBy: -1, lastT: 99,
-        buff: { dash: 0, hover: 0, pound: 0, baton: 0, metro: 0 }, wantNote: false, frame: 0, animT: 0, runT: 0, landT: 0, fallV: 0, cheer: false, fx: [] };
+        buff: { dash: 0, hover: 0, pound: 0, baton: 0, metro: 0 }, wantNote: false, frame: 0, animT: 0, runT: 0, landT: 0, fallV: 0, cheer: false, fx: [],
+        jN: 0, nN: 0, pL: 0, bk: 0 };   // B18, online: jumps, notes thrown and pound landings counted (a lost message never loses one), and times back in (bk)
     };
     function btFx(c, k, a, b) { if (c.fx.length < 24) c.fx.push([k, a, b]); }   // for the screen only: a sound ('s', id) or dust ('d', x, y)
     function btDash(c, k) {
@@ -12975,7 +12976,7 @@
       if (free && c.swingBuf > 0 && c.swingT <= 0 && !c.pounding) { c.swingT = H.SWING_T; c.swingId++; c.swingBuf = 0; c.chargeT = 0; c.charged = false; btFx(c, 's', 'swing'); }
       if (B && !c.pounding && free) { c.chargeT += dt; if (!c.charged && c.chargeT >= H.CHARGE_T) { c.charged = true; btFx(c, 's', 'charge'); } }
       else if (!B) {
-        if (c.charged && c.wasB) { if (c.rhythm >= 1) { c.rhythm--; c.throwT = 0.16; c.wantNote = true; btFx(c, 's', 'note'); } else btFx(c, 's', 'nope'); }
+        if (c.charged && c.wasB) { if (c.rhythm >= 1) { c.rhythm--; c.throwT = 0.16; c.wantNote = true; c.nN++; btFx(c, 's', 'note'); } else btFx(c, 's', 'nope'); }
         c.charged = false; c.chargeT = 0;
       }
       c.wasB = B;
@@ -12984,7 +12985,7 @@
       if (!c.drop && c.ground && free && !c.pounding && tD && btOnThin(ar, c)) { c.dropT = 0.22; c.drop = true; c.buffer = 0; c.ground = false; c.coyote = 0; c.vy = 40; }
       if (c.buffer > 0 && (c.ground || c.coyote > 0) && free && !c.pounding) {
         if (D && c.ground && btOnThin(ar, c)) { c.dropT = 0.22; c.drop = true; c.buffer = 0; c.ground = false; c.coyote = 0; c.vy = 40; }
-        else { c.vy = -H.JUMP; c.ground = false; c.coyote = 0; c.buffer = 0; c.dashing = false; btFx(c, 's', 'jump'); btFx(c, 'd', c.x + c.w / 2, c.y + c.h); }
+        else { c.vy = -H.JUMP; c.ground = false; c.coyote = 0; c.buffer = 0; c.dashing = false; c.jN++; btFx(c, 's', 'jump'); btFx(c, 'd', c.x + c.w / 2, c.y + c.h); }
       }
 
       // across
@@ -13014,7 +13015,7 @@
       if (c.dashing && (c.dashT <= 0 || c.wallL || c.wallR)) { c.dashing = false; if (!c.wallL && !c.wallR) c.vx = c.dashDir * H.DASH_END; }
       if (c.ground) {
         if (c.pounding && c.poundT <= 0) {   // FIRM HAND lands: the host's rules shake the ground round him (92)
-          c.pounding = false; c.lagT = 0.12; c.landT = 0.12; c.poundLand = true;
+          c.pounding = false; c.lagT = 0.12; c.landT = 0.12; c.poundLand = true; c.pL++;
           btFx(c, 's', 'pound'); btFx(c, 'd', c.x + c.w / 2 - 6, c.y + c.h); btFx(c, 'd', c.x + c.w / 2 + 6, c.y + c.h);
         } else if (!wasGround && c.fallV > 160) { btFx(c, 's', 'land'); btFx(c, 'd', c.x + c.w / 2, c.y + c.h); c.landT = 0.1; }
         c.airDash = true; c.airHover = true; c.hovering = false; c.fallV = 0; c.flying = false;
@@ -13116,6 +13117,7 @@
       }
       for (i = 0; i < cs.length; i++) {   // falls: off the bottom, or far past a side (a knock-off for the last hitter within KO_T)
         v = cs[i];
+        if (v.hold) continue;   // online (B18): a guest's conductor the host only guesses at (it has not yet heard back about a knock) is never judged to fall on the guess
         if (btLive(v) && (v.y > ar.th * 16 + N.FALL_Y || v.x < -N.SIDE_X || v.x > aw + N.SIDE_X)) M.ev.push({ k: 'fall', who: v.i, by: v.lastT <= N.KO_T ? v.lastBy : -1, x: Math.round(v.x + v.w / 2) });
         else if (btLive(v) && v.y < N.TOP_Y) v.vy = Math.max(v.vy, 0);
       }
@@ -13178,7 +13180,7 @@
         if (e.by >= 0 && e.by !== e.who && M.stats[e.by]) M.stats[e.by].kos++;
         if (v.hp <= 0) v.gone = true;
       } else if (e.k === 'back' && v) {
-        v.out = false; v.x = e.x; v.y = e.y; v.vx = 0; v.vy = 0; v.safe = N.SAFE_T; v.face = e.x < 160 ? 1 : -1; v.rhythm = v.rhythmMax; v.rhythmT = 0;
+        v.out = false; v.x = e.x; v.y = e.y; v.vx = 0; v.vy = 0; v.safe = N.SAFE_T; v.face = e.x < 160 ? 1 : -1; v.rhythm = v.rhythmMax; v.rhythmT = 0; v.bk++;
         v.airDash = true; v.airHover = true; v.swingT = 0; v.charged = false; v.chargeT = 0; v.dashing = false; v.hovering = false; v.pounding = false; v.lastBy = -1; v.lastT = 99;
       } else if (e.k === 'itemIn') M.items.push({ id: e.id, kind: e.kind, x: e.x, y: e.y0, y0: e.y0, w: 14, h: 14, vx: e.vx, t: 0, ph: e.ph, dead: false });
       else if (e.k === 'item' && v) {
@@ -13217,7 +13219,7 @@
       for (i = 0; i < n; i++) {
         c = M.cs[i]; sp = ar.spawns[use[(i + M.round - 1) % use.length] % ar.spawns.length];
         f = BT.newC(c.i, sp.tx * 16 + 3, sp.ty * 16 + 16 - Q.HERO.H);
-        f.who = c.who; f.pad = c.pad; f.col = c.col; f.name = c.name; f.hp = M.rules.hearts; f.ground = true;
+        f.who = c.who; f.pad = c.pad; f.col = c.col; f.name = c.name; f.hp = M.rules.hearts; f.ground = true; f.net = c.net || '';   // net (B18): '' on this device, 'peer' a guest's (the host), 'far' shown from the host (a guest)
         M.cs[i] = f;
       }
     };
@@ -13240,7 +13242,7 @@
     BT.pad = function (n) { var a = Q.api; return a && typeof a.pad === 'function' ? a.pad(n) || null : null; };
     BT.padsOn = function () { var a = Q.api; return !!(a && typeof a.pad === 'function'); };
     var btLatch = { 2: {}, 3: {}, 4: {} }, btLatchAt = { 2: -1, 3: -1, 4: -1 };
-    BT.padLatch = function () {   // each step and each draw: a controller's press seen in this frame is kept until a step reads it (a frame may run no step)
+    BT.padLatch = function () {   // each step, and each frame in every BATTLE scene's draw (96-battle-online-link.js): a press seen in this frame is kept until a step reads it
       var a = Q.api, t = a && a.t ? a.t() : 0, n, pd, k;
       for (n = 2; n <= 4; n++) {
         if (btLatchAt[n] === t) continue;
@@ -13267,12 +13269,437 @@
       var out = [], i, c;
       for (i = 0; i < M.cs.length; i++) {
         c = M.cs[i];
-        if (c.who === 'cpu') out.push(BT.cpu(M, c, dt));
+        if (c.net) out.push(BT.ZERO);   // online (B18): a conductor moved on another device takes no input here
+        else if (c.who === 'cpu') out.push(BT.cpu(M, c, dt));
         else if (c.pad > 1) out.push(BT.readPad(c.pad));
         else out.push(BT.readDevice());
       }
       return out;
     };
+    // ===== 93-battle-net.js =====
+    // ---------- 93-battle-net.js: BATTLE MODE online, what both sides share (B18; ONLINE.md): the numbers, checking what arrives, packing a conductor ----------
+    // The network is the page's (js/net.js): the game reaches it only through the runtime's api.net, plain JSON read once a step. One device hosts and runs
+    // the match (BT.host, BT.hostRound and the CPUs run there only); each guest moves its own conductor (BT.sim) and shows the others from the host's
+    // snapshots, a little in the past (Gambetta, entity interpolation). Each decision of the host is an event with a number, sent again in every packet until
+    // the guest says it has it, and carried out once (BT.apply). Nothing that arrives is ever drawn as text: names and colours are numbers into our own lists.
+    BT.NETV = 1;   // the messages' version: a hello from another version is told to reload
+    BT.CODEA = 'BCDFGHJKLMNPQRSTVWXZ';   // a code is 4 of these 20 letters (no vowels, no Y, so no code is a word: Crockford's reason, taken further)
+    BT.NT = { HOST_EVERY: 3, GUEST_EVERY: 2, SNAP_EVERY: 3, BEHIND: 8, HELLO: 30, FIND_T: 25, EV_MAX: 64, LOB_EVERY: 30, SNAPS: 16, STALE: 30, AWAY: 600 };   // steps (60 a second), except FIND_T (s)
+    BT.netApi = function () { var a = Q.api; return a && a.net && typeof a.net.ok === 'function' ? a.net : null; };
+    BT.netOk = function () { var n = BT.netApi(); return !!(n && n.ok()); };
+    BT.netSend = function (to, m) { var n = BT.netApi(); return !!(n && n.send(to, m)); };
+    BT.netPoll = function () { var n = BT.netApi(); return n ? n.poll() : []; };
+    function btNum(v, lo, hi) { v = +v; return v === v && v >= lo && v <= hi ? v : NaN; }   // a number from the network in [lo, hi], else NaN (v === v is false only for NaN)
+    function btIn(v, lo, hi) { v = btNum(v, lo, hi); return v === v; }
+    BT.nNum = btNum;
+    BT.nInt = function (v, lo, hi, def) { v = btNum(v, lo, hi); return v === v ? Math.floor(v) : def; };
+    function r2(v) { return Math.round(v * 100) / 100; }
+    function r3(v) { return Math.round(v * 1000) / 1000; }
+    BT.codeOk = function (c) { var i; c = String(c || ''); if (c.length !== 4) return false; for (i = 0; i < 4; i++) if (BT.CODEA.indexOf(c.charAt(i)) < 0) return false; return true; };
+    // ---------- a conductor, both ways: a guest's report of its own (FLAGS), the host's snapshot of every one ----------
+    var FLAGS = ['ground', 'charged', 'dashing', 'hovering', 'pounding', 'flying', 'drop', 'wasB'];
+    function btFlags(c) { var f = 0, i; for (i = 0; i < FLAGS.length; i++) if (c[FLAGS[i]]) f |= 1 << i; return f; }
+    function btSetFlags(c, f) { for (var i = 0; i < FLAGS.length; i++) c[FLAGS[i]] = !!(f & (1 << i)); }
+    BT.packMe = function (c) {   // a guest's own conductor, as its owner moved it
+      return { x: r2(c.x), y: r2(c.y), vx: r2(c.vx), vy: r2(c.vy), f: c.face < 0 ? -1 : 1, fr: c.frame | 0, g: btFlags(c), sw: r3(c.swingT), si: c.swingId, ch: r3(c.chargeT),
+        rh: c.rhythm | 0, pt: r3(c.poundT), dt: r3(c.dashT), dd: c.dashDir < 0 ? -1 : 1, ht: r3(c.hoverT), st: r3(c.stun), nn: c.nN, pl: c.pL, jn: c.jN };
+    };
+    var ME = { x: [-3000, 3000], y: [-3000, 3000], vx: [-6000, 6000], vy: [-6000, 6000], fr: [0, 17, 1], g: [0, 255, 1], sw: [-1, 1], si: [0, 1e9, 1], ch: [0, 99], rh: [0, 9, 1],
+      pt: [-1, 1], dt: [-1, 1], ht: [-1, 2], st: [-1, 9], nn: [0, 1e6, 1], pl: [0, 1e6, 1], jn: [0, 1e6, 1] };
+    BT.cleanMe = function (r) {   // a report checked field by field (null if any is wrong)
+      var o = {}, k, v;
+      if (!r || typeof r !== 'object') return null;
+      for (k in ME) { if (!Object.prototype.hasOwnProperty.call(ME, k)) continue; v = btNum(r[k], ME[k][0], ME[k][1]); if (v !== v) return null; o[k] = ME[k][2] ? Math.floor(v) : v; }
+      o.f = r.f < 0 ? -1 : 1; o.dd = r.dd < 0 ? -1 : 1;
+      return o;
+    };
+    BT.unpackMe = function (c, r) {   // the host takes a guest's report: how it moves; the counters become the host's intents (a new swing, a note, a pound's landing)
+      c.x = r.x; c.y = r.y; c.vx = r.vx; c.vy = r.vy; c.face = r.f; c.frame = r.fr; btSetFlags(c, r.g); c.chargeT = r.ch; c.rhythm = r.rh; c.poundT = r.pt;
+      c.dashT = r.dt; c.dashDir = r.dd; c.hoverT = r.ht; c.stun = r.st;
+      if (r.si !== c.swingId) { c.swingId = r.si; c.swingT = r.sw; if (r.sw > 0) c.fx.push(['s', 'swing']); }
+      if (r.nn > c.nN) c.wantNote = true;
+      if (r.pl > c.pL) c.poundLand = true;
+      if (r.jn > c.jN) c.fx.push(['s', 'jump']);
+      c.nN = r.nn; c.pL = r.pl; c.jN = r.jn;
+    };
+    BT.packSnapC = function (c) {   // one conductor in the host's snapshot: what a guest needs to draw him (his hearts and WOBBLE come by events)
+      return { i: c.i, x: r2(c.x), y: r2(c.y), f: c.face < 0 ? -1 : 1, fr: c.frame | 0, g: btFlags(c), sf: r3(c.safe), sw: r3(c.swingT), si: c.swingId, ch: r3(c.chargeT), st: r3(c.stun),
+        bk: c.bk, jn: c.jN, b: [r2(c.buff.dash), r2(c.buff.hover), r2(c.buff.pound), r2(c.buff.baton), r2(c.buff.metro)] };
+    };
+    var SC = { i: [0, 3, 1], x: [-3000, 3000], y: [-3000, 3000], fr: [0, 17, 1], g: [0, 255, 1], sf: [-1, 9], sw: [-1, 1], si: [0, 1e9, 1], ch: [0, 99], st: [-1, 9], bk: [0, 1e6, 1], jn: [0, 1e6, 1] };
+    BT.cleanSnap = function (z) {   // a snapshot checked: { s, eq, ph, pt, rt, r, c: [...], n: notes, it: items }
+      var o, i, j, a, b, k, v, ok;
+      if (!z || typeof z !== 'object' || !z.c || !z.c.length || z.c.length > 4) return null;
+      o = { s: BT.nInt(z.s, 0, 1e9, -1), eq: BT.nInt(z.eq, 0, 1e9, -1), ph: z.ph === 'ready' || z.ph === 'fight' || z.ph === 'end' || z.ph === 'over' ? z.ph : '', pt: btNum(z.pt, 0, 1e6), rt: btNum(z.rt, 0, 1e6), r: BT.nInt(z.r, 1, 99, -1), c: [], n: [], it: [] };
+      if (o.s < 0 || o.eq < 0 || !o.ph || o.pt !== o.pt || o.rt !== o.rt || o.r < 0) return null;
+      for (i = 0; i < z.c.length; i++) {
+        a = z.c[i]; b = {}; ok = !!a && typeof a === 'object';
+        for (k in SC) { if (!ok || !Object.prototype.hasOwnProperty.call(SC, k)) continue; v = btNum(a[k], SC[k][0], SC[k][1]); if (v !== v) ok = false; else b[k] = SC[k][2] ? Math.floor(v) : v; }
+        if (!ok || !a.b || a.b.length !== 5) return null;
+        b.f = a.f < 0 ? -1 : 1; b.b = [];
+        for (j = 0; j < 5; j++) { v = btNum(a.b[j], 0, 99); if (v !== v) return null; b.b.push(v); }
+        o.c.push(b);
+      }
+      for (i = 0; z.n && i < z.n.length && i < 24; i++) { a = z.n[i]; if (a && btIn(a.id, 0, 1e9) && btIn(a.x, -3000, 3000) && btIn(a.t, 0, 99)) o.n.push({ id: Math.floor(a.id), x: +a.x, t: +a.t }); }
+      for (i = 0; z.it && i < z.it.length && i < 8; i++) { a = z.it[i]; if (a && btIn(a.id, 0, 1e9) && btIn(a.x, -3000, 3000) && btIn(a.t, 0, 999)) o.it.push({ id: Math.floor(a.id), x: +a.x, t: +a.t }); }
+      return o;
+    };
+    BT.snapOf = function (M, eq) {   // the host's snapshot of the match now (eq: the last event number it reflects)
+      var o = { s: M.step, eq: eq, ph: M.phase, pt: r3(M.phaseT), rt: r3(M.roundT), r: M.round, c: [], n: [], it: [] }, i, n, it;
+      for (i = 0; i < M.cs.length; i++) o.c.push(BT.packSnapC(M.cs[i]));
+      for (i = 0; i < M.notes.length; i++) { n = M.notes[i]; if (!n.dead) o.n.push({ id: n.id, x: r2(n.x), t: r3(n.t) }); }
+      for (i = 0; i < M.items.length; i++) { it = M.items[i]; if (!it.dead) o.it.push({ id: it.id, x: r2(it.x), t: r3(it.t) }); }
+      return o;
+    };
+    // ---------- the host's events, checked on arrival: only our own kinds, every field in range ----------
+    var EVK = { hit: 1, note: 1, noteEnd: 1, fall: 1, back: 1, itemIn: 1, item: 1, itemOut: 1, shake: 1, ot: 1, round: 1, next: 1, over: 1, left: 1 };
+    var EVF = { who: [0, 3, 1], by: [-1, 3, 1], kvx: [-9999, 9999], kvy: [-9999, 9999], stun: [0, 9], wob: [0, 24], x: [-9999, 9999], y: [-9999, 9999], y0: [-9999, 9999],
+      vx: [-9999, 9999], ph: [-99, 99], id: [0, 1e9, 1], winner: [-1, 3, 1] };
+    var HOW = { baton: 1, note: 1, meteor: 1, shock: 1 };
+    BT.cleanEv = function (e) {
+      var o, k, v;
+      if (!e || typeof e !== 'object' || typeof e.k !== 'string' || !Object.prototype.hasOwnProperty.call(EVK, e.k)) return null;
+      o = { k: e.k, q: BT.nInt(e.q, 1, 1e9, 0), s: BT.nInt(e.s, 0, 1e9, 0) };
+      if (!o.q) return null;
+      for (k in EVF) { if (!Object.prototype.hasOwnProperty.call(EVF, k) || e[k] === undefined) continue; v = btNum(e[k], EVF[k][0], EVF[k][1]); if (v !== v) return null; o[k] = EVF[k][2] ? Math.floor(v) : v; }
+      if (e.how !== undefined) { if (typeof e.how !== 'string' || !Object.prototype.hasOwnProperty.call(HOW, e.how)) return null; o.how = e.how; }
+      if (e.kind !== undefined) { if (typeof e.kind !== 'string' || !Object.prototype.hasOwnProperty.call(BT.ITEMS, e.kind)) return null; o.kind = e.kind; }
+      if (e.big !== undefined) o.big = !!e.big;
+      return o;
+    };
+    BT.cleanRules = function (r) {   // the host's rules, from its lobby
+      if (!r || typeof r !== 'object') return null;
+      var o = { rounds: BT.nInt(r.rounds, 1, 5, 0), hearts: BT.nInt(r.hearts, 1, 5, 0), items: !!r.items, cpu: BT.nInt(r.cpu, 0, 2, -1) };
+      return BT.ROUNDS.indexOf(o.rounds) >= 0 && o.hearts && o.cpu >= 0 ? o : null;
+    };
+    BT.arenaOk = function (a) { if (a === 'random') return true; for (var i = 0; i < BT.ARENAS.length; i++) if (BT.ARENAS[i].id === a) return true; return false; };
+    BT.netWords = {   // what a guest is told when it cannot play (each its own words: nothing that arrives is shown)
+      none: 'NO GAME WITH THAT CODE. ASK THE HOST AGAIN.', full: 'THAT GAME IS FULL: FOUR PLAYERS ALREADY.', busy: 'A MATCH IS ON THERE. YOU JOIN WHEN IT ENDS.',
+      old: 'THAT GAME IS ON ANOTHER VERSION. BOTH OF YOU: RELOAD THE PAGE.', host: 'THE HOST LEFT THE GAME.', end: 'THE HOST CLOSED THE GAME.',
+      load: 'ONLINE PLAY COULD NOT START ON THIS PAGE.', start: 'ONLINE PLAY COULD NOT START ON THIS PAGE.', trouble: 'NO DIRECT LINK: THIS NETWORK MAY BLOCK GAMES.',
+      away: 'YOU WERE AWAY TOO LONG: A CPU TOOK YOUR PLACE.', closed: 'YOU CLOSED THE GAME.'
+    };
+    // ===== 93-battle-net-guest.js =====
+    // ---------- 93-battle-net-guest.js: BATTLE MODE online, a guest's side (B18; ONLINE.md) ----------
+    // A guest joins the room of a code, finds its host (the page tells it), says hello until it is seated, mirrors the host's lobby, and starts each match
+    // from the setup the host sends. In a match it moves only its own conductor (BT.sim with this device's buttons, at once, never corrected), carries out
+    // the host's events in order and once each, and draws everyone else from the host's snapshots BEHIND steps in the past, between the two around that time.
+    // It reports its own conductor every GUEST_EVERY steps with the number of the last event it carried out (the host's acknowledgement).
+    (function () {
+      var G = BT.NG = { on: false, code: '', st: '', you: -1, t: 0, helloT: 0, why: '', lob: null, k: 0, M: null, done: 0, fresh: [], snaps: [], step: 0, off: null, seq: 0, sendT: 0, trouble: 0 };
+      BT.guestOpen = function (code) {   // into the room of that code; false if this page cannot
+        var n = BT.netApi();
+        if (!n || !n.ok() || !BT.codeOk(code) || !n.join(code)) return false;
+        G.on = true; G.code = code; G.st = 'find'; G.you = -1; G.t = 0; G.helloT = 0; G.why = ''; G.lob = null; G.k = 0; G.M = null; G.done = 0; G.fresh = []; G.snaps = [];
+        G.step = 0; G.off = null; G.seq = 0; G.sendT = 0; G.trouble = 0;
+        return true;
+      };
+      BT.guestClose = function (why) {   // LEAVE, or the game is over for us: say BYE, leave the room; why says what the menu tells him
+        var n = BT.netApi();
+        if (G.on) { BT.netSend('host', { t: 'bye' }); if (n) n.leave(); }
+        G.on = false; G.st = ''; G.why = why || ''; G.M = null;
+      };
+      function hello() { BT.netSend('host', { t: 'hi', v: BT.NETV, col: BT.S.slots[0].col, name: BT.S.slots[0].name }); }
+      function lobby(m) {   // the host's lobby, checked: four slots of our own words and numbers, the rules, the arena
+        var sl = [], i, s, w, ru = BT.cleanRules(m.ru), you = BT.nInt(m.you, 1, 3, -1), lk = BT.nInt(m.k, 0, 1e9, -1);
+        if (!m.sl || m.sl.length !== 4 || !ru || you < 0 || typeof m.ar !== 'string' || !BT.arenaOk(m.ar) || lk < G.k) return;   // a lobby from before our match is old news
+        for (i = 0; i < 4; i++) {
+          s = m.sl[i]; w = s && typeof s.w === 'string' && /^(off|cpu|net|host|pad)$/.test(s.w) ? s.w : '';
+          if (!w) return;
+          sl.push({ on: w !== 'off', w: w, col: BT.nInt(s.c, 0, 3, 0), name: BT.nInt(s.m, 0, BT.NAMES.length - 1, 0) });
+        }
+        G.lob = { sl: sl, ru: ru, ar: m.ar }; G.you = you;
+        if (G.st === 'play' || G.st === 'res' || G.st === 'wait' || G.st === 'busy') G.st = 'seat';   // the host is back in the lobby
+      }
+      function start(su, k) {   // a new match from the host's setup: this device's slot is ours (its buttons), every other one is drawn from snapshots
+        var st = su && su.st, you = BT.nInt(su && su.you, 1, 3, -1), slots = [], i, s, ru, M, c;
+        if (!st || you < 0 || !st.slots || st.slots.length !== 4 || typeof st.arena !== 'string' || st.arena === 'random' || !BT.arenaOk(st.arena)) return false;
+        ru = BT.cleanRules(st.rules); if (!ru) return false;
+        for (i = 0; i < 4; i++) { s = st.slots[i] || {}; slots.push({ on: !!s.on, who: s.who === 'human' ? 'human' : 'cpu', pad: i === you ? 1 : 0, col: BT.nInt(s.col, 0, 3, 0), name: BT.nInt(s.name, 0, BT.NAMES.length - 1, 0) }); }
+        if (!slots[you].on) return false;
+        M = BT.newMatch({ slots: slots, arena: st.arena, rules: ru, seed: BT.nInt(st.seed, 1, 4294967295, 1) });
+        M.k = k; M.role = 'guest';
+        for (i = 0; i < M.cs.length; i++) { c = M.cs[i]; c.net = c.i === you ? '' : 'far'; if (c.i === you) { c.who = 'human'; c.pad = 1; } }
+        G.M = M; G.k = k; G.you = you; G.done = 0; G.fresh = []; G.snaps = []; G.off = null; G.seq = 0; G.sendT = 0; G.st = 'play';
+        return true;
+      }
+      function apply(M, e) {   // one of the host's events, carried out here (a guest who left is a CPU now: told, and tagged so)
+        var c;
+        if (e.k === 'left') { c = BT.cOf(M, e.who); if (c) { c.who = 'cpu'; Q.toast(BT.NAMES[c.name] + ' LEFT: A CPU PLAYS ON', 2.4); } }
+        else BT.apply(M, e);
+        G.fresh.push(e);
+      }
+      function match(m) {
+        var k = BT.nInt(m.k, 1, 1e9, 0), s = BT.nInt(m.s, 0, 1e9, -1), i, e, z, last;
+        if (!k || s < 0) return;
+        if (k !== G.k && !(m.su && BT.nInt(m.su.k, 1, 1e9, 0) === k && start(m.su, k))) return;   // a match we have not got: wait for its setup
+        if (G.off === null || s - G.step > G.off) G.off = s - G.step; else G.off -= 0.05;   // the host's clock: the quickest packets set it, it eases back slowly
+        for (i = 0; m.e && i < m.e.length && i < 200; i++) { e = BT.cleanEv(m.e[i]); if (e && e.q === G.done + 1) { apply(G.M, e); G.done++; } }
+        if (m.z) {
+          z = BT.cleanSnap(m.z); last = G.snaps.length ? G.snaps[G.snaps.length - 1] : null;
+          if (z && (!last || z.s > last.s)) { G.snaps.push(z); if (G.snaps.length > BT.NT.SNAPS) G.snaps.shift(); }
+        }
+      }
+      function message(m) {
+        var why;
+        if (!m || typeof m !== 'object' || typeof m.t !== 'string') return;
+        if (m.t === 'seat') { if (BT.nInt(m.you, 1, 3, -1) >= 0) { G.you = BT.nInt(m.you, 1, 3, -1); if (G.st === 'find' || G.st === 'wait' || G.st === 'busy') G.st = 'seat'; } }
+        else if (m.t === 'no') { why = m.why === 'full' || m.why === 'old' || m.why === 'busy' || m.why === 'away' ? m.why : ''; if (why === 'busy') G.st = 'busy'; else if (why) BT.guestClose(why); }
+        else if (m.t === 'lob') lobby(m);
+        else if (m.t === 'm') match(m);
+        else if (m.t === 'end') BT.guestClose('end');
+      }
+      BT.guestPoll = function (dt) {   // every step a guest is online: what came in; hello again now and then until seated; give up on a code with no host
+        var l, i, e;
+        if (!G.on) return;
+        G.t += dt; if (G.trouble > 0) G.trouble--;
+        l = BT.netPoll();
+        for (i = 0; i < l.length && G.on; i++) {
+          e = l[i];
+          if (e.k === 'host') { if (G.st === 'find') { G.st = 'wait'; G.helloT = 0; } }
+          else if (e.k === 'lost') BT.guestClose(e.msg && (e.msg.why === 'load' || e.msg.why === 'start') ? e.msg.why : 'host');
+          else if (e.k === 'trouble') G.trouble = 300;
+          else if (e.k === 'msg') message(e.msg);
+        }
+        if (!G.on) return;
+        if (G.st === 'find' && G.t > BT.NT.FIND_T) { BT.guestClose('none'); return; }
+        if ((G.st === 'wait' || G.st === 'busy') && --G.helloT <= 0) { G.helloT = G.st === 'busy' ? 2 * BT.NT.HELLO : BT.NT.HELLO; hello(); }
+      };
+      BT.guestPick = function (col, name) { BT.netSend('host', { t: 'pick', col: col, name: name }); };
+      function far(M) {   // everyone else, BEHIND steps in the host's past, between the two snapshots around then (no slide across a respawn)
+        var rs = G.step + (G.off || 0) - BT.NT.BEHIND, z0 = null, z1 = null, i, j, s, c, a, b, k, f, n;
+        for (j = G.snaps.length - 1; j >= 0; j--) { s = G.snaps[j]; if (s.r !== M.round) continue; if (s.s <= rs) { z0 = s; break; } z1 = s; }
+        if (!z0) z0 = z1;
+        if (!z0) return;
+        for (i = 0; i < M.cs.length; i++) {
+          c = M.cs[i]; if (c.net !== 'far') continue;
+          a = null; b = null;
+          for (j = 0; j < z0.c.length; j++) if (z0.c[j].i === c.i) a = z0.c[j];
+          if (z1 && z1 !== z0) for (j = 0; j < z1.c.length; j++) if (z1.c[j].i === c.i) b = z1.c[j];
+          if (!a) continue;
+          k = b && b.bk === a.bk ? Q.clamp((rs - z0.s) / (z1.s - z0.s), 0, 1) : 0;
+          f = b && k >= 0.5 ? b : a;
+          c.x = b ? a.x + (b.x - a.x) * k : a.x; c.y = b ? a.y + (b.y - a.y) * k : a.y;
+          c.face = f.f; c.frame = f.fr; c.safe = f.sf; c.swingT = f.sw; c.chargeT = f.ch; c.stun = f.st;
+          c.charged = !!(f.g & 2); c.dashing = !!(f.g & 4); c.hovering = !!(f.g & 8); c.pounding = !!(f.g & 16); c.ground = !!(f.g & 1);
+          c.buff.dash = f.b[0]; c.buff.hover = f.b[1]; c.buff.pound = f.b[2]; c.buff.baton = f.b[3]; c.buff.metro = f.b[4];
+          if (f.si !== c.swingId) { if (f.si > c.swingId) c.fx.push(['s', 'swing']); c.swingId = f.si; }
+          if (f.jn > c.jN) c.fx.push(['s', 'jump']); c.jN = f.jn;
+        }
+        for (j = 0; j < z0.n.length; j++) for (i = 0; i < M.notes.length; i++) { n = M.notes[i]; if (n.id === z0.n[j].id && !n.dead && Math.abs(n.x - z0.n[j].x) > 24) { n.x = z0.n[j].x; n.t = z0.n[j].t; } }   // a note far off: put right
+      }
+      function phase(M) {   // the round's clock as the host has it, from the newest snapshot that reflects exactly the events carried out here
+        var z = null, j, age, pt;
+        for (j = G.snaps.length - 1; j >= 0; j--) if (G.snaps[j].r === M.round && G.snaps[j].eq === G.done) { z = G.snaps[j]; break; }
+        if (!z || (z.ph !== 'ready' && z.ph !== 'fight') || (M.phase !== 'ready' && M.phase !== 'fight')) return;
+        age = Math.max(0, G.step + (G.off || 0) - z.s) * Q.DT; pt = z.pt + age;
+        if (z.ph !== M.phase || Math.abs(M.phaseT - pt) > 0.1) { M.phase = z.ph; M.phaseT = pt; M.roundT = z.rt + (z.ph === 'fight' ? age : 0); }
+      }
+      BT.guestStep = function (M, dt, still) {   // one fixed step of a match on a guest; still: his own menu is up (his conductor stands)
+        var ar = BT.arenaOf(M.arena), N = BT.N, me = BT.cOf(M, G.you), inp = BT.ZERO, fight, i, j, list, n, it;
+        G.step++; M.step++; M.t += dt; M.phaseT += dt;
+        M.ev.length = 0; for (i = 0; i < G.fresh.length; i++) M.ev.push(G.fresh[i]); G.fresh.length = 0;
+        for (i = 0; i < M.cs.length; i++) M.cs[i].fx.length = 0;
+        if (M.phase === 'ready' && M.phaseT >= N.READY_T) { M.phase = 'fight'; M.phaseT = 0; }
+        fight = M.phase === 'fight';
+        if (fight) M.roundT += dt;
+        if (M.phase !== 'over') {
+          inp = BT.readDevice(); if (still || !fight) inp = BT.ZERO;
+          if (me) { BT.sim(me, inp, dt, ar); if (!me.out && !me.gone && me.y < N.TOP_Y) me.vy = Math.max(me.vy, 0); }
+          for (i = 0; i < M.notes.length; i++) { n = M.notes[i]; if (!n.dead) { n.t += dt; n.x += n.vx * dt; } }
+          for (i = 0; i < M.items.length; i++) { it = M.items[i]; if (!it.dead) { it.t += dt; it.x += it.vx * dt; it.y = it.y0 + Math.sin(it.t * 2.2 + it.ph) * N.ITEM_BOB; } }
+          list = M.notes; for (i = 0, j = 0; i < list.length; i++) if (!list[i].dead) list[j++] = list[i]; list.length = j;
+          list = M.items; for (i = 0, j = 0; i < list.length; i++) if (!list[i].dead) list[j++] = list[i]; list.length = j;
+        }
+        phase(M); far(M);
+        if (me && ++G.sendT >= BT.NT.GUEST_EVERY) { G.sendT = 0; BT.netSend('host', { t: 'me', k: M.k, s: ++G.seq, a: G.done, c: BT.packMe(me), h: inp.h | 0 }); }
+      };
+      BT.guestResults = function () { if (G.st === 'play') G.st = 'res'; };
+      BT.guestAt = function () { return { on: G.on, code: G.code, st: G.st, you: G.you, k: G.k, done: G.done, snaps: G.snaps.length, off: G.off, step: G.step, why: G.why, lob: G.lob ? { ar: G.lob.ar, sl: G.lob.sl.map(function (s) { return s.w; }) } : null }; };
+    })();
+    // ===== 93-battle-net-host.js =====
+    // ---------- 93-battle-net-host.js: BATTLE MODE online, the host's side (B18; ONLINE.md) ----------
+    // The host opens a room (its code), seats each guest who says hello in the first free slot (a CPU's or an empty one), keeps the lobby (slots, rules, arena)
+    // and sends it to each guest; START begins the match on every device. In the match the host runs the rules for everyone (BT.hostStep): its own people and
+    // the CPUs move here; a guest's conductor moves by that guest's reports, and between them by the host's guess (BT.sim with the buttons last reported).
+    // From the step the host decides a knock, a respawn or a new round for a guest's conductor until that guest acknowledges the event, the host keeps to its
+    // guess (c.hold) and ignores older reports, so a report sent before the guest knew can never undo it. A guest who leaves becomes a CPU (event 'left').
+    (function () {
+      var H = BT.NH = { on: false, code: '', slots: [], guests: {}, away: {}, t: 0, lobT: 0, dirty: false, phase: '', k: 0, M: null, setup: null, seq: 0, log: [], extra: [], why: '', trouble: 0 };
+      function key(id) { return 'p:' + id; }
+      function own(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
+      function each(fn) { var k; for (k in H.guests) if (own(H.guests, k)) fn(H.guests[k]); }
+      function bySlot(i) { var r = null; each(function (g) { if (g.slot === i) r = g; }); return r; }
+      function colFree(i, col) { for (var j = 0; j < 4; j++) if (j !== i && H.slots[j].on && H.slots[j].col === col) return false; return true; }
+      function nameFree(i, nm) { for (var j = 0; j < 4; j++) if (j !== i && H.slots[j].on && H.slots[j].name === nm) return false; return true; }
+      function nextCol(i, from, step) { var v = from, k; for (k = 0; k < 4; k++) { v = (v + step + 4) % 4; if (colFree(i, v)) return v; } return from; }
+      function nextName(i, from, step) { var n = BT.NAMES.length, v = from, k; for (k = 0; k < n; k++) { v = (v + step + n) % n; if (nameFree(i, v)) return v; } return from; }
+      function tidy(i) { var s = H.slots[i]; if (!colFree(i, s.col)) s.col = nextCol(i, s.col, 1); if (!nameFree(i, s.name)) s.name = nextName(i, s.name, 1); }
+      function recolour(i, step) {   // the next free colour; with all four taken, a swap with whoever has the next one (as B16's players screen)
+        var s = H.slots[i], want = (s.col + step + 4) % 4, v = nextCol(i, s.col, step), j;
+        if (v !== s.col) { s.col = v; return; }
+        for (j = 0; j < 4; j++) if (j !== i && H.slots[j].on && H.slots[j].col === want) { H.slots[j].col = s.col; s.col = want; return; }
+      }
+      BT.hostTidy = tidy; BT.hostRecolour = recolour; BT.hostNextName = nextName;
+      BT.hostGuests = function () { var n = 0; each(function () { n++; }); return n; };
+      BT.hostGuestAt = function (i) { return !!bySlot(i); };
+      BT.hostOpen = function () {   // a room of our own; gives its code ('' if this page cannot)
+        var n = BT.netApi(), i, s, code;
+        if (!n || !n.ok()) return '';
+        code = n.host(); if (!BT.codeOk(code)) { n.leave(); return ''; }
+        H.on = true; H.code = code; H.guests = {}; H.away = {}; H.phase = 'lobby'; H.dirty = true; H.M = null; H.why = ''; H.t = 0; H.lobT = 0; H.trouble = 0; H.slots = [];
+        for (i = 0; i < 4; i++) { s = BT.S.slots[i]; H.slots.push({ on: i === 0 ? true : s.on, who: i === 0 ? 'human' : 'cpu', pad: i === 0 ? 1 : 0, col: s.col, name: s.name, peer: '' }); }
+        for (i = 1; i < 4; i++) if (H.slots[i].on) tidy(i);
+        return code;
+      };
+      BT.hostClose = function (why) {   // CLOSE (or the page lost its room): every guest is told, the room is left
+        var n = BT.netApi();
+        if (H.on) { each(function (g) { BT.netSend(g.id, { t: 'end' }); }); if (n) n.leave(); }
+        H.on = false; H.guests = {}; H.phase = ''; H.M = null; H.why = why || '';
+      };
+      function freeSlot() { for (var i = 1; i < 4; i++) if (!(H.slots[i].on && H.slots[i].who === 'human')) return i; return -1; }
+      function seat(from, m) {   // a hello: the first free slot, its colour and name as asked when no one else has them
+        var i = freeSlot(), g;
+        if (i < 0) return null;
+        g = H.guests[key(from)] = { id: from, slot: i, ack: 0, lastS: -1, rep: null, fresh: false, held: 0, hasK: 0, quiet: 0 };
+        H.slots[i] = { on: true, who: 'human', pad: 0, col: BT.nInt(m.col, 0, 3, 0), name: BT.nInt(m.name, 0, BT.NAMES.length - 1, 0), peer: from };
+        tidy(i); H.dirty = true; Q.sfx('learn');
+        return g;
+      }
+      function gone(id) {   // a guest left (its BYE, or the page says it is gone): in the lobby its slot is a CPU again; in a match a CPU plays on for it
+        var g = own(H.guests, key(id)) ? H.guests[key(id)] : null, s, c;
+        if (!g) return;
+        delete H.guests[key(id)];
+        s = H.slots[g.slot]; H.slots[g.slot] = { on: true, who: 'cpu', pad: 0, col: s.col, name: s.name, peer: '' }; H.dirty = true;
+        if (H.M && H.phase === 'match') { c = BT.cOf(H.M, g.slot); if (c) { c.who = 'cpu'; c.net = ''; c.hold = false; c.ai = null; c.pad = g.slot + 1; H.extra.push({ k: 'left', who: g.slot }); } }
+        Q.toast(BT.NAMES[s.name] + ' LEFT: A CPU PLAYS ON', 2.4);
+      }
+      function report(g, m) {   // a guest's own conductor: the newest only, and only for this match
+        var M = H.M, s = BT.nInt(m.s, 0, 1e9, -1), a = BT.nInt(m.a, 0, 1e9, -1), k = BT.nInt(m.k, 0, 1e9, -1), c = BT.cleanMe(m.c);
+        if (!M || H.phase !== 'match' || k !== M.k || s < 0 || a < 0 || !c) return;
+        g.hasK = k;
+        if (s <= g.lastS) return;
+        g.lastS = s; if (a > g.ack) g.ack = Math.min(a, H.seq);
+        g.rep = c; g.held = BT.nInt(m.h, 0, 255, 0); g.fresh = true; g.quiet = 0;
+      }
+      function message(from, m) {
+        var g = own(H.guests, key(from)) ? H.guests[key(from)] : null, s;
+        if (!m || typeof m !== 'object' || typeof m.t !== 'string') return;
+        if (m.t === 'hi') {
+          delete H.away[key(from)];
+          if (BT.nInt(m.v, 0, 999, -1) !== BT.NETV) { BT.netSend(from, { t: 'no', why: 'old' }); return; }
+          if (!g) {
+            if (H.phase !== 'lobby') { BT.netSend(from, { t: 'no', why: 'busy' }); return; }
+            g = seat(from, m);
+            if (!g) { BT.netSend(from, { t: 'no', why: 'full' }); return; }
+          }
+          BT.netSend(from, { t: 'seat', v: BT.NETV, you: g.slot }); H.dirty = true;
+          return;
+        }
+        if (!g) { if (m.t === 'me' && own(H.away, key(from))) BT.netSend(from, { t: 'no', why: 'away' }); return; }   // away too long: told again until he hears it
+        if (m.t === 'pick' && H.phase === 'lobby') {
+          s = H.slots[g.slot];
+          if (m.col === 1 || m.col === -1) recolour(g.slot, m.col);
+          if (m.name === 1 || m.name === -1) s.name = nextName(g.slot, s.name, m.name);
+          H.dirty = true;
+        } else if (m.t === 'me') report(g, m);
+        else if (m.t === 'bye') gone(from);
+      }
+      function lobbyOf(g) {   // the lobby as one guest sees it
+        var sl = [], i, s;
+        for (i = 0; i < 4; i++) { s = H.slots[i]; sl.push({ on: s.on ? 1 : 0, w: !s.on ? 'off' : s.who === 'cpu' ? 'cpu' : s.peer ? 'net' : s.pad === 1 ? 'host' : 'pad', c: s.col, m: s.name }); }
+        return { t: 'lob', k: H.k, you: g.slot, sl: sl, ru: BT.copy(BT.S.rules), ar: BT.S.arena };   // k: matches started so far (a guest drops an older lobby)
+      }
+      function awayCheck() {   // a guest whose game is quiet in a match (a hidden tab, a locked phone: its page still answers the heartbeats): after AWAY steps a CPU plays on
+        var ids = [];
+        each(function (g) { if (++g.quiet > BT.NT.AWAY) ids.push(g.id); });
+        ids.forEach(function (id) { H.away[key(id)] = true; BT.netSend(id, { t: 'no', why: 'away' }); gone(id); });
+      }
+      BT.hostPoll = function () {   // every step the host is online (lobby, fight, results): what came in, then the lobby out
+        var l, i, e, n, c;
+        if (!H.on) return;
+        H.t++; if (H.trouble > 0) H.trouble--;
+        l = BT.netPoll();
+        for (i = 0; i < l.length && H.on; i++) {
+          e = l[i];
+          if (e.k === 'msg') message(e.from, e.msg);
+          else if (e.k === 'leave') gone(e.from);
+          else if (e.k === 'clash') { if (!BT.hostGuests() && H.phase === 'lobby') { n = BT.netApi(); c = n ? n.host() : ''; if (BT.codeOk(c)) { H.code = c; H.dirty = true; } } }   // another host had our code: a new one
+          else if (e.k === 'trouble') H.trouble = 300;
+          else if (e.k === 'lost') { BT.hostClose(e.msg && e.msg.why === 'load' ? 'load' : 'start'); return; }
+        }
+        if (H.phase === 'match') awayCheck();
+        if (H.phase === 'lobby' && (H.dirty || ++H.lobT >= BT.NT.LOB_EVERY)) { H.lobT = 0; H.dirty = false; each(function (g) { BT.netSend(g.id, lobbyOf(g)); }); }
+        if (H.phase === 'results' && H.M && H.log.length && H.t % 6 === 0) send(H.M, false);   // the last events, until every guest has them
+      };
+      BT.hostStart = function () {   // START in the lobby, or REMATCH: a new match on every device
+        var slots = [], i, s, st, M, c;
+        for (i = 0; i < 4; i++) { s = H.slots[i]; slots.push({ on: s.on, who: s.who, pad: s.peer ? 0 : s.who === 'human' ? s.pad : i + 1, col: s.col, name: s.name, net: s.peer ? 1 : 0 }); }
+        st = BT.setupNow(); st.slots = slots;
+        M = BT.newMatch(st);
+        H.k++; M.k = H.k; M.role = 'host';
+        for (i = 0; i < M.cs.length; i++) { c = M.cs[i]; c.net = H.slots[c.i].peer ? 'peer' : ''; c.hold = false; c.lockQ = 0; }
+        H.M = M; H.setup = st; H.seq = 0; H.log = []; H.extra = []; H.phase = 'match';
+        each(function (g) { g.ack = 0; g.lastS = -1; g.rep = null; g.fresh = false; g.held = 0; g.quiet = 0; });
+        return M;
+      };
+      BT.hostLobby = function () { H.phase = 'lobby'; H.M = null; H.log = []; H.dirty = true; };
+      BT.hostResults = function () { H.phase = 'results'; };
+      function remote(M, c, g, dt, ar, fight) {   // a guest's conductor: the host's guess (its timers tick as on every device), then that guest's newest report
+        var lock = !g || g.ack < (c.lockQ || 0), stale = !g || g.quiet > BT.NT.STALE;   // stale: no report for half a second, so no more running on his last buttons
+        BT.sim(c, fight && !lock && !stale ? { h: g.held, p: 0 } : BT.ZERO, dt, ar);
+        c.wantNote = false; c.poundLand = false; c.fx.length = 0;
+        if (g && g.fresh) { g.fresh = false; if (!lock) { BT.unpackMe(c, g.rep); c.hold = false; } }
+      }
+      BT.hostStep = function (M, dt, still) {   // one fixed step of a match online (BT.step, with guests' conductors as above); still: the host's own menu is up
+        var ar = BT.arenaOf(M.arena), N = BT.N, i, j, c, e, inp, list, fight, s0 = H.seq;
+        M.step++; M.t += dt; M.phaseT += dt; M.ev.length = 0;
+        for (i = 0; i < M.cs.length; i++) M.cs[i].fx.length = 0;
+        if (M.phase !== 'over') {
+          if (M.phase === 'ready' && M.phaseT >= N.READY_T) { M.phase = 'fight'; M.phaseT = 0; }
+          fight = M.phase === 'fight';
+          if (fight) M.roundT += dt;
+          inp = BT.inputs(M, dt);
+          for (i = 0; i < M.cs.length; i++) {
+            c = M.cs[i];
+            if (c.net === 'peer') remote(M, c, bySlot(c.i), dt, ar, fight);
+            else BT.sim(c, fight && !(still && c.who === 'human' && c.pad <= 1) ? inp[i] || BT.ZERO : BT.ZERO, dt, ar);
+          }
+          if (fight) BT.host(M, dt);
+          for (i = 0; i < M.ev.length; i++) BT.apply(M, M.ev[i]);
+          list = M.notes; for (i = 0, j = 0; i < list.length; i++) if (!list[i].dead) list[j++] = list[i]; list.length = j;
+          list = M.items; for (i = 0, j = 0; i < list.length; i++) if (!list[i].dead) list[j++] = list[i]; list.length = j;
+          BT.hostRound(M);
+        }
+        while (H.extra.length) M.ev.push(H.extra.shift());   // a guest who left: a CPU here already
+        for (i = 0; i < M.ev.length; i++) {   // number this step's events, keep them until every guest has them, and hold a guest's conductor they move
+          e = M.ev[i]; e.q = ++H.seq; e.s = M.step; H.log.push(e);
+          if (e.k === 'hit' || e.k === 'back') { c = BT.cOf(M, e.who); if (c && c.net === 'peer') { c.lockQ = e.q; c.hold = true; } }
+          else if (e.k === 'next') for (j = 0; j < M.cs.length; j++) if (M.cs[j].net === 'peer') { M.cs[j].lockQ = e.q; M.cs[j].hold = true; }
+        }
+        send(M, H.seq > s0);
+      };
+      function send(M, news) {   // to each guest: every event it has not acknowledged, a snapshot every third step, the setup until it has this match
+        var snap = M.step % BT.NT.SNAP_EVERY === 0, z = null, low = H.seq, j;
+        if (!news && M.step % BT.NT.HOST_EVERY !== 0 && H.phase === 'match') return;
+        each(function (g) {
+          var ev = [], p;
+          for (j = 0; j < H.log.length && ev.length < BT.NT.EV_MAX; j++) if (H.log[j].q > g.ack) ev.push(H.log[j]);
+          p = { t: 'm', k: M.k, s: M.step, e: ev };
+          if (snap) p.z = z || (z = BT.snapOf(M, H.seq));
+          if (g.hasK !== M.k) p.su = { k: M.k, you: g.slot, st: H.setup };
+          BT.netSend(g.id, p);
+          if (g.ack < low) low = g.ack;
+        });
+        for (j = 0; j < H.log.length && H.log[j].q <= low; j++) {}
+        if (j) H.log.splice(0, j);
+      }
+      BT.hostAt = function () {   // for checks
+        var gs = [];
+        each(function (g) { gs.push({ slot: g.slot, ack: g.ack, lastS: g.lastS, hasK: g.hasK }); });
+        return { on: H.on, code: H.code, phase: H.phase, k: H.k, seq: H.seq, log: H.log.length, guests: gs, slots: H.slots.map(function (s) { return { on: s.on, who: s.who, pad: s.pad, col: s.col, name: s.name, net: !!s.peer }; }), why: H.why };
+      };
+    })();
     // ===== 94-battle-cpu.js =====
     // ---------- 94-battle-cpu.js: BATTLE MODE's CPU conductors (B16; BATTLE.md): fun, not perfect ----------
     // BT.cpu(M, c, dt) gives the same input frame a person makes ({ h, p }, the Command pattern). It thinks only every so often (its level's react time),
@@ -13828,14 +14255,23 @@
         sides: BT.sides
       });
       BT.modesAt = function () { return { sel: MO.sel, id: MODES[MO.sel].id, soon: MO.soon > 0, soonAt: MO.soonAt, modes: MODES.map(function (m) { return m.id + (m.live ? '' : ':soon'); }) }; };
-      var SP = { t: 0 };
+      BT.splashAt = function () { return { sel: SP.sel, ways: SP.net ? WAYS.slice() : ['PLAY HERE'], t: Math.round(SP.t * 10) / 10 }; };   // B18, for checks
+      var SP = { t: 0, sel: 0, net: false }, WAYS = ['PLAY HERE', 'HOST ONLINE', 'JOIN ONLINE'];   // B18: the last two only where the page offers online play
+      function spGo() {
+        var code;
+        Q.sfx('select');
+        if (SP.sel === 1) { code = BT.hostOpen(); if (code) Q.go('blobby', { row: 4 }); else Q.go('bnote', { why: 'start' }); }
+        else if (SP.sel === 2) Q.go('bjoin');
+        else Q.go('bplayers');
+      }
       Q.defScene('bsplash', {
-        enter: function () { U.entered(); BT.padClear(); SP.t = 0; Q.music('map'); },
+        enter: function () { U.entered(); BT.padClear(); SP.t = 0; SP.sel = 0; SP.net = !!(BT.netOk && BT.netOk()); Q.music('map'); },
         update: function (dt) {
           var k = BT.keys(), B = BT.BIT;
           SP.t += dt;
           if (k & B.b) { Q.sfx('back'); Q.go('modes'); return; }
-          if (k & (B.a | B.start) || SP.t > 3.2) { Q.sfx('select'); Q.go('bplayers'); }
+          if (SP.net && k & (B.left | B.right)) { SP.sel = (SP.sel + (k & B.left ? 2 : 1)) % 3; Q.sfx('move'); }
+          if (k & (B.a | B.start) || (!SP.net && SP.t > 3.2)) spGo();   // with online play to choose from, it waits for a choice
         },
         draw: function (g) {
           var i, x, t = SP.t, f, s;
@@ -13848,8 +14284,8 @@
           }
           BT.big('BATTLE', 30 + Math.round(Math.sin(t * 2) * 1.5), '#ff8a1e', 5);
           s = 'UP TO FOUR CONDUCTORS. LAST ONE STANDING.'; U.text(s, 160 - (U.width(s) >> 1), 80, '#f6efe2');
-          if (Math.floor(t * 2) % 2) { s = 'PRESS A'; U.text(s, 160 - (U.width(s) >> 1), 172, '#ffd23f'); }
-          BT.foot('A: ON   B: BACK');
+          if (SP.net) { for (i = 0; i < 3; i++) U.item(WAYS[i], 58 + i * 102, 170, i === SP.sel, false, 'center'); BT.foot('LEFT AND RIGHT: CHOOSE   A: GO   B: BACK'); }
+          else { if (Math.floor(t * 2) % 2) { s = 'PRESS A'; U.text(s, 160 - (U.width(s) >> 1), 172, '#ffd23f'); } BT.foot('A: ON   B: BACK'); }
           U.drawTalk(g);
         },
         leave: function () {},
@@ -13889,7 +14325,7 @@
         return true;
       };
       function cycleWho(i) {
-        var s = BT.S.slots[i], order = i === 0 ? ['human', 'cpu'] : BT.padsOn() ? ['cpu', 'human', 'off'] : ['cpu', 'off'], now = !s.on ? 'off' : s.who, k = order.indexOf(now);
+        var s = BT.S.slots[i], order = i === 0 ? ['human', 'cpu'] : BT.padsOn() && (BT.padOn(i + 1) || s.who === 'human') ? ['cpu', 'human', 'off'] : ['cpu', 'off'], now = !s.on ? 'off' : s.who, k = order.indexOf(now);   // PLAYER n only with controller n plugged in (B18)
         BT.setWho(i, order[(k + 1) % order.length]);
       }
       function change(i, row) {
@@ -13958,7 +14394,7 @@
       });
       BT.playersAt = function () { return { row: PL.row, col: PL.col, slots: BT.S.slots.map(function (s, i) { return { who: BT.whoText(i), col: s.col, name: BT.NAMES[s.name] }; }) }; };
       // ---------- the rules ----------
-      var RU = { sel: 0, t: 0 }, RROWS = ['ROUNDS', 'HEARTS', 'ITEMS', 'CPU LEVEL', 'DONE'];
+      var RU = { sel: 0, t: 0, back: 'bplayers' }, RROWS = ['ROUNDS', 'HEARTS', 'ITEMS', 'CPU LEVEL', 'DONE'];   // back: the screen it came from (the online lobby too, B18)
       function val(i) { var r = BT.S.rules; return i === 0 ? 'BEST OF ' + r.rounds : i === 1 ? String(r.hearts) : i === 2 ? (r.items ? 'ON' : 'OFF') : i === 3 ? BT.CPU[r.cpu] : ''; }
       var SAY = ['WIN MORE THAN HALF TO WIN THE MATCH', 'EACH, EVERY ROUND. A FALL COSTS ONE', 'POWER-UPS FLOAT IN NOW AND THEN', 'HOW SHARP THE CPUS ARE', 'BACK TO THE PLAYERS'];
       function turn(i, d) {
@@ -13971,15 +14407,16 @@
         Q.sfx('move');
       }
       Q.defScene('brules', {
-        enter: function () { U.entered(); BT.padClear(); RU.t = 0; RU.sel = 0; },
+        enter: function (opts) { U.entered(); BT.padClear(); RU.t = 0; RU.sel = 0; RU.back = opts && opts.back === 'blobby' ? 'blobby' : 'bplayers'; },
         update: function (dt) {
           var k = BT.keys(), B = BT.BIT;
           RU.t += dt;
+          if (RU.back === 'blobby' && BT.hostPoll) BT.hostPoll();   // an online host keeps answering while he sets the rules
           if (k & B.up) { RU.sel = (RU.sel + RROWS.length - 1) % RROWS.length; Q.sfx('move'); }
           if (k & B.down) { RU.sel = (RU.sel + 1) % RROWS.length; Q.sfx('move'); }
           if (k & B.left) turn(RU.sel, -1);
           if (k & B.right) turn(RU.sel, 1);
-          if (k & B.b || (k & (B.a | B.start) && RU.sel === 4)) { Q.sfx('back'); Q.go('bplayers'); return; }
+          if (k & B.b || (k & (B.a | B.start) && RU.sel === 4)) { Q.sfx('back'); Q.go(RU.back === 'blobby' && BT.NH && BT.NH.on ? 'blobby' : 'bplayers'); return; }
           if (k & B.a && RU.sel < 4) turn(RU.sel, 1);
         },
         draw: function (g) {
@@ -14001,6 +14438,7 @@
       });
       BT.rulesAt = function () { return { sel: RU.sel, rules: BT.copy(BT.S.rules) }; };
     })();
+    BT.padOn = function (n) { var p = BT.pad(n); return !!(p && p.on); };   // controller n is plugged in (B18)
     BT.keysDev = function () { var U = Q.ui, f = 0, k, n; for (k = 0; k < 8; k++) if (U.press(BT.KEYS[k])) f |= BT.BIT[BT.KEYS[k]]; if (BT.padsOn()) for (n = 2; n <= 4; n++) BT.keysBy[n] = BT.readPad(n).p; return f; };   // the device's presses only (the extra controllers' go to BT.keysBy)
     // ===== 96-battle-menus-c.js =====
     // ---------- 96-battle-menus-c.js: BATTLE MODE's arena select ('barena') and results ('bresults') (B16; BATTLE.md) ----------
@@ -14050,10 +14488,16 @@
       });
       BT.arenaAt = function () { var l = choices(); return { sel: AR.sel, id: l[AR.sel], list: l }; };
       // ---------- the results ----------
-      var RE = { M: null, setup: null, sel: 0, t: 0, order: [] }, BTN = ['REMATCH', 'NEW ARENA', 'BACK'];
+      var RE = { M: null, setup: null, sel: 0, t: 0, order: [], online: '' }, BTN = ['REMATCH', 'NEW ARENA', 'BACK'];
       function leave(what) {
         var st;
         Q.sfx(what === 'BACK' ? 'back' : 'select');
+        if (RE.online === 'host') {   // online (B18): the host's choice is everyone's
+          if (what === 'REMATCH') { if (RE.M) BT.S.arena = RE.M.arena; BT.hostStart(); Q.go('bfight'); }
+          else { BT.hostLobby(); Q.go('blobby', { row: what === 'NEW ARENA' ? 3 : 4 }); }
+          return;
+        }
+        if (RE.online === 'guest') { BT.guestClose(''); Q.music('map'); Q.go('bsplash'); return; }
         if (what === 'REMATCH') { st = BT.setupNow(); st.arena = RE.setup ? RE.setup.arena : st.arena; st.slots = RE.setup ? RE.setup.slots : st.slots; Q.go('battle', { setup: st }); }
         else if (what === 'NEW ARENA') { Q.music('map'); Q.go('barena'); }
         else { Q.music('map'); Q.go('bplayers'); }
@@ -14061,15 +14505,24 @@
       Q.defScene('bresults', {
         enter: function (opts) {
           var M = opts && opts.M, i;
-          U.entered(); BT.padClear(); RE.t = 0; RE.sel = 0; RE.M = M || null; RE.setup = opts && opts.setup || null; RE.order = [];
+          U.entered(); BT.padClear(); RE.t = 0; RE.sel = 0; RE.M = M || null; RE.setup = opts && opts.setup || null; RE.order = []; RE.online = opts && (opts.online === 'host' || opts.online === 'guest') ? opts.online : '';
           if (M) { for (i = 0; i < M.cs.length; i++) RE.order.push(M.cs[i]); RE.order.sort(function (a, b) { return M.wins[b.i] - M.wins[a.i] || M.stats[b.i].kos - M.stats[a.i].kos || a.i - b.i; }); }
           Q.music('rescue');
         },
         update: function (dt) {
-          var k = BT.keys(), B = BT.BIT;
+          var k = BT.keys(), B = BT.BIT, G = BT.NG;
           RE.t += dt;
           if (RE.t > 0.6 && Math.floor(RE.t / 1.4) !== Math.floor((RE.t - dt) / 1.4) && RE.M && RE.M.winner >= 0) BT.fx('confetti', 48, 40, '#ffd23f', 24);
           BT.fxStep(dt);
+          if (RE.online === 'host') { BT.hostPoll(); if (!BT.NH.on) { Q.go('bnote', { why: BT.NH.why || 'start' }); return; } }
+          if (RE.online === 'guest') {   // a guest waits for the host: a rematch, the lobby, or the game closed
+            BT.guestPoll(dt);
+            if (!G.on) { Q.go('bnote', { why: G.why || 'host' }); return; }
+            if (G.st === 'play' && G.M && G.M !== RE.M) { Q.go('bfight'); return; }
+            if (G.st === 'seat') { Q.go('blobby'); return; }
+            if (k & B.b) leave('LEAVE');
+            return;
+          }
           if (k & B.left) { RE.sel = (RE.sel + BTN.length - 1) % BTN.length; Q.sfx('move'); }
           if (k & B.right) { RE.sel = (RE.sel + 1) % BTN.length; Q.sfx('move'); }
           if (k & B.b) { leave('BACK'); return; }
@@ -14090,9 +14543,10 @@
             U.text(String(M.wins[c.i]), x + 110 - (U.width(String(M.wins[c.i])) >> 1), y + 1, '#ffd23f'); U.text(String(s.kos), x + 138 - (U.width(String(s.kos)) >> 1), y + 1, '#f6efe2'); U.text(String(s.falls), x + 168 - (U.width(String(s.falls)) >> 1), y + 1, '#f6efe2'); U.text(String(s.hits), x + 201 - (U.width(String(s.hits)) >> 1), y + 1, '#f6efe2');
           }
           if (M) { s = BT.arenaDef(M.arena).name + '   ' + M.rounds.length + (M.rounds.length === 1 ? ' ROUND' : ' ROUNDS'); U.text(s, 160 - (U.width(s) >> 1), 132, '#6b7186'); }
-          for (i = 0; i < BTN.length; i++) U.item(BTN[i], 70 + i * 90, 152, i === RE.sel, false, 'center');
+          if (RE.online === 'guest') { if (Math.floor(RE.t * 2) % 2) { s = 'WAITING FOR THE HOST'; U.text(s, 160 - (U.width(s) >> 1), 152, '#ffd23f'); } }
+          else for (i = 0; i < BTN.length; i++) U.item(BTN[i], 70 + i * 90, 152, i === RE.sel, false, 'center');
           BT.drawFxOnly(g);
-          BT.foot('LEFT AND RIGHT: CHOOSE   A: GO   B: BACK');
+          BT.foot(RE.online === 'guest' ? 'THE HOST CHOOSES WHAT IS NEXT   B: LEAVE' : RE.online === 'host' ? 'LEFT AND RIGHT: CHOOSE   A: GO (FOR EVERYONE)' : 'LEFT AND RIGHT: CHOOSE   A: GO   B: BACK');
           U.drawTalk(g);
         },
         leave: function () { BT.fxClear(); },
@@ -14100,6 +14554,303 @@
       });
       BT.resultsAt = function () { var M = RE.M; return M ? { sel: RE.sel, winner: M.winner, wins: M.wins.slice(), rounds: M.rounds.slice(), order: RE.order.map(function (c) { return c.i; }) } : null; };
     })();
+    // ===== 96-battle-online.js =====
+    // ---------- 96-battle-online.js: BATTLE MODE online, its menus (B18; ONLINE.md): JOIN A GAME ('bjoin'), the lobby ('blobby'), a message ('bnote') ----------
+    // JOIN: four letter wheels (up and down change a letter, left and right move, A joins); a ?join= link fills them and joins at once. The lobby: the code,
+    // four slots (YOU, friends, CPUs), the rules, the arena; the host also picks his colour and name, turns empty slots CPU or OFF, and STARTs; a guest picks
+    // his own colour (left, right) and name (up, down) and waits. B asks first, then leaves (the host's leaving closes the game for everyone).
+    (function () {
+      var U = Q.ui, JO = { w: [0, 0, 0, 0], at: 0, t: 0 }, LO = { row: 0, col: 1, t: 0, ask: false, askSel: 0, warn: 0 }, NO = { why: '', t: 0 };
+      function wheelsOf(code) { for (var i = 0; i < 4; i++) JO.w[i] = Math.max(0, BT.CODEA.indexOf(code.charAt(i))); }
+      function codeOfWheels() { var s = '', i; for (i = 0; i < 4; i++) s += BT.CODEA.charAt(JO.w[i]); return s; }
+      BT.joinCode = codeOfWheels;
+      function joinNow() { var c = codeOfWheels(); if (!BT.guestOpen(c)) { NO.why = 'start'; Q.go('bnote', { why: 'start' }); return; } Q.sfx('select'); }
+      Q.defScene('bjoin', {
+        enter: function (opts) {
+          U.entered(); U.cancel(); U.clearToasts(); BT.padClear(); JO.t = 0; Q.music('map');
+          if (opts && BT.codeOk(opts.code)) { wheelsOf(opts.code); JO.at = 3; if (opts.go) joinNow(); }
+        },
+        update: function (dt) {
+          var k = BT.keys(), B = BT.BIT, G = BT.NG, n = BT.CODEA.length;
+          JO.t += dt;
+          if (G.on) {
+            BT.guestPoll(dt);
+            if (G.on && G.st === 'seat') { Q.sfx('learn'); Q.go('blobby'); return; }
+            if (!G.on && G.why && G.why !== 'none') { Q.go('bnote', { why: G.why }); return; }
+            if (G.on && k & B.b) { BT.guestClose(''); Q.sfx('back'); }
+            return;
+          }
+          if (k & B.b) { Q.sfx('back'); Q.go('bsplash'); return; }
+          if (k & B.left) { JO.at = (JO.at + 3) % 4; Q.sfx('move'); }
+          if (k & B.right) { JO.at = (JO.at + 1) % 4; Q.sfx('move'); }
+          if (k & B.up) { JO.w[JO.at] = (JO.w[JO.at] + 1) % n; Q.sfx('move'); G.why = ''; }
+          if (k & B.down) { JO.w[JO.at] = (JO.w[JO.at] + n - 1) % n; Q.sfx('move'); G.why = ''; }
+          if (k & (B.a | B.start)) joinNow();
+        },
+        draw: function (g) {
+          var G = BT.NG, i, x, on, s, col, dots = '...'.slice(0, 1 + Math.floor(JO.t * 3) % 3), lines;
+          BT.backdrop(g, JO.t); BT.head(g, 'JOIN A GAME');
+          s = 'THE HOST\'S CODE'; U.text(s, 160 - (U.width(s) >> 1), 36, '#8f9ac8');
+          for (i = 0; i < 4; i++) {
+            x = 85 + i * 40; on = i === JO.at && !G.on;
+            U.box(g, x, 52, 30, 38, on ? '#ffd23f' : '#3c4160', on ? '#24284a' : '#151a36');
+            U.text(BT.CODEA.charAt(JO.w[i]), x + 8, 61, G.on ? '#f6efe2' : on ? '#ffd23f' : '#ffffff', 3);
+            if (on && Math.floor(JO.t * 2.5) % 3) { U.arrow(g, x + 13, 46, '#ffd23f', true); U.arrow(g, x + 13, 93, '#ffd23f', false); }
+          }
+          if (G.on) {
+            s = G.st === 'find' ? 'LOOKING FOR THE GAME' + dots : G.st === 'busy' ? BT.netWords.busy : 'FOUND IT. WAITING FOR THE HOST' + dots;
+            col = G.st === 'busy' ? '#ffd23f' : '#f6efe2';
+            if (G.trouble > 0) { s = BT.netWords.trouble; col = '#ff8a6a'; }
+          } else { s = G.why ? BT.netWords[G.why] || '' : 'UP AND DOWN CHANGE A LETTER, A JOINS'; col = G.why ? '#ff8a6a' : '#6b7186'; }
+          lines = Q.wrap(s, 46);
+          for (i = 0; i < lines.length && i < 2; i++) U.text(lines[i], 160 - (U.width(lines[i]) >> 1), 108 + i * 10, col);
+          on = !G.on; U.box(g, 112, 140, 96, 17, on ? '#ffd23f' : '#3c4160', on ? '#24284a' : '#151a36');
+          s = G.on ? 'JOINING' + dots : 'JOIN >'; U.text(s, 160 - (U.width(s) >> 1), 145, on ? '#ffd23f' : '#c3c7d4');
+          BT.foot(G.on ? 'B: STOP' : 'UP/DOWN: LETTER  LEFT/RIGHT: MOVE  A: JOIN  B: BACK');
+          U.drawTalk(g);
+        },
+        leave: function () {},
+        sides: BT.sides
+      });
+      BT.joinAt = function () { return { code: codeOfWheels(), at: JO.at, guest: BT.guestAt() }; };
+      // ---------- the lobby: the host's own, or a guest's mirror of it ----------
+      function host() { return BT.NH.on; }
+      function slotsNow() {   // [{ on, w: 'you' | 'host' | 'net' | 'pad' | 'cpu' | 'off', col, name }] as this device sees them
+        var l = [], i, s, H = BT.NH, G = BT.NG;
+        if (host()) for (i = 0; i < 4; i++) { s = H.slots[i]; l.push({ on: s.on, w: i === 0 ? 'you' : !s.on ? 'off' : s.who === 'cpu' ? 'cpu' : s.peer ? 'net' : 'pad', col: s.col, name: s.name }); }
+        else if (G.lob) for (i = 0; i < 4; i++) { s = G.lob.sl[i]; l.push({ on: s.on, w: i === G.you ? 'you' : s.w, col: s.col, name: s.name }); }
+        return l;
+      }
+      var TAG = { you: 'YOU', host: 'HOST', net: 'FRIEND', pad: 'HERE', cpu: 'CPU', off: 'OFF' };
+      function count() { var n = 0, l = slotsNow(), i; for (i = 0; i < l.length; i++) if (l[i].on) n++; return n; }
+      function arenaStep(d) { var l = [], i, k; for (i = 0; i < BT.ARENAS.length; i++) l.push(BT.ARENAS[i].id); l.push('random'); k = l.indexOf(BT.S.arena); BT.S.arena = l[(Math.max(0, k) + d + l.length) % l.length]; BT.NH.dirty = true; Q.sfx('move'); }
+      function hostPads() {   // a controller on the host's device: A takes a free slot as a player here, B gives it back to a CPU
+        var H = BT.NH, n, i, p, mine, B = BT.BIT;
+        if (!BT.padsOn()) return;
+        for (n = 2; n <= 4; n++) {
+          p = BT.keysBy[n]; if (!p) continue;
+          mine = -1; for (i = 1; i < 4; i++) if (H.slots[i].on && H.slots[i].who === 'human' && !H.slots[i].peer && H.slots[i].pad === n) mine = i;
+          if (p & B.a && mine < 0) { for (i = 1; i < 4 && mine < 0; i++) if (!(H.slots[i].on && H.slots[i].who === 'human')) mine = i; if (mine > 0) { H.slots[mine] = { on: true, who: 'human', pad: n, col: H.slots[mine].col, name: H.slots[mine].name, peer: '' }; BT.hostTidy(mine); H.dirty = true; Q.sfx('select'); } }
+          else if (p & B.b && mine > 0) { H.slots[mine].who = 'cpu'; H.slots[mine].pad = 0; H.dirty = true; Q.sfx('back'); }
+          else if (mine > 0 && p & (B.left | B.right)) { BT.hostRecolour(mine, p & B.left ? -1 : 1); H.dirty = true; Q.sfx('move'); }
+        }
+      }
+      function hostUpdate(k) {
+        var H = BT.NH, B = BT.BIT, s;
+        hostPads();
+        if (k & B.up) { LO.row = Math.max(0, LO.row - 1); Q.sfx('move'); }
+        if (k & B.down) { LO.row = Math.min(4, LO.row + 1); Q.sfx('move'); }
+        if (LO.row === 0 && k & (B.left | B.right)) { BT.hostRecolour(0, k & B.left ? -1 : 1); H.dirty = true; Q.sfx('move'); }
+        if (LO.row === 0 && k & B.a) { H.slots[0].name = BT.hostNextName(0, H.slots[0].name, 1); H.dirty = true; Q.sfx('move'); }
+        if (LO.row === 1 && k & (B.left | B.right)) { LO.col = 1 + (LO.col - 1 + (k & B.left ? 2 : 1)) % 3; Q.sfx('move'); }
+        if (LO.row === 1 && k & B.a) {
+          s = H.slots[LO.col];
+          if (s.on && s.who === 'human') Q.sfx('nope');
+          else { s.on = !s.on; s.who = 'cpu'; if (s.on) BT.hostTidy(LO.col); H.dirty = true; Q.sfx('move'); }
+        }
+        if (LO.row === 2 && k & B.a) { Q.sfx('select'); Q.go('brules', { back: 'blobby' }); return; }
+        if (LO.row === 3 && k & (B.left | B.right)) arenaStep(k & B.left ? -1 : 1);
+        if (LO.row === 3 && k & B.a) arenaStep(1);
+        if ((LO.row === 4 && k & B.a) || k & B.start) {
+          if (count() < 2) { Q.sfx('nope'); LO.warn = 1.6; return; }
+          Q.sfx('select'); BT.hostStart(); Q.go('bfight');
+        }
+        if (k & B.c) { if (BT.netApi() && BT.netApi().share()) Q.sfx('select'); }
+      }
+      Q.defScene('blobby', {
+        enter: function (opts) { U.entered(); U.cancel(); BT.padClear(); LO.t = 0; LO.ask = false; LO.warn = 0; if (opts && opts.row !== undefined) LO.row = opts.row; Q.music('map'); BT.NH.dirty = true; },
+        update: function (dt) {
+          var k = BT.keysDev(), B = BT.BIT, G = BT.NG;
+          LO.t += dt; if (LO.warn > 0) LO.warn -= dt;
+          if (host()) { BT.hostPoll(); if (!BT.NH.on) { Q.go('bnote', { why: BT.NH.why || 'start' }); return; } }
+          else if (G.on) {
+            BT.guestPoll(dt);
+            if (!G.on) { Q.go('bnote', { why: G.why || 'host' }); return; }
+            if (G.st === 'play') { Q.go('bfight'); return; }
+          } else { Q.go('bsplash'); return; }
+          if (LO.ask) {
+            if (k & (B.left | B.right | B.up | B.down)) { LO.askSel = 1 - LO.askSel; Q.sfx('move'); }
+            if (k & B.b) { LO.ask = false; Q.sfx('back'); }
+            else if (k & (B.a | B.start)) { LO.ask = false; if (LO.askSel) { Q.sfx('back'); if (host()) BT.hostClose('closed'); else BT.guestClose(''); Q.go('bsplash'); } else Q.sfx('back'); }
+            return;
+          }
+          if (k & B.b) { LO.ask = true; LO.askSel = 0; Q.sfx('select'); return; }
+          if (host()) { hostUpdate(k); return; }
+          if (k & (B.left | B.right)) { BT.guestPick(k & B.left ? -1 : 1, 0); Q.sfx('move'); }
+          if (k & (B.up | B.down)) { BT.guestPick(0, k & B.up ? -1 : 1); Q.sfx('move'); }
+        },
+        draw: function (g) { BT.drawLobby(g, LO, slotsNow(), TAG, host()); U.drawTalk(g); },
+        leave: function () {},
+        sides: BT.sides
+      });
+      BT.lobbyAt = function () { return { row: LO.row, col: LO.col, ask: LO.ask, host: host(), slots: slotsNow().map(function (s) { return s.w; }), arena: host() ? BT.S.arena : BT.NG.lob && BT.NG.lob.ar }; };
+      // ---------- a message, then back to the splash ----------
+      Q.defScene('bnote', {
+        enter: function (opts) { U.entered(); U.cancel(); BT.padClear(); NO.why = opts && opts.why || 'host'; NO.t = 0; Q.music('map'); },
+        update: function (dt) { var k = BT.keys(), B = BT.BIT; NO.t += dt; if (NO.t > 0.4 && k & (B.a | B.b | B.start)) { Q.sfx('select'); Q.go('bsplash'); } },
+        draw: function (g) {
+          var lines = Q.wrap(BT.netWords[NO.why] || BT.netWords.host, 34), i, s;
+          BT.backdrop(g, NO.t); BT.head(g, 'ONLINE');
+          U.box(g, 40, 62, 240, 24 + lines.length * 11, '#ff8a6a', '#1d1d24');
+          for (i = 0; i < lines.length; i++) U.text(lines[i], 160 - (U.width(lines[i]) >> 1), 74 + i * 11, '#ffffff');
+          s = 'A: OK'; U.text(s, 160 - (U.width(s) >> 1), 150, Math.floor(NO.t * 2) % 2 ? '#ffd23f' : '#c3c7d4');
+          BT.foot('A: BACK TO BATTLE'); U.drawTalk(g);
+        },
+        leave: function () {},
+        sides: BT.sides
+      });
+      BT.noteAt = function () { return { why: NO.why }; };
+    })();
+    // ===== 96-battle-online-b.js =====
+    // ---------- 96-battle-online-b.js: BATTLE MODE online, the fight ('bfight') and the lobby's picture (B18; ONLINE.md) ----------
+    // The fight on either side: the host steps the match for everyone (BT.hostStep), a guest steps its own conductor and draws the rest (BT.guestStep). It
+    // never stops for one player: START opens a small menu over it (RESUME, LEAVE, asking first) while his conductor stands. The host leaving, or closing the
+    // game, takes every guest to a message; a guest leaving becomes a CPU. The match over: the results (96-battle-menus-c, with the online buttons).
+    (function () {
+      var U = Q.ui, NF = { menu: null, overT: 0, cue: '' };
+      function role() { return BT.NH.on ? 'host' : BT.NG.on ? 'guest' : ''; }
+      function cue(M) {   // the round's start, its READY and its GO, each heard once (as 96-battle-fight.js)
+        var c = M.phase === 'ready' ? (M.phaseT < 1.1 ? 'round' : 'ready') + M.round : M.phase === 'fight' && M.roundT < 0.7 ? 'go' + M.round : '';
+        if (c && c !== NF.cue) { NF.cue = c; Q.sfx(c.indexOf('round') === 0 ? 'card' : c.indexOf('ready') === 0 ? 'tick' : 'zap'); }
+      }
+      function leaveNow() { if (BT.NH.on) BT.hostClose('closed'); else BT.guestClose(''); Q.music('map'); Q.go('bsplash'); }
+      function menuStep() {   // the device's own buttons only; the match goes on underneath
+        var P = NF.menu, U2 = Q.ui;
+        if (P.ask) {
+          if (U2.press('left') || U2.press('right') || U2.press('up') || U2.press('down')) { P.askSel = 1 - P.askSel; Q.sfx('move'); }
+          if (U2.press('b')) { P.ask = false; Q.sfx('back'); return; }
+          if (U2.press('a') || U2.press('start')) { P.ask = false; if (P.askSel) { Q.sfx('select'); leaveNow(); } else Q.sfx('back'); }
+          return;
+        }
+        if (U2.press('up') || U2.press('down')) { P.sel = 1 - P.sel; Q.sfx('move'); }
+        if (U2.press('b') || U2.press('start')) { NF.menu = null; Q.sfx('back'); return; }
+        if (U2.press('a')) { if (P.sel === 0) { NF.menu = null; Q.sfx('back'); } else { P.ask = true; P.askSel = 0; Q.sfx('select'); } }
+      }
+      Q.defScene('bfight', {
+        wide: true,
+        enter: function () {
+          var M = BT.NH.on ? BT.NH.M : BT.NG.M;
+          U.entered(); U.cancel(); U.clearToasts(); BT.padClear(); NF.menu = null; NF.overT = 0; NF.cue = ''; NF.M = M; BT.fxClear();
+          if (M) Q.music(BT.arenaDef(M.arena).music || 'boss');
+        },
+        update: function (dt) {
+          var r = role(), M, G = BT.NG;
+          if (r === 'host') { BT.hostPoll(); if (!BT.NH.on) { Q.go('bnote', { why: BT.NH.why || 'start' }); return; } M = BT.NH.M; }
+          else if (r === 'guest') {
+            BT.guestPoll(dt);
+            if (!G.on) { Q.go('bnote', { why: G.why || 'host' }); return; }
+            if (G.st === 'seat') { Q.go('blobby'); return; }
+            M = G.M;
+          } else { Q.go('bnote', { why: BT.NH.why || G.why || 'host' }); return; }
+          if (!M) return;
+          if (M !== NF.M) { NF.M = M; NF.overT = 0; NF.cue = ''; BT.fxClear(); Q.music(BT.arenaDef(M.arena).music || 'boss'); }   // a rematch: a new match in this scene
+          BT.fxStep(dt);
+          if (NF.menu) menuStep(); else if (Q.ui.press('start') && M.phase !== 'over') { NF.menu = { sel: 0, ask: false, askSel: 0 }; Q.sfx('select'); }
+          if (Q.scene !== 'bfight') return;
+          if (r === 'host') BT.hostStep(M, dt, !!NF.menu); else BT.guestStep(M, dt, !!NF.menu);
+          BT.present(M); cue(M);
+          if (M.phase === 'over') {
+            NF.overT += dt;
+            if (NF.overT > 2.4) { if (r === 'host') BT.hostResults(); else BT.guestResults(); Q.go('bresults', { M: M, online: r }); }
+          }
+        },
+        draw: function (g) {
+          var M = BT.NH.on ? BT.NH.M : BT.NG.M;
+          if (!M) { g.fillStyle = '#0b0c10'; g.fillRect(0, 0, Q.W, 200); return; }
+          BT.drawFight(g, M, Q.t); BT.drawHud(g, M, Q.t); BT.drawWords(g, M);
+          if (NF.menu) Q.col(g, drawMenu);
+          BT.padLatch();
+          U.drawTalk(g);
+        },
+        leave: function () { BT.fxClear(); }
+      });
+      function drawMenu(g) {
+        var P = NF.menu, i, s = BT.NH.on ? 'CLOSE THE GAME FOR EVERYONE?' : 'LEAVE THIS GAME?', MENU = ['RESUME', BT.NH.on ? 'CLOSE GAME' : 'LEAVE'];
+        U.box(g, 96, 52, 128, 82, '#ffd23f', '#1d1d24');
+        U.text('ONLINE', 160 - (U.width('ONLINE', 2) >> 1), 60, '#ffffff', 2);
+        U.text('THE MATCH GOES ON', 160 - (U.width('THE MATCH GOES ON') >> 1), 78, '#8f9ac8');
+        for (i = 0; i < MENU.length; i++) U.item(MENU[i], 160, 94 + i * 16, i === P.sel && !P.ask, false, 'center');
+        if (P.ask) {
+          U.box(g, 60, 80, 200, 48, '#ff8a6a', '#1d1d24');
+          U.text(s, 160 - (U.width(s) >> 1), 90, '#ffffff');
+          U.item('NO', 128, 108, P.askSel === 0, false, 'center'); U.item('YES', 192, 108, P.askSel === 1, false, 'center');
+        }
+      }
+      BT.onlineAt = function () { var M = BT.NH.on ? BT.NH.M : BT.NG.M; return { role: role(), menu: NF.menu ? { sel: NF.menu.sel, ask: NF.menu.ask } : null, phase: M ? M.phase : '', round: M ? M.round : 0, wins: M ? M.wins.slice() : [], n: M ? M.cs.length : 0 }; };
+      // ---------- the lobby's picture ----------
+      BT.drawLobby = function (g, LO, sl, TAG, isHost) {
+        var code = BT.NH.on ? BT.NH.code : BT.NG.code, i, s, x, cx, col, on, f, r, txt, sel, G = BT.NG, ru, ar, y;
+        BT.backdrop(g, LO.t); BT.head(g, 'ONLINE GAME');
+        U.text('CODE', 74, 36, '#8f9ac8');
+        for (i = 0; i < 4; i++) { x = 110 + i * 24; U.box(g, x, 29, 20, 21, '#ffd23f', '#24284a'); U.text(code.charAt(i), x + 5, 33, '#ffd23f', 2); }
+        s = isHost ? (BT.NH.trouble > 0 ? BT.netWords.trouble : 'C: SHARE THE LINK') : 'YOU ARE IN. THE HOST STARTS THE MATCH.';
+        U.text(s, 160 - (U.width(s) >> 1), 54, BT.NH.trouble > 0 && isHost ? '#ff8a6a' : '#8f9ac8');
+        for (i = 0; i < 4; i++) {
+          s = sl[i] || { on: false, w: 'off', col: i, name: i }; x = 8 + i * 77; cx = x + 36; col = BT.COLS[s.col] || BT.COLS[0];
+          sel = isHost && ((LO.row === 0 && i === 0) || (LO.row === 1 && i === LO.col)) || (!isHost && s.w === 'you');
+          U.box(g, x, 64, 72, 62, sel ? '#ffd23f' : s.on ? col.main : '#3c4160', s.on ? '#1a1e38' : '#12152a');
+          U.text(String(i + 1), x + 5, 68, s.on ? col.light : '#5d6378');
+          if (s.on) { f = s.w === 'cpu' ? Math.floor(LO.t * 1.6 + i) % 2 : Math.floor(LO.t * 6) % 4 === 0 && s.w === 'you' ? 17 : Math.floor(LO.t * 1.6) % 2; U.sprite(g, BT.spr(s.col), f, cx - 16, 66, 2, i >= 2); }
+          else { g.globalAlpha = 0.25; U.sprite(g, BT.spr(s.col), 0, cx - 16, 66, 2, i >= 2); g.globalAlpha = 1; }
+          txt = TAG[s.w] || 'CPU'; U.text(txt, cx - (U.width(txt) >> 1), 106, s.w === 'you' ? '#ffd23f' : s.on ? '#ffffff' : '#5d6378');
+          if (s.on) { txt = BT.NAMES[s.name] || '?'; g.fillStyle = col.main; g.fillRect(x + 6, 117, 5, 5); U.text(txt, cx - (U.width(txt) >> 1) + 3, 116, '#c3c7d4'); }
+        }
+        ru = isHost ? BT.S.rules : G.lob ? G.lob.ru : BT.S.rules; ar = isHost ? BT.S.arena : G.lob ? G.lob.ar : 'random';
+        r = 'RULES: BEST OF ' + ru.rounds + '  ' + ru.hearts + ' HEARTS  ITEMS ' + (ru.items ? 'ON' : 'OFF') + '  CPU ' + BT.CPU[ru.cpu];
+        on = isHost && LO.row === 2; U.box(g, 8, 131, 304, 15, on ? '#ffd23f' : '#3c4160', '#151a36'); U.text(r, 160 - (U.width(r) >> 1), 135, on ? '#ffd23f' : '#c3c7d4');
+        s = 'ARENA: ' + (ar === 'random' ? 'RANDOM' : BT.arenaDef(ar).name); if (isHost && LO.row === 3) s = '< ' + s + ' >';
+        on = isHost && LO.row === 3; U.box(g, 8, 149, 304, 15, on ? '#ffd23f' : '#3c4160', '#151a36'); U.text(s, 160 - (U.width(s) >> 1), 153, on ? '#ffd23f' : '#c3c7d4');
+        if (isHost) {
+          on = LO.row === 4; U.box(g, 96, 167, 128, 16, on ? '#ffd23f' : '#3c4160', on ? '#24284a' : '#151a36');
+          s = 'START THE MATCH >'; U.text(s, 160 - (U.width(s) >> 1), 172, on ? '#ffd23f' : '#f6efe2');
+        } else if (Math.floor(LO.t * 2) % 2) { s = 'WAITING FOR THE HOST'; U.text(s, 160 - (U.width(s) >> 1), 172, '#ffd23f'); }
+        y = 0;
+        if (LO.warn > 0) s = 'TWO CONDUCTORS AT LEAST';
+        else if (isHost) s = LO.row === 0 ? 'LEFT/RIGHT: YOUR COLOUR  A: YOUR NAME  B: CLOSE' : LO.row === 1 ? 'LEFT/RIGHT: A SLOT  A: CPU OR OFF  B: CLOSE' : 'FRIENDS JOIN WITH THE CODE   B: CLOSE';
+        else s = 'LEFT/RIGHT: COLOUR  UP/DOWN: NAME  B: LEAVE';
+        BT.foot(s);
+        if (LO.ask) {
+          s = isHost ? 'CLOSE THIS GAME?' : 'LEAVE THIS GAME?';
+          U.box(g, 60, 76, 200, 48, '#ff8a6a', '#1d1d24'); U.text(s, 160 - (U.width(s) >> 1), 86, '#ffffff');
+          U.item('NO', 128, 104, LO.askSel === 0, false, 'center'); U.item('YES', 192, 104, LO.askSel === 1, false, 'center');
+        }
+      };
+    })();
+    // ===== 96-battle-online-link.js =====
+    // ---------- 96-battle-online-link.js: a ?join= link opens JOIN A GAME (B18; ONLINE.md), added from this file: 72-ui-title.js is not touched ----------
+    // A page opened by a link ending ?join=CODE gives the game that code once (api.net.invite). The title scene (the front end's, 72-ui-title.js) is wrapped:
+    // its own update runs first; once its boot splash is over, BT.inviteStep opens JOIN A GAME with that code and joins at once. It draws nothing, and
+    // without such a link it does nothing. (The front end's owner may instead call Q.battle.inviteStep() from the main menu's update and drop this file.)
+    // Also here, as the last battle part (every BATTLE scene exists by now): controllers 2 to 4's presses kept every frame (the end of this file).
+    BT.inviteStep = function () {   // true when it opened JOIN A GAME for the link's code (asked for once: the page gives the code only once)
+      var n, c;
+      if (BT.inviteDone) return false;
+      BT.inviteDone = true;
+      n = BT.netApi(); c = n && n.ok() ? n.invite() : '';
+      if (!BT.codeOk(c) || !Object.prototype.hasOwnProperty.call(Q.SCENE, 'bjoin')) return false;
+      Q.go('bjoin', { code: c, go: true });
+      return true;
+    };
+    (function () {
+      var sc = Object.prototype.hasOwnProperty.call(Q.SCENE, 'title') ? Q.SCENE.title : null, up0;
+      if (!sc || !sc.update) return;   // a game with no title has no link to follow
+      up0 = sc.update;
+      sc.update = function (dt, Qx) {
+        var fe = Q.ui && Q.ui.fe;
+        up0.call(sc, dt, Qx);
+        if (BT.inviteDone || Q.scene !== 'title' || Q.talking() || (fe && (fe.phase === 'boot' || fe.leave))) return;
+        BT.inviteStep();
+      };
+    })();
+    // A controller's press shows for one frame only, and a frame may run no step (on a 120 Hz screen every other frame has none), so every BATTLE scene keeps
+    // the frame's presses of controllers 2 to 4 before it draws, as the fights did already (BT.padLatch: once a frame; a step reads and clears them; a
+    // scene's enter clears them). The main buttons have the engine's own record of presses.
+    ['modes', 'bsplash', 'bplayers', 'brules', 'barena', 'bresults', 'bjoin', 'blobby', 'bnote'].forEach(function (id) {
+      var sc = Object.prototype.hasOwnProperty.call(Q.SCENE, id) ? Q.SCENE[id] : null, d0;
+      if (!sc || typeof sc.draw !== 'function' || sc.padLatched) return;
+      d0 = sc.draw; sc.padLatched = true;
+      sc.draw = function (g, Qx) { BT.padLatch(); return d0.call(sc, g, Qx); };
+    });
     // ===== 99-main.js =====
     // ---------- 99-main.js (ENGINE): Baton Quest on the 9F computer: NFX.arcade.add, start, the frame (fixed steps), stop, state() and cheat ----------
     // Presses: the runtime's api.pressed is true for one frame. A frame that runs no step (a fast screen) keeps its presses for the next frame that does;

@@ -21,7 +21,7 @@
         if (e.by >= 0 && e.by !== e.who && M.stats[e.by]) M.stats[e.by].kos++;
         if (v.hp <= 0) v.gone = true;
       } else if (e.k === 'back' && v) {
-        v.out = false; v.x = e.x; v.y = e.y; v.vx = 0; v.vy = 0; v.safe = N.SAFE_T; v.face = e.x < 160 ? 1 : -1; v.rhythm = v.rhythmMax; v.rhythmT = 0;
+        v.out = false; v.x = e.x; v.y = e.y; v.vx = 0; v.vy = 0; v.safe = N.SAFE_T; v.face = e.x < 160 ? 1 : -1; v.rhythm = v.rhythmMax; v.rhythmT = 0; v.bk++;
         v.airDash = true; v.airHover = true; v.swingT = 0; v.charged = false; v.chargeT = 0; v.dashing = false; v.hovering = false; v.pounding = false; v.lastBy = -1; v.lastT = 99;
       } else if (e.k === 'itemIn') M.items.push({ id: e.id, kind: e.kind, x: e.x, y: e.y0, y0: e.y0, w: 14, h: 14, vx: e.vx, t: 0, ph: e.ph, dead: false });
       else if (e.k === 'item' && v) {
@@ -60,7 +60,7 @@
       for (i = 0; i < n; i++) {
         c = M.cs[i]; sp = ar.spawns[use[(i + M.round - 1) % use.length] % ar.spawns.length];
         f = BT.newC(c.i, sp.tx * 16 + 3, sp.ty * 16 + 16 - Q.HERO.H);
-        f.who = c.who; f.pad = c.pad; f.col = c.col; f.name = c.name; f.hp = M.rules.hearts; f.ground = true;
+        f.who = c.who; f.pad = c.pad; f.col = c.col; f.name = c.name; f.hp = M.rules.hearts; f.ground = true; f.net = c.net || '';   // net (B18): '' on this device, 'peer' a guest's (the host), 'far' shown from the host (a guest)
         M.cs[i] = f;
       }
     };
@@ -83,7 +83,7 @@
     BT.pad = function (n) { var a = Q.api; return a && typeof a.pad === 'function' ? a.pad(n) || null : null; };
     BT.padsOn = function () { var a = Q.api; return !!(a && typeof a.pad === 'function'); };
     var btLatch = { 2: {}, 3: {}, 4: {} }, btLatchAt = { 2: -1, 3: -1, 4: -1 };
-    BT.padLatch = function () {   // each step and each draw: a controller's press seen in this frame is kept until a step reads it (a frame may run no step)
+    BT.padLatch = function () {   // each step, and each frame in every BATTLE scene's draw (96-battle-online-link.js): a press seen in this frame is kept until a step reads it
       var a = Q.api, t = a && a.t ? a.t() : 0, n, pd, k;
       for (n = 2; n <= 4; n++) {
         if (btLatchAt[n] === t) continue;
@@ -110,7 +110,8 @@
       var out = [], i, c;
       for (i = 0; i < M.cs.length; i++) {
         c = M.cs[i];
-        if (c.who === 'cpu') out.push(BT.cpu(M, c, dt));
+        if (c.net) out.push(BT.ZERO);   // online (B18): a conductor moved on another device takes no input here
+        else if (c.who === 'cpu') out.push(BT.cpu(M, c, dt));
         else if (c.pad > 1) out.push(BT.readPad(c.pad));
         else out.push(BT.readDevice());
       }

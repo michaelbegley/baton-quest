@@ -63,7 +63,7 @@
     if (!!down[k] !== any) { down[k] = any; A.setKey(k, any); }
   }
   function releaseAll(src) { NAMES.forEach(function (k) { set(src, k, false); }); }
-  function releaseEverything() { Object.keys(SRC).forEach(releaseAll); document.querySelectorAll('.on').forEach(function (b) { b.classList.remove('on'); }); dpadShow({}); }
+  function releaseEverything() { Object.keys(SRC).forEach(releaseAll); document.querySelectorAll('.on').forEach(function (b) { b.classList.remove('on'); }); dpadShow({}); if (typeof releasePads === 'function') releasePads(); }
 
   // ---------- sound: only after a first touch or key ----------
   var sndBtn = $('snd'), led = $('led');
@@ -126,28 +126,50 @@
   document.addEventListener('dblclick', function (e) { if (e.target.closest && e.target.closest('#pocket')) e.preventDefault(); });
 
   // ---------- a controller: bottom A (jump), right B (baton), left, top, bumpers or triggers C (dash), Start, Back (to the 9F desktop) ----------
-  var padOn = false, backWas = false, padWas = false;
+  // Version 118 (B18): several at once (MDN: each pad's index is unique while it is connected; read getGamepads() every frame). The first one seen is controller 1,
+  // the main buttons, as before; each further one takes the lowest free number 2 to 4 and keeps it while it is connected (BATTLE MODE's other players, api.pad(n)).
+  var padOn = false, backWas = false, padWas = false, padNum = {};
   function padFull(on) {   // a phone or tablet: a controller takes the game full screen (the handheld steps aside); a touch on the screen brings the handheld back
     if (padView === on || !touchy.matches) return;
     padView = on; releaseEverything(); apply();
     if (on && SET.view === 'auto') note('CONTROLLER READY. TOUCH THE SCREEN FOR THE BUTTONS', 3200);
   }
-  function pollPad() {
-    var ps = null, p = null, i;
-    try { ps = navigator.getGamepads ? navigator.getGamepads() : null; } catch (e) { ps = null; }
-    for (i = 0; ps && i < ps.length; i++) if (ps[i] && ps[i].connected) { p = ps[i]; break; }
-    if (!p) { if (padOn) { padOn = false; padWas = false; releaseAll('pad'); note('CONTROLLER GONE'); padFull(false); } return; }
-    var first = !padOn;
-    if (first) { padOn = true; if (!touchy.matches || SET.view !== 'auto') note('CONTROLLER READY'); }
+  function padRead(p) {
     var b = function (n) { var x = p.buttons[n]; return !!(x && (x.pressed || x.value > 0.5)); }, ax = p.axes || [];
-    var now = { left: b(14) || ax[0] < -0.5, right: b(15) || ax[0] > 0.5, up: b(12) || ax[1] < -0.5, down: b(13) || ax[1] > 0.5,
-      a: b(0), b: b(1), c: b(2) || b(3) || b(4) || b(5) || b(6) || b(7), start: b(9) };
-    var back = b(8), any = back || NAMES.some(function (k) { return now[k]; });
-    if (first || (any && !padWas)) padFull(true);   // browsers show a controller only once it is pressed, so its first sight is a press too
-    padWas = any;
-    NAMES.forEach(function (k) { set('pad', k, now[k]); });
-    if (back && !backWas) A.back(); backWas = back;
+    return { left: b(14) || ax[0] < -0.5, right: b(15) || ax[0] > 0.5, up: b(12) || ax[1] < -0.5, down: b(13) || ax[1] > 0.5,
+      a: b(0), b: b(1), c: b(2) || b(3) || b(4) || b(5) || b(6) || b(7), start: b(9), back: b(8) };
   }
+  function padTaken(n) { for (var k in padNum) if (padNum[k] === n) return true; return false; }
+  function pollPad() {
+    var ps = null, i, p, id, n, seen = {}, now = {}, main = null, first = false, count = 0, any = false;
+    try { ps = navigator.getGamepads ? navigator.getGamepads() : null; } catch (e) { ps = null; }
+    for (i = 0; ps && i < ps.length; i++) {
+      p = ps[i]; if (!p || !p.connected) continue;
+      id = 'i' + (p.index !== undefined && p.index !== null ? p.index : i); seen[id] = p;
+      if (!padNum[id]) { for (n = 1; n <= 4 && padTaken(n); n++) {} if (n <= 4) { padNum[id] = n; first = true; if (n > 1 && A.setPadOn) { A.setPadOn(n, true); note('CONTROLLER ' + n + ' READY'); } } }
+    }
+    for (id in padNum) if (Object.prototype.hasOwnProperty.call(padNum, id) && !seen[id]) {   // unplugged: its number is free again, its buttons let go
+      n = padNum[id]; delete padNum[id];
+      if (n > 1 && A.setPadOn) { A.setPadOn(n, false); note('CONTROLLER ' + n + ' GONE'); }
+    }
+    for (id in padNum) if (Object.prototype.hasOwnProperty.call(padNum, id)) {
+      count++; now[id] = padRead(seen[id]);
+      if (now[id].back || NAMES.some(function (k) { return now[id][k]; })) any = true;
+    }
+    // a phone or tablet: the first sight of any controller, or a fresh press on any of them, puts the game full screen (padFull lets every button go first,
+    // so the keys are set after it); with none left, the handheld again. Browsers show a controller only once it is pressed, so its first sight is a press too.
+    if (!count) { padWas = false; padFull(false); } else { if (first || (any && !padWas)) padFull(true); padWas = any; }
+    for (id in now) if (Object.prototype.hasOwnProperty.call(now, id)) {
+      n = padNum[id];
+      if (n === 1) main = now[id];
+      else if (A.setPadKey) NAMES.forEach(function (k) { A.setPadKey(n, k, now[id][k]); });
+    }
+    if (!main) { if (padOn) { padOn = false; releaseAll('pad'); note('CONTROLLER GONE'); } return; }
+    if (!padOn) { padOn = true; if (!touchy.matches || SET.view !== 'auto') note('CONTROLLER READY'); }
+    NAMES.forEach(function (k) { set('pad', k, main[k]); });
+    if (main.back && !backWas) A.back(); backWas = main.back;
+  }
+  function releasePads() { if (A.setPadKey) [2, 3, 4].forEach(function (n) { NAMES.forEach(function (k) { A.setPadKey(n, k, false); }); }); }
   window.addEventListener('gamepadconnected', function () { pollPad(); });
   document.addEventListener('pointerdown', function (e) {   // a touch on the game while a controller has it full screen: the handheld again (the next press on the controller: full screen again)
     if (!padView || e.pointerType !== 'touch' || (e.target.closest && e.target.closest('button, a, .help'))) return;
@@ -157,6 +179,7 @@
   // ---------- a short note ----------
   var noteT = null;
   function note(t, ms) { var n = $('note'); n.textContent = t; n.classList.add('show'); clearTimeout(noteT); noteT = setTimeout(function () { n.classList.remove('show'); }, ms || 1800); }
+  window.POCKET_NOTE = note;   // version 118: js/net.js says LINK COPIED with it
 
   // ---------- a computer: the toolbar and the key hints fade while the mouse is still ----------
   var idleT = null;
@@ -183,8 +206,9 @@
   });
 
   // ---------- SHARE: the link, through the phone's share sheet, or copied ----------
-  $('share').addEventListener('click', function () {
-    var url = location.href.split('#')[0].split('?')[0], data = { title: 'Baton Quest', text: 'Play Baton Quest', url: url };
+  $('share').addEventListener('click', function () {   // while hosting a BATTLE MODE game online (version 118), the link that joins it
+    var join = window.BQ_NET && window.BQ_NET.link ? window.BQ_NET.link() : '';
+    var url = join || location.href.split('#')[0].split('?')[0], data = { title: 'Baton Quest', text: join ? 'BATTLE MODE: join my game' : 'Play Baton Quest', url: url };
     if (navigator.share && touchy.matches) { navigator.share(data).catch(function () {}); return; }   // a phone or tablet, whichever look: its own share sheet
     try { navigator.clipboard.writeText(url).then(function () { note('LINK COPIED'); }, function () { note(url); }); } catch (e) { note(url); }
   });
