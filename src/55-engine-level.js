@@ -137,7 +137,7 @@
       if (engTap('start') && !P.dead && !engDoor && engOwn(Q.SCENE, 'pause')) { engSyncSave(); Q.go('pause', { from: 'level' }); return; }
       engClockStep(dt); engEncoreStep(dt);   // seconds of play (58, 59): a step with no text box
       if (engHitStop > 0) { engHitStop -= dt; return; }
-      s.time = (s.time || 0) + dt;
+      if (!Q.watchStep) s.time = (s.time || 0) + dt;   // the play time is 59-engine-watch.js's now (every adventure step); this old count only without it
       if (engDoor) {
         engDoor.t += dt;
         if (engDoor.t > 0.45 && !engDoor.done) { engDoor.done = true; if (!engDoor.secret) Q.levelDone(); else if (!engEnterSecret(engDoor.secret)) { engDoor = null; engClk.stop = false; } }

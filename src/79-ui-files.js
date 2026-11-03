@@ -26,7 +26,11 @@
         if (f.won) U.text('ALL DONE', CX + CW - 8, y + 8, '#ffd23f', 1, 'right');
         U.text('WORLDS ' + f.worlds + '/4', x, y + 24, '#c3c7d4');
         U.starIcon(g, x + 84, y + 21, f.stars > 0); U.text(f.stars + '/' + U.starIds().length, x + 99, y + 24, f.stars > 0 ? '#ffd23f' : '#7f8ab8');
-        U.text(U.clock(f.time), CX + CW - 8, y + 24, '#8f9ac8', 1, 'right');
+        U.text(U.clock(f.time), CX + CW - 8, y + 24, '#8f9ac8', 1, 'right');   // its play time (B19, part 20)
+        if (f.code) {   // a file where a cheat code was typed: an orange star before its time and a CODES stamp on the top row (like an old cartridge's sticker)
+          if (U.watchMark) U.watchMark(CX + CW - 15 - U.width(U.clock(f.time)), y + 24);
+          U.text('CODES', f.won ? CX + CW - 16 - U.width('ALL DONE') : CX + CW - 8, y + 8, '#ff8a1e', 1, 'right');
+        }
       }
       Q.defScene('files', {
         enter: function () {

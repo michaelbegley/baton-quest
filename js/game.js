@@ -3948,7 +3948,7 @@
       if (engTap('start') && !P.dead && !engDoor && engOwn(Q.SCENE, 'pause')) { engSyncSave(); Q.go('pause', { from: 'level' }); return; }
       engClockStep(dt); engEncoreStep(dt);   // seconds of play (58, 59): a step with no text box
       if (engHitStop > 0) { engHitStop -= dt; return; }
-      s.time = (s.time || 0) + dt;
+      if (!Q.watchStep) s.time = (s.time || 0) + dt;   // the play time is 59-engine-watch.js's now (every adventure step); this old count only without it
       if (engDoor) {
         engDoor.t += dt;
         if (engDoor.t > 0.45 && !engDoor.done) { engDoor.done = true; if (!engDoor.secret) Q.levelDone(); else if (!engEnterSecret(engDoor.secret)) { engDoor = null; engClk.stop = false; } }
@@ -4570,6 +4570,107 @@
       s.at = 'map'; s.ck = null; Q.saveGame();
       engSay('root-won', function () { engRootEnd = false; if (!Q.go('map')) Q.go('title'); });
       return true;
+    };
+    // ===== 59-engine-watch.js =====
+    // ---------- 59-engine-watch.js (B19 STOPWATCH, 2 Nov): each file's PLAY TIME, its splits, and the mark a typed cheat code leaves (QUEST-API part 20) ----------
+    // Q.SAVE.time is the play time in seconds. Every engine step that starts in one of the adventure's scenes (the intro, a level with its talk and story,
+    // the map, the shop, game over, THE ENCORE's results) adds Q.DT, kept to whole steps. Nothing else counts: the pause menu and its screens, the title and
+    // every menu on it, the file screen, GAME MODES and BATTLE, the ending and the credits (they come after the clear), and no frames at all.
+    // Q.SAVE.watch keeps the rest: split, the play time when each floor's boss first fell (four, 0 until then), clear, the play time when the ending started,
+    // code, 1 from the first cheat code typed in this file until a new game, and run, this play-through's own number.
+    // The clock alone goes into the stored file every 10 s of play and whenever it stops, a split is taken, a code is typed or the game closes (swKeep):
+    // what the last save wrote stays exactly as it was, so a continue still starts at the last coffee mug with what that mug saved, and only the clock
+    // has moved on. So at most 10 s of play time is lost when the page dies between two saves, and a continue never sets the clock back.
+    Q.BETA = true;   // the game is a beta: the stopwatch shows unless OPTIONS turns it off (at 1.0 set false, and it shows only when OPTIONS turns it on)
+    var SW_RUN = { intro: 1, level: 1, map: 1, shop: 1, over: 1, encore: 1 };   // the adventure's scenes: a step that starts in one adds to the play time
+    var SW_KEEP = 600;   // counted steps between two writes of the clock alone (10 s of play)
+    var SW_TEACH = { tall: 'w1-boss', light: 'w2-boss', wfh: 'w3-boss', cash: 'w4-boss' };   // the codes a boss teaches at its door (75-ui-codex-codes.js)
+    var swN = 0, swWas = false;
+    function swNum(v) { v = +v; return v > 0 && isFinite(v) ? v : 0; }
+    function swRun() { return 1 + Math.floor(Math.random() * 2147483646); }
+    function swTyped(s) {   // a file from before the stopwatch whose save shows a typed code: a switch on, a known code no boss teaches, or a boss's code known before that boss fell
+      var k;
+      if (!s || typeof s !== 'object') return false;
+      if (s.cheats && typeof s.cheats === 'object') for (k in s.cheats) if (engOwn(s.cheats, k) && s.cheats[k]) return true;
+      if (s.codes && typeof s.codes === 'object') for (k in s.codes) if (engOwn(s.codes, k) && s.codes[k] && !(engOwn(SW_TEACH, k) && s.cleared && s.cleared[SW_TEACH[k]])) return true;
+      return false;
+    }
+    function swRec(s) {   // the file's watch record, made whole. A file from before gets one: no splits known, and the mark when its save shows a typed code
+      var w, i;
+      s = s || Q.SAVE;
+      if (!s || typeof s !== 'object') return null;
+      w = s.watch;
+      if (!w || typeof w !== 'object' || Array.isArray(w)) w = s.watch = { run: swRun(), split: [0, 0, 0, 0], clear: 0, code: swTyped(s) ? 1 : 0 };
+      if (!Array.isArray(w.split) || w.split.length !== 4) w.split = [0, 0, 0, 0];
+      for (i = 0; i < 4; i++) w.split[i] = swNum(w.split[i]);
+      w.clear = swNum(w.clear); w.code = w.code ? 1 : 0;
+      if (!(w.run > 0)) w.run = swRun();
+      return w;
+    }
+    function swInfo(s) {   // what any file shows of its clock, read without changing the file
+      var w = s && s.watch && typeof s.watch === 'object' && !Array.isArray(s.watch) ? s.watch : null, sp = w && Array.isArray(w.split) ? w.split : [], out = [], i;
+      for (i = 0; i < 4; i++) out.push(swNum(sp[i]));
+      return { t: swNum(s && s.time), split: out, clear: w ? swNum(w.clear) : 0, code: w ? !!w.code : swTyped(s) };
+    }
+    function swKeep() {   // the clock alone into the stored file: what the last save wrote, read back fresh, given this file's time and watch record, written again
+      var s = Q.SAVE, w = swRec(), raw, f;
+      swN = 0;
+      if (!s || !w || !engRaw || typeof engRaw.load !== 'function' || typeof engRaw.save !== 'function') return false;
+      try { raw = engRaw.load(); } catch (e) { return false; }
+      if (!raw || !raw.files3 || !raw.files || raw.files.length !== 3 || (raw.cur | 0) !== engFilesGet().cur) return false;   // nothing of this file stored yet: its first save writes it all
+      f = raw.files[raw.cur | 0];
+      if (!f || typeof f !== 'object' || !f.watch || f.watch.run !== w.run || swNum(f.time) > swNum(s.time)) return false;   // another play-through's save (a new game not saved yet): left alone
+      f.time = s.time; f.watch = { run: w.run, split: w.split.slice(), clear: w.clear, code: w.code };
+      try { engRaw.save(raw); } catch (e2) { return false; }
+      return true;
+    }
+    Q.watchStep = function (scene) {   // the engine's step loop, before each step, with the scene that step starts in
+      var s = Q.SAVE;
+      if (!s || !engOwn(SW_RUN, scene)) { if (swWas) { swWas = false; swKeep(); } return; }   // the clock has just stopped: keep what it counted (nothing is written in BATTLE)
+      if (!s.watch) swRec(s);   // a file from before gets its record on its first step of play, so its next save carries it (and the clock can be kept after that)
+      s.time = Math.round((swNum(s.time) + Q.DT) * 3600) / 3600;   // whole steps (k/60 s), so a minute of steps reads a whole minute
+      swWas = true; swN++;
+      if (swN >= SW_KEEP) swKeep();
+    };
+    Q.watchKeep = function () { var r = false; if (swWas || swN > 0) r = swKeep(); swWas = false; return r; };   // the game is closing (99-main.js stop): only what was counted since the last write (closed in BATTLE, nothing is written)
+    Q.watchRuns = function (scene) { return engOwn(SW_RUN, scene === undefined ? Q.scene : scene); };
+    Q.watch = function () {   // for the UI and for checks: the play time, the four splits, CLEARED IN, the codes mark, and whether the clock runs in this scene
+      var inf = swInfo(Q.SAVE);
+      inf.runs = !!Q.SAVE && engOwn(SW_RUN, Q.scene); inf.keepIn = SW_KEEP - swN;
+      return inf;
+    };
+    Q.watchOf = swInfo;
+    Q.on('boss', function () {   // a floor's boss falls: its split, the first time only, never in THE ENCORE
+      var lv = Q.level, s = Q.SAVE, w = swRec(), n = lv ? lv.world | 0 : 0;
+      if (!w || !lv || !lv.boss || n < 1 || n > 4 || (Q.encoreOn && Q.encoreOn()) || w.split[n - 1] > 0) return;
+      w.split[n - 1] = swNum(s.time); swKeep();
+    });
+    Q.on('end', function () {   // the ending starts (its save was written just before): CLEARED IN, the first time only
+      var s = Q.SAVE, w = swRec();
+      if (!w || w.clear > 0) return;
+      w.clear = swNum(s.time); swKeep();
+    });
+    var swNewGame0 = Q.newGame;
+    Q.newGame = function () {   // a new game: the clock at zero, no splits, no mark, a new play-through
+      var r = swNewGame0.apply(this, arguments);
+      if (Q.SAVE) { Q.SAVE.time = 0; Q.SAVE.watch = { run: swRun(), split: [0, 0, 0, 0], clear: 0, code: 0 }; }
+      swN = 0; swWas = false;
+      return r;
+    };
+    var swCode0 = Q.code;
+    Q.code = function (list) {   // a cheat code typed in, done or not, switched on or off: this file's times carry the mark from now on
+      var want = (list || []).join(' '), hit = false, w = null, id, r;
+      for (id in Q.CHEAT) if (engOwn(Q.CHEAT, id) && Q.CHEAT[id].code === want) hit = true;
+      if (hit) { w = swRec(); if (w) w.code = 1; }   // before the code's own save, so that save carries the mark
+      r = swCode0.apply(this, arguments);
+      if (w) swKeep();
+      return r;
+    };
+    var swFiles0 = Q.files;
+    Q.files = function () {   // the file screen's list: each used file also has its codes mark and its CLEARED IN
+      var out = swFiles0.apply(this, arguments), b = engFilesGet(), i, inf;
+      for (i = 0; i < out.length && i < 3; i++) if (out[i] && !out[i].empty) { inf = swInfo(b.files[i]); out[i].code = inf.code; out[i].clear = inf.clear; }
+      return out;
     };
     // ===== 70-ui-text.js =====
     // ---------- 70-ui-text.js: the text box, the toast and the UI's small kit (UI, builder 5) ----------
@@ -5250,8 +5351,9 @@
     })();
     // ===== 72-ui-front-menus.js =====
     // ---------- 72-ui-front-menus.js (B17 FRONT END, 2 Nov): the title scene's OPTIONS and EXTRAS screens (72-ui-title.js has the scene) ----------
-    // OPTIONS: MUSIC (FULL, LOW, OFF: the pause menu's own setting, U.setMusic), TEXT (NORMAL, FAST), BOW TIE (once bought), CONTROLS (the keys, the
-    // touch buttons and a controller: 72-ui-front-controls.js). Each setting goes into the current file's save at once (U.setOpt), like the pause menu's.
+    // OPTIONS: MUSIC (FULL, LOW, OFF: the pause menu's own setting, U.setMusic), TEXT (NORMAL, FAST), BOW TIE (once bought), STOPWATCH (ON, OFF: B19's,
+    // 79-ui-watch.js), CONTROLS (the keys, the touch buttons and a controller: 72-ui-front-controls.js). Each setting goes into the current file's save at once
+    // (U.setOpt), like the pause menu's.
     // EXTRAS: CODEX, STARS (the codex's GOLD STARS page), CREDITS, then once the game is won THE ENDING and HOLD MUSIC (the codex's jukebox). The codex opened
     // from here comes back here: its B and Start, only while it was opened from EXTRAS, return to the title (a hook on the codex scene, set once).
     // Up and down choose, left and right change a setting, A chooses, B goes back to the main menu.
@@ -5282,17 +5384,19 @@
         if (it === 'MUSIC') return U.musicOpt ? U.musicOpt() : 'FULL';
         if (it === 'TEXT') return U.textFast && U.textFast() ? 'FAST' : 'NORMAL';
         if (it === 'BOW TIE') return U.tieOpt ? U.tieOpt() : 'GOLD';
+        if (it === 'STOPWATCH') return U.watchOn && U.watchOn() ? 'ON' : 'OFF';
         return '';
       }
       function change(it, d) {   // one setting one step (d: 1 on, -1 back); into the save at once
         if (it === 'MUSIC' && U.setMusic && U.musicOpt) U.setMusic(MUS[(MUS.indexOf(U.musicOpt()) + (d > 0 ? 1 : 2)) % 3]);
         else if (it === 'TEXT' && U.setOpt) U.setOpt('text', U.textFast() ? 'normal' : 'fast');
         else if (it === 'BOW TIE' && U.setOpt) U.setOpt('bowtie', U.tieOpt() === 'GOLD' ? 'white' : 'gold');
+        else if (it === 'STOPWATCH' && U.setOpt && U.watchOn) U.setOpt('watch', U.watchOn() ? 'off' : 'on');
         else return false;
         return true;
       }
       FE.ph.options = {
-        items: function () { var l = ['MUSIC', 'TEXT']; if (tie()) l.push('BOW TIE'); l.push('CONTROLS'); return l; },
+        items: function () { var l = ['MUSIC', 'TEXT']; if (tie()) l.push('BOW TIE'); if (U.watchOn) l.push('STOPWATCH'); l.push('CONTROLS'); return l; },
         enter: function (sel) { var l = FE.ph.options.items(), i = typeof sel === 'string' ? FE.find(l, sel) : sel; FE.osel = i >= 0 ? i : 0; },
         update: function () {
           var l = FE.ph.options.items(), it;
@@ -5309,7 +5413,7 @@
         draw: function (g) {
           var l = FE.ph.options.items(), it = l[Math.min(FE.osel, l.length - 1)];
           FE.panel(g, 'OPTIONS', l, FE.osel, optValue);
-          FE.foot(it === 'MUSIC' ? 'FULL, LOW OR OFF (THE PAUSE MENU TOO)' : it === 'TEXT' ? 'HOW FAST THE TEXT BOX TYPES' : it === 'BOW TIE' ? 'GOLD, OR THE WHITE IT WAS' : 'THE KEYS, TOUCH AND A CONTROLLER', 'B: BACK');
+          FE.foot(it === 'MUSIC' ? 'FULL, LOW OR OFF (THE PAUSE MENU TOO)' : it === 'TEXT' ? 'HOW FAST THE TEXT BOX TYPES' : it === 'BOW TIE' ? 'GOLD, OR THE WHITE IT WAS' : it === 'STOPWATCH' ? 'YOUR PLAY TIME, IN A CORNER' : 'THE KEYS, TOUCH AND A CONTROLLER', 'B: BACK');
         }
       };
       // ---- EXTRAS ----
@@ -6587,13 +6691,21 @@
         l.push('TITLE');
         return l;
       }
-      U.setOpt = function (name, v) {   // a player's setting: into Q.SAVE.opt, and into the stored save at once (nothing else in it changes)
-        var s = Q.SAVE, st = null;
+      U.setOpt = function (name, v) {   // a player's setting: into Q.SAVE.opt, and into this file's stored copy at once; nothing else in the store changes
+        // (the raw store read fresh, as the stopwatch keeps its clock: Q.api.load() hands back the live save, so writing that stored all of it, tokens and a checkpoint
+        // picked up after the last coffee mug included; found by B19, 2 Nov 2026. A file never stored yet keeps the setting at its first save.)
+        var s = Q.SAVE, raw = null, f;
         if (!s) return;
         if (!s.opt || typeof s.opt !== 'object') s.opt = {};
         s.opt[name] = v;
-        try { st = Q.api && Q.api.load ? Q.api.load() : null; } catch (e) { st = null; }
-        if (st && typeof st === 'object') { if (!st.opt || typeof st.opt !== 'object') st.opt = {}; st.opt[name] = v; Q.api.save(st); }
+        if (!engRaw || typeof engRaw.load !== 'function' || typeof engRaw.save !== 'function') return;
+        try { raw = engRaw.load(); } catch (e) { raw = null; }
+        if (!raw || !raw.files3 || !raw.files || raw.files.length !== 3 || (raw.cur | 0) !== engFilesGet().cur) return;
+        f = raw.files[raw.cur | 0];
+        if (!f || typeof f !== 'object') return;
+        if (!f.opt || typeof f.opt !== 'object') f.opt = {};
+        f.opt[name] = v;
+        try { engRaw.save(raw); } catch (e2) {}
       };
       U.tieOpt = function () { return Q.SAVE && Q.SAVE.opt && Q.SAVE.opt.bowtie === 'white' ? 'WHITE' : 'GOLD'; };
       function tieSwap() { U.setOpt('bowtie', U.tieOpt() === 'GOLD' ? 'white' : 'gold'); }
@@ -6688,7 +6800,9 @@
           for (i = 0; i < Q.clamp(Math.round(s.rhythmMax), 0, 6); i++) Q.spr(g, 'ui-note', i < Math.floor(s.rhythm + 0.001) ? 0 : 1, 240 + i * 8, 69);
           U.text('TOKENS ' + Math.floor(s.tokens), 119, 84, '#ffd23f');
           U.text('MEMOS ' + s.memos + '/24', 310, 84, '#f6efe2', 1, 'right');
-          U.text('TIME ' + U.clock(s.time), 119, 96, '#8a93a8');
+          if (U.watchCode && U.watchCode()) {   // the play time (B19, part 20), a file with codes: an orange star before it and CODES after it
+            U.text('TIME', 119, 96, '#8a93a8'); U.watchMark(149, 96); U.text(U.clock(s.time), 155, 96, '#8a93a8'); U.text('CODES', 161 + U.width(U.clock(s.time)), 96, '#ff8a1e');
+          } else U.text('TIME ' + U.clock(s.time), 119, 96, '#8a93a8');
           U.text('FALLS ' + s.falls, 310, 96, '#8a93a8', 1, 'right');
           U.box(g, 2, 112, 316, 84, '#2ec4b6', '#12141c');
           U.text('ABILITIES', 10, 117, '#2ec4b6');
@@ -6784,6 +6898,19 @@
         U.drawTalk(g);
       }
       function next() { CR.phase = CR.phase === 'roll' ? 'stats' : 'end'; CR.pt = 0; Q.sfx(CR.phase === 'end' ? 'save' : 'select'); }
+      function clearedIn(g, w) {   // B19 (part 20): CLEARED IN, then each floor and the play time its boss fell at; a file with codes: an orange star before each time, CODES after
+        var t = U.watchText(w.clear), x = 160 - (U.width('CLEARED IN ' + (w.code ? '*' : '') + t + (w.code ? ' CODES' : '')) >> 1), i, y;
+        U.text('CLEARED IN', x, 124, '#c3c7d4'); x += 66;
+        if (w.code) { U.watchMark(x, 124); x += 6; }
+        U.text(t, x, 124, '#ffd23f');
+        if (w.code) U.text('CODES', x + U.width(t) + 7, 124, '#ff8a1e');
+        for (i = 0; i < 4; i++) {
+          y = 136 + i * 9; t = w.split[i] > 0 ? U.watchText(w.split[i]) : '-:--:--';
+          U.text(U.worldName ? U.worldName(i + 1) : 'WORLD ' + (i + 1), 84, y, '#8f9ac8');
+          U.text(t, 236, y, w.split[i] > 0 ? '#f6efe2' : '#5d6a9e', 1, 'right');
+          if (w.code && w.split[i] > 0) U.watchMark(229 - U.width(t), y);
+        }
+      }
       Q.defScene('credits', {
         enter: function () { U.entered();
           var lines = (Q.SCRIPT.credits || []).slice(), last = lines.length ? String(lines.pop().text || '') : 'THE END';
@@ -6829,12 +6956,15 @@
               y = 76 + i * 22;
               U.text(list[i][0], 150, y, '#8a93a8', 1, 'right');
               U.text(list[i][1], 170, y - 4, '#f6efe2', 2);
+              if (i === 0 && U.watchCode && U.watchCode()) { U.watchMark(156, y - 4, 2); U.text('CODES', 176 + U.width(list[0][1], 2), y, '#ff8a1e'); }   // B19: a file with codes
             }
             return;
           }
           U.bigWord(g, CR.end, 160 - (U.bigWidth(CR.end, 4) >> 1), 66, 4, U.WARM, U.WARM_SIDE);
           if (CR.rest) U.text(CR.rest, 160, 112, '#8ff0e6', 1, 'center');
-          U.text('MEMOS ' + s.memos + '/24   TIME ' + U.clock(s.time), 160, 138, '#5d6a9e', 1, 'center');
+          r = Q.watchOf ? Q.watchOf(Q.SAVE) : null;
+          if (r && r.clear > 0 && U.watchText) clearedIn(g, r);   // B19 (part 20): CLEARED IN and the four floors' splits, once the game was won with the stopwatch
+          else U.text('MEMOS ' + s.memos + '/24   TIME ' + (r && r.code ? '*' : '') + U.clock(s.time), 160, 138, '#5d6a9e', 1, 'center');
           if (CR.pt > 1 && Math.floor(t * 2) % 2) U.text(Q.SCRIPT.postcredits && Q.SCRIPT.postcredits.length ? 'A: ONE MORE THING' : 'A: TITLE', 160, 176, '#c3c7d4', 1, 'center');   // A goes to the postcredits first
         },
         sides: function (g) {   // a wide screen's sides (the engine clips to them): the night sky with stars of its own, the roll's band at the foot; after it, the office carried out to the edges
@@ -7459,7 +7589,11 @@
         if (f.won) U.text('ALL DONE', CX + CW - 8, y + 8, '#ffd23f', 1, 'right');
         U.text('WORLDS ' + f.worlds + '/4', x, y + 24, '#c3c7d4');
         U.starIcon(g, x + 84, y + 21, f.stars > 0); U.text(f.stars + '/' + U.starIds().length, x + 99, y + 24, f.stars > 0 ? '#ffd23f' : '#7f8ab8');
-        U.text(U.clock(f.time), CX + CW - 8, y + 24, '#8f9ac8', 1, 'right');
+        U.text(U.clock(f.time), CX + CW - 8, y + 24, '#8f9ac8', 1, 'right');   // its play time (B19, part 20)
+        if (f.code) {   // a file where a cheat code was typed: an orange star before its time and a CODES stamp on the top row (like an old cartridge's sticker)
+          if (U.watchMark) U.watchMark(CX + CW - 15 - U.width(U.clock(f.time)), y + 24);
+          U.text('CODES', f.won ? CX + CW - 16 - U.width('ALL DONE') : CX + CW - 8, y + 8, '#ff8a1e', 1, 'right');
+        }
       }
       Q.defScene('files', {
         enter: function () {
@@ -7510,6 +7644,50 @@
         },
         leave: function () {}
       });
+    })();
+    // ===== 79-ui-watch.js =====
+    // ---------- 79-ui-watch.js (B19 STOPWATCH, 2 Nov): the stopwatch in a corner, its OPTIONS setting's value, and the codes mark (QUEST-API part 20) ----------
+    // While the game is a beta (Q.BETA, 59-engine-watch.js) the stopwatch is on unless OPTIONS says OFF (Q.SAVE.opt.watch, 'on' or 'off', kept like TEXT).
+    // It shows exactly while the clock runs (the intro, a level, the map, the shop, game over, THE ENCORE's results): a hook on drawTalk, which each of those
+    // scenes calls last, draws it just before the toast and the text box, so a box covers it and it covers nothing the HUD shows. Its place is the bottom
+    // right corner of the scene's own frame: the screen's in a level (at any width), the centred 320 column's in the others, and on the map just above its bar.
+    // H:MM:SS in the game's font on a small dark plate, a letter at a time (eleven letters drawn once, not a new picture every second). A file where a cheat
+    // code was typed shows an orange star before the time and a CODES tab over the plate. U.watchMark is the same star for the menus.
+    (function () {
+      var U = Q.ui, WT = { ink: '#e8f0ff', code: '#ff8a1e', plate: '#121318', edge: '#3a3d52', warned: false };
+      U.watchOn = function () { var o = Q.SAVE && Q.SAVE.opt, v = o && o.watch; return v === 'on' ? true : v === 'off' ? false : !!Q.BETA; };
+      U.watchCode = function (s) {   // this file's codes mark (its record read straight, so a frame makes nothing new; a file from before is read by Q.watchOf)
+        var v = s || Q.SAVE, r = v && v.watch, w;
+        if (r && typeof r === 'object' && !Array.isArray(r)) return !!r.code;
+        w = Q.watchOf ? Q.watchOf(v) : null; return !!(w && w.code);
+      };
+      U.watchText = function (secs) {   // seconds as H:MM:SS, always with the hours (a stopwatch's face)
+        var s = Math.max(0, Math.floor((+secs || 0) + 1e-6)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, r = s % 60;
+        return h + ':' + (m < 10 ? '0' : '') + m + ':' + (r < 10 ? '0' : '') + r;
+      };
+      U.mono = function (s, x, y, col) { var i; for (i = 0; i < s.length; i++) if (s.charAt(i) !== ' ') U.text(s.charAt(i), x + i * 6, y, col); };   // one letter at a time
+      U.watchMark = function (x, y, k) { U.text('*', x, y, WT.code, k || 1); };   // the codes star, before a time in a menu
+      U.watchAt = function () {   // where the plate goes in this scene (its frame's right: the screen in a wide scene, else the 320 column), what it reads, and whether it steps aside
+        var s = Q.SAVE, code = U.watchCode(), txt = U.watchText(s ? s.time : 0), w = U.width(txt) + (code ? 6 : 0) + 6, y = Q.scene === 'map' ? 147 : 184;
+        var sc = Object.prototype.hasOwnProperty.call(Q.SCENE, Q.scene) ? Q.SCENE[Q.scene] : null, r = sc && sc.wide || Q.W <= 320 ? Q.W : Q.OX + 320, x = r - 2 - w, tk = U.talkAt ? U.talkAt() : null;
+        return { on: U.watchOn(), runs: !!(Q.watchRuns && Q.watchRuns(Q.scene)), x: x, y: y, w: w, h: 11, r: r, text: (code ? '*' : '') + txt, code: code,
+          aside: !!(tk && !tk.top && x < Q.OX + 318) };   // a text box at the bottom over its corner: it steps aside until the box is gone (no sliver peeks past the box)
+      };
+      function plate(g) {   // the plate at the frame's bottom right: a line of edge colour, the dark fill, the time (a star first, and a CODES tab above, for a file with codes)
+        var a = U.watchAt(), x = a.x, y = a.y, edge = a.code ? WT.code : WT.edge;
+        if (a.aside) return;
+        if (a.code) { U.fill(g, a.r - 37, y - 9, 35, 10, edge); U.fill(g, a.r - 36, y - 8, 33, 9, WT.plate); U.text('CODES', a.r - 34, y - 7, WT.code); }
+        U.fill(g, x, y, a.w, 11, edge); U.fill(g, x + 1, y + 1, a.w - 2, 9, WT.plate);
+        if (a.code) { U.watchMark(x + 3, y + 2); U.mono(a.text.slice(1), x + 9, y + 2, WT.ink); }
+        else U.mono(a.text, x + 3, y + 2, WT.ink);
+      }
+      var talk0 = U.drawTalk;
+      U.drawTalk = Q.ui.drawTalk = function (g) {   // the stopwatch first, then the toast and the box as before
+        if (Q.SAVE && U.watchOn() && Q.watchRuns && Q.watchRuns(Q.scene)) {
+          try { plate(g); } catch (e) { if (!WT.warned) { WT.warned = true; Q.warn('stopwatch: ' + e); } }
+        }
+        return talk0.apply(this, arguments);
+      };
     })();
     // ===== 81-w1-art-a.js =====
     // ---------- 81-w1-art-a.js: WORLD 1, THE INBOX: its palette, a tiny letter set, and its tiles (builder 6) ----------
@@ -14925,7 +15103,7 @@
       engTaken = {};
       for (n = 0; n < steps; n++) {   // a step that changes the scene or opens or closes a text box ends this frame's presses for everyone (part 13, 28)
         var sc0 = Q.scene, tk0 = !!Q.talking();
-        engAcc -= Q.DT; Q.t += Q.DT; engStepScene();
+        engAcc -= Q.DT; Q.t += Q.DT; if (Q.watchStep) Q.watchStep(sc0); engStepScene();   // the play time first (59-engine-watch.js): a step counts by the scene it starts in
         if (Q.scene !== sc0 || !!Q.talking() !== tk0) engTakeAll();
       }
       if (engAcc > Q.DT || engAcc < 0) engAcc = 0;   // behind by more than four steps: let it go
@@ -15006,7 +15184,7 @@
         if (engOwn(Q.SCENE, 'title')) Q.go('title'); else Q.startLevel(engFirstLevel());
         return {
           frame: function (dt) { engFrame(dt); },
-          stop: function () { if (Q.level && Q.SAVE) Q.saveGame(); try { Q.audioStop(); } catch (er) { engErr('audioStop', 'audio', er); } },
+          stop: function () { if (Q.level && Q.SAVE) Q.saveGame(); if (Q.watchKeep) Q.watchKeep(); try { Q.audioStop(); } catch (er) { engErr('audioStop', 'audio', er); } },   // the clock is kept even when closed off a level
           state: engState,
           cheat: engCheat
         };

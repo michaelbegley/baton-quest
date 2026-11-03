@@ -71,7 +71,7 @@
       engTaken = {};
       for (n = 0; n < steps; n++) {   // a step that changes the scene or opens or closes a text box ends this frame's presses for everyone (part 13, 28)
         var sc0 = Q.scene, tk0 = !!Q.talking();
-        engAcc -= Q.DT; Q.t += Q.DT; engStepScene();
+        engAcc -= Q.DT; Q.t += Q.DT; if (Q.watchStep) Q.watchStep(sc0); engStepScene();   // the play time first (59-engine-watch.js): a step counts by the scene it starts in
         if (Q.scene !== sc0 || !!Q.talking() !== tk0) engTakeAll();
       }
       if (engAcc > Q.DT || engAcc < 0) engAcc = 0;   // behind by more than four steps: let it go
@@ -152,7 +152,7 @@
         if (engOwn(Q.SCENE, 'title')) Q.go('title'); else Q.startLevel(engFirstLevel());
         return {
           frame: function (dt) { engFrame(dt); },
-          stop: function () { if (Q.level && Q.SAVE) Q.saveGame(); try { Q.audioStop(); } catch (er) { engErr('audioStop', 'audio', er); } },
+          stop: function () { if (Q.level && Q.SAVE) Q.saveGame(); if (Q.watchKeep) Q.watchKeep(); try { Q.audioStop(); } catch (er) { engErr('audioStop', 'audio', er); } },   // the clock is kept even when closed off a level
           state: engState,
           cheat: engCheat
         };

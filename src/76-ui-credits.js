@@ -71,6 +71,19 @@
         U.drawTalk(g);
       }
       function next() { CR.phase = CR.phase === 'roll' ? 'stats' : 'end'; CR.pt = 0; Q.sfx(CR.phase === 'end' ? 'save' : 'select'); }
+      function clearedIn(g, w) {   // B19 (part 20): CLEARED IN, then each floor and the play time its boss fell at; a file with codes: an orange star before each time, CODES after
+        var t = U.watchText(w.clear), x = 160 - (U.width('CLEARED IN ' + (w.code ? '*' : '') + t + (w.code ? ' CODES' : '')) >> 1), i, y;
+        U.text('CLEARED IN', x, 124, '#c3c7d4'); x += 66;
+        if (w.code) { U.watchMark(x, 124); x += 6; }
+        U.text(t, x, 124, '#ffd23f');
+        if (w.code) U.text('CODES', x + U.width(t) + 7, 124, '#ff8a1e');
+        for (i = 0; i < 4; i++) {
+          y = 136 + i * 9; t = w.split[i] > 0 ? U.watchText(w.split[i]) : '-:--:--';
+          U.text(U.worldName ? U.worldName(i + 1) : 'WORLD ' + (i + 1), 84, y, '#8f9ac8');
+          U.text(t, 236, y, w.split[i] > 0 ? '#f6efe2' : '#5d6a9e', 1, 'right');
+          if (w.code && w.split[i] > 0) U.watchMark(229 - U.width(t), y);
+        }
+      }
       Q.defScene('credits', {
         enter: function () { U.entered();
           var lines = (Q.SCRIPT.credits || []).slice(), last = lines.length ? String(lines.pop().text || '') : 'THE END';
@@ -116,12 +129,15 @@
               y = 76 + i * 22;
               U.text(list[i][0], 150, y, '#8a93a8', 1, 'right');
               U.text(list[i][1], 170, y - 4, '#f6efe2', 2);
+              if (i === 0 && U.watchCode && U.watchCode()) { U.watchMark(156, y - 4, 2); U.text('CODES', 176 + U.width(list[0][1], 2), y, '#ff8a1e'); }   // B19: a file with codes
             }
             return;
           }
           U.bigWord(g, CR.end, 160 - (U.bigWidth(CR.end, 4) >> 1), 66, 4, U.WARM, U.WARM_SIDE);
           if (CR.rest) U.text(CR.rest, 160, 112, '#8ff0e6', 1, 'center');
-          U.text('MEMOS ' + s.memos + '/24   TIME ' + U.clock(s.time), 160, 138, '#5d6a9e', 1, 'center');
+          r = Q.watchOf ? Q.watchOf(Q.SAVE) : null;
+          if (r && r.clear > 0 && U.watchText) clearedIn(g, r);   // B19 (part 20): CLEARED IN and the four floors' splits, once the game was won with the stopwatch
+          else U.text('MEMOS ' + s.memos + '/24   TIME ' + (r && r.code ? '*' : '') + U.clock(s.time), 160, 138, '#5d6a9e', 1, 'center');
           if (CR.pt > 1 && Math.floor(t * 2) % 2) U.text(Q.SCRIPT.postcredits && Q.SCRIPT.postcredits.length ? 'A: ONE MORE THING' : 'A: TITLE', 160, 176, '#c3c7d4', 1, 'center');   // A goes to the postcredits first
         },
         sides: function (g) {   // a wide screen's sides (the engine clips to them): the night sky with stars of its own, the roll's band at the foot; after it, the office carried out to the edges

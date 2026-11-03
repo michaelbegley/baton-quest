@@ -13,13 +13,21 @@
         l.push('TITLE');
         return l;
       }
-      U.setOpt = function (name, v) {   // a player's setting: into Q.SAVE.opt, and into the stored save at once (nothing else in it changes)
-        var s = Q.SAVE, st = null;
+      U.setOpt = function (name, v) {   // a player's setting: into Q.SAVE.opt, and into this file's stored copy at once; nothing else in the store changes
+        // (the raw store read fresh, as the stopwatch keeps its clock: Q.api.load() hands back the live save, so writing that stored all of it, tokens and a checkpoint
+        // picked up after the last coffee mug included; found by B19, 2 Nov 2026. A file never stored yet keeps the setting at its first save.)
+        var s = Q.SAVE, raw = null, f;
         if (!s) return;
         if (!s.opt || typeof s.opt !== 'object') s.opt = {};
         s.opt[name] = v;
-        try { st = Q.api && Q.api.load ? Q.api.load() : null; } catch (e) { st = null; }
-        if (st && typeof st === 'object') { if (!st.opt || typeof st.opt !== 'object') st.opt = {}; st.opt[name] = v; Q.api.save(st); }
+        if (!engRaw || typeof engRaw.load !== 'function' || typeof engRaw.save !== 'function') return;
+        try { raw = engRaw.load(); } catch (e) { raw = null; }
+        if (!raw || !raw.files3 || !raw.files || raw.files.length !== 3 || (raw.cur | 0) !== engFilesGet().cur) return;
+        f = raw.files[raw.cur | 0];
+        if (!f || typeof f !== 'object') return;
+        if (!f.opt || typeof f.opt !== 'object') f.opt = {};
+        f.opt[name] = v;
+        try { engRaw.save(raw); } catch (e2) {}
       };
       U.tieOpt = function () { return Q.SAVE && Q.SAVE.opt && Q.SAVE.opt.bowtie === 'white' ? 'WHITE' : 'GOLD'; };
       function tieSwap() { U.setOpt('bowtie', U.tieOpt() === 'GOLD' ? 'white' : 'gold'); }
@@ -114,7 +122,9 @@
           for (i = 0; i < Q.clamp(Math.round(s.rhythmMax), 0, 6); i++) Q.spr(g, 'ui-note', i < Math.floor(s.rhythm + 0.001) ? 0 : 1, 240 + i * 8, 69);
           U.text('TOKENS ' + Math.floor(s.tokens), 119, 84, '#ffd23f');
           U.text('MEMOS ' + s.memos + '/24', 310, 84, '#f6efe2', 1, 'right');
-          U.text('TIME ' + U.clock(s.time), 119, 96, '#8a93a8');
+          if (U.watchCode && U.watchCode()) {   // the play time (B19, part 20), a file with codes: an orange star before it and CODES after it
+            U.text('TIME', 119, 96, '#8a93a8'); U.watchMark(149, 96); U.text(U.clock(s.time), 155, 96, '#8a93a8'); U.text('CODES', 161 + U.width(U.clock(s.time)), 96, '#ff8a1e');
+          } else U.text('TIME ' + U.clock(s.time), 119, 96, '#8a93a8');
           U.text('FALLS ' + s.falls, 310, 96, '#8a93a8', 1, 'right');
           U.box(g, 2, 112, 316, 84, '#2ec4b6', '#12141c');
           U.text('ABILITIES', 10, 117, '#2ec4b6');

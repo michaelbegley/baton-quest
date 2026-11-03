@@ -1,6 +1,7 @@
     // ---------- 72-ui-front-menus.js (B17 FRONT END, 2 Nov): the title scene's OPTIONS and EXTRAS screens (72-ui-title.js has the scene) ----------
-    // OPTIONS: MUSIC (FULL, LOW, OFF: the pause menu's own setting, U.setMusic), TEXT (NORMAL, FAST), BOW TIE (once bought), CONTROLS (the keys, the
-    // touch buttons and a controller: 72-ui-front-controls.js). Each setting goes into the current file's save at once (U.setOpt), like the pause menu's.
+    // OPTIONS: MUSIC (FULL, LOW, OFF: the pause menu's own setting, U.setMusic), TEXT (NORMAL, FAST), BOW TIE (once bought), STOPWATCH (ON, OFF: B19's,
+    // 79-ui-watch.js), CONTROLS (the keys, the touch buttons and a controller: 72-ui-front-controls.js). Each setting goes into the current file's save at once
+    // (U.setOpt), like the pause menu's.
     // EXTRAS: CODEX, STARS (the codex's GOLD STARS page), CREDITS, then once the game is won THE ENDING and HOLD MUSIC (the codex's jukebox). The codex opened
     // from here comes back here: its B and Start, only while it was opened from EXTRAS, return to the title (a hook on the codex scene, set once).
     // Up and down choose, left and right change a setting, A chooses, B goes back to the main menu.
@@ -31,17 +32,19 @@
         if (it === 'MUSIC') return U.musicOpt ? U.musicOpt() : 'FULL';
         if (it === 'TEXT') return U.textFast && U.textFast() ? 'FAST' : 'NORMAL';
         if (it === 'BOW TIE') return U.tieOpt ? U.tieOpt() : 'GOLD';
+        if (it === 'STOPWATCH') return U.watchOn && U.watchOn() ? 'ON' : 'OFF';
         return '';
       }
       function change(it, d) {   // one setting one step (d: 1 on, -1 back); into the save at once
         if (it === 'MUSIC' && U.setMusic && U.musicOpt) U.setMusic(MUS[(MUS.indexOf(U.musicOpt()) + (d > 0 ? 1 : 2)) % 3]);
         else if (it === 'TEXT' && U.setOpt) U.setOpt('text', U.textFast() ? 'normal' : 'fast');
         else if (it === 'BOW TIE' && U.setOpt) U.setOpt('bowtie', U.tieOpt() === 'GOLD' ? 'white' : 'gold');
+        else if (it === 'STOPWATCH' && U.setOpt && U.watchOn) U.setOpt('watch', U.watchOn() ? 'off' : 'on');
         else return false;
         return true;
       }
       FE.ph.options = {
-        items: function () { var l = ['MUSIC', 'TEXT']; if (tie()) l.push('BOW TIE'); l.push('CONTROLS'); return l; },
+        items: function () { var l = ['MUSIC', 'TEXT']; if (tie()) l.push('BOW TIE'); if (U.watchOn) l.push('STOPWATCH'); l.push('CONTROLS'); return l; },
         enter: function (sel) { var l = FE.ph.options.items(), i = typeof sel === 'string' ? FE.find(l, sel) : sel; FE.osel = i >= 0 ? i : 0; },
         update: function () {
           var l = FE.ph.options.items(), it;
@@ -58,7 +61,7 @@
         draw: function (g) {
           var l = FE.ph.options.items(), it = l[Math.min(FE.osel, l.length - 1)];
           FE.panel(g, 'OPTIONS', l, FE.osel, optValue);
-          FE.foot(it === 'MUSIC' ? 'FULL, LOW OR OFF (THE PAUSE MENU TOO)' : it === 'TEXT' ? 'HOW FAST THE TEXT BOX TYPES' : it === 'BOW TIE' ? 'GOLD, OR THE WHITE IT WAS' : 'THE KEYS, TOUCH AND A CONTROLLER', 'B: BACK');
+          FE.foot(it === 'MUSIC' ? 'FULL, LOW OR OFF (THE PAUSE MENU TOO)' : it === 'TEXT' ? 'HOW FAST THE TEXT BOX TYPES' : it === 'BOW TIE' ? 'GOLD, OR THE WHITE IT WAS' : it === 'STOPWATCH' ? 'YOUR PLAY TIME, IN A CORNER' : 'THE KEYS, TOUCH AND A CONTROLLER', 'B: BACK');
         }
       };
       // ---- EXTRAS ----
