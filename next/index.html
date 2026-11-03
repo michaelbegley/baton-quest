@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Baton Quest (Beta)</title>
+<meta name="description" content="Baton Quest: a small platforming RPG about a conductor, three agents and a tangle called SCOPE CREEP. Plays on a phone, a computer or a controller.">
+<meta name="theme-color" content="#0b1416">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Baton Quest">
+<meta property="og:title" content="Baton Quest (Beta)">
+<meta property="og:description" content="A small platforming RPG about a conductor, three agents and a tangle called SCOPE CREEP. Plays on a phone, a computer or a controller.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://michaelbegley.github.io/baton-quest/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+  /* Silkscreen, from our own files (fonts/, SIL Open Font License 1.1: fonts/OFL-Silkscreen.txt), so the page asks no outside server for anything */
+  @font-face { font-family: 'Silkscreen'; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/silkscreen-latin-400-normal.woff2) format('woff2'); }
+</style>
+<style>
+  /* Two looks. On a computer (a mouse): the game fills the window, its sides lit by a soft glow of the game's own colours, a small toolbar top right
+     that hides when the mouse is still. On a phone or tablet (touch): the 9F POCKET, a handheld of our own that fills the screen: upright, the screen
+     on top and the D-pad and A, B, C under it; sideways, the D-pad left of the screen and the buttons right of it.
+     Sideways there are two looks (PLAIN, just the screen and the buttons on black; HANDHELD, the shell), picked by a switch at the top right.
+     A controller pressed on a phone or tablet takes the game full screen (the whole-window look); a touch on the screen brings the handheld back. */
+  :root {
+    --night: #0b1416; --text: #e6efec; --muted: #93aaa6;
+    --shell: #f4eee1; --shell-lt: #fffcf6; --shell-dk: #dcd0b8; --ink: #1d1d24; --bezel: #2e2a27;
+    --btn: #ffae5e; --btn-lt: #ffd4a3; --btn-dk: #ec8f3d; --btn-ink: #4a2a10; --beta: #ff7a45;   /* the handheld's light orange buttons; the BETA tag */
+    --teal: #2ec4b6; --orange: #ff8a1e; --walnut: #7a4a2a;
+    --f-pix: "Silkscreen", "Courier New", monospace;
+    --vh: 100vh; --pw: min(100vw, 620px);
+    color-scheme: dark;
+  }
+  @supports (height: 100dvh) { :root { --vh: 100dvh; } }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #000; color: var(--text); }
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 14px; line-height: 1.45; -webkit-tap-highlight-color: transparent; }
+  button { font-family: var(--f-pix); cursor: pointer; }
+  canvas#screen { display: block; aspect-ratio: 16 / 10; image-rendering: pixelated; image-rendering: crisp-edges; background: #000; outline: none; }
+  #amb { display: none; }
+  .note { position: fixed; left: 50%; top: 14px; transform: translateX(-50%); background: rgba(11, 20, 22, 0.92); color: var(--text); font-family: var(--f-pix); font-size: 11px;
+    padding: 6px 12px; border-radius: 8px; pointer-events: none; opacity: 0; transition: opacity 0.25s; max-width: calc(100vw - 28px); width: max-content; text-align: center; line-height: 1.5; z-index: 6; }
+  .note.show { opacity: 1; }
+  kbd { font-family: var(--f-pix); font-size: 11px; color: var(--ink); background: var(--shell); border-radius: 4px; padding: 1px 6px; box-shadow: inset 0 -2px 0 var(--shell-dk); }
+  .pill { border: 0; border-radius: 999px; font-size: 11px; letter-spacing: 0.06em; padding: 7px 12px; touch-action: none; }
+  .pill[hidden] { display: none; }
+
+  /* ---------- a computer: the whole window ---------- */
+  body.desk .pocket { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+  body.desk canvas#screen { width: min(100vw, calc(var(--vh) * 1.6)); height: auto; box-shadow: 0 0 90px rgba(0, 0, 0, 0.7); }
+  body.desk.noglow #amb { display: none; }
+  body.desk #amb { display: block; position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; image-rendering: auto; pointer-events: none; }   /* a tiny canvas the browser smooths as it stretches it: a soft glow for almost no work (a CSS blur this size cost 50 frames a second) */
+  body.desk .pocket { z-index: 1; }
+  body.desk .bezel-top, body.desk .brand, body.desk .dpad, body.desk .btns, body.desk .grille, body.desk .mstart { display: none; }
+  body.desk .mtools { position: fixed; top: 14px; right: 14px; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; max-width: calc(100vw - 28px); z-index: 4; transition: opacity 0.3s; }   /* wraps on a narrow screen (a phone with a controller) */
+  body.padview .note { top: auto; bottom: max(16px, env(safe-area-inset-bottom)); }   /* a phone with a controller: notes under the game, clear of the toolbar */
+  body.desk .pill.tool { background: rgba(14, 20, 22, 0.8); color: var(--text); border: 1px solid rgba(255, 255, 255, 0.14); }
+  body.desk .pill.tool:hover { background: rgba(30, 40, 44, 0.92); }
+  body.desk.idle .mtools { opacity: 0; pointer-events: none; }
+  body.desk.idle { cursor: none; }
+  body.desk .under { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 4; background: rgba(11, 20, 22, 0.86); color: var(--muted);
+    padding: 9px 16px; border-radius: 12px; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 16px; max-width: calc(100vw - 32px); transition: opacity 0.6s; }
+  body.desk.hint-off .under, body.desk.sysup .under { opacity: 0; pointer-events: none; }   /* B20: and while the game's SYSTEM screen is up (its foot line names its keys) */
+  body.pocket .under, body.padview .under { display: none; }   /* the key hints: not on the handheld, nor when a controller has a phone's screen */
+
+  /* ---------- a phone or tablet: the 9F POCKET, filling the screen ---------- */
+  body.pocket .pocket { position: fixed; inset: 0; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto 1fr auto; grid-template-areas: "screen screen" "brand brand" "dpad btns" "mstart mtools";
+    gap: 6px 8px; padding: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    background: linear-gradient(180deg, var(--shell-lt) 0%, var(--shell) 42%, #eee6d6 100%); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7), inset 0 -24px 48px rgba(130, 100, 50, 0.08); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  body.pocket .screen-wrap { grid-area: screen; background: linear-gradient(180deg, #3b3632, var(--bezel) 60%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 2px 0 rgba(90, 70, 40, 0.18), 0 8px 16px rgba(90, 70, 40, 0.16); border-radius: 12px 12px 34px 12px; padding: 10px 14px 14px; justify-self: center; width: 100%; max-width: calc((var(--vh) * 0.5) * 1.6 + 28px); }
+  body.pocket canvas#screen { width: 100%; height: auto; border-radius: 3px; box-shadow: 0 0 0 2px #191715; }
+  .bezel-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-family: var(--f-pix); font-size: 10px; color: #8d867b; letter-spacing: 0.08em; }
+  .beta { display: inline-block; font-family: var(--f-pix); font-size: 9px; letter-spacing: 0.12em; line-height: 1; color: #fff; background: var(--beta); border-radius: 4px; padding: 3px 5px 2px; box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25); }
+  body.desk .pill.betatag { background: rgba(14, 20, 22, 0.8); color: #ffb98a; border: 1px solid rgba(255, 122, 69, 0.55); cursor: default; }
+  body.pocket .pill.betatag { display: none; }
+  .led { width: 7px; height: 7px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 7px var(--teal); }
+  .led.off { background: #3a4442; box-shadow: none; }
+  .brand { grid-area: brand; font-family: var(--f-pix); font-size: 11px; color: #9a8b70; letter-spacing: 0.1em; display: flex; align-items: center; gap: 6px; pointer-events: none; padding-left: 4px; }
+  .badge { display: inline-block; width: 1.9em; height: 1.9em; border-radius: 50%; background: var(--orange); color: #fff; text-align: center; line-height: 1.9em; font-size: 0.85em; }
+  /* the D-pad: one pad, so a thumb can slide round it (diagonals too) */
+  .dpad { grid-area: dpad; position: relative; justify-self: center; align-self: center; width: calc(min(40vw, calc(var(--vh) * 0.27), 230px) * var(--btnk, 1)); aspect-ratio: 1; touch-action: none; cursor: pointer; }
+  .dpad .bar { position: absolute; background: linear-gradient(180deg, #3c3835, #2a2725); border-radius: 8px; box-shadow: inset 0 -4px 0 #1a1817, inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 3px 0 rgba(110, 80, 40, 0.22); }
+  .dpad .h { left: 0; right: 0; top: 33.5%; height: 33%; }
+  .dpad .v { top: 0; bottom: 0; left: 33.5%; width: 33%; }
+  .dpad .hub { position: absolute; left: 41%; top: 41%; width: 18%; height: 18%; border-radius: 50%; background: #34302d; box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.35); }
+  .dpad i { position: absolute; width: 0; height: 0; border: 7px solid transparent; opacity: 0.55; }
+  .dpad i.u { left: 50%; top: 7%; transform: translateX(-50%); border-bottom-color: #9aa0b4; border-top-width: 0; }
+  .dpad i.d { left: 50%; bottom: 7%; transform: translateX(-50%); border-top-color: #9aa0b4; border-bottom-width: 0; }
+  .dpad i.l { top: 50%; left: 7%; transform: translateY(-50%); border-right-color: #9aa0b4; border-left-width: 0; }
+  .dpad i.r { top: 50%; right: 7%; transform: translateY(-50%); border-left-color: #9aa0b4; border-right-width: 0; }
+  .dpad.on-up i.u { border-bottom-color: var(--btn); opacity: 1; } .dpad.on-down i.d { border-top-color: var(--btn); opacity: 1; }
+  .dpad.on-left i.l { border-right-color: var(--btn); opacity: 1; } .dpad.on-right i.r { border-left-color: var(--btn); opacity: 1; }
+  /* the face buttons: B and A on a slant, C (the dash) below them, as far from A as from B (Michael, 2 Nov, 21:28 Central) */
+  .btns { grid-area: btns; position: relative; justify-self: center; align-self: center; width: calc(min(46vw, calc(var(--vh) * 0.3), 260px) * var(--btnk, 1)); aspect-ratio: 1.05; }
+  .face { position: absolute; width: 38%; aspect-ratio: 1; border-radius: 50%; border: 0; color: var(--btn-ink); font-size: clamp(14px, 4.2vw, 22px); text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+    background: radial-gradient(circle at 34% 28%, var(--btn-lt) 0%, var(--btn) 52%, var(--btn-dk) 100%);
+    box-shadow: inset 0 -5px 0 rgba(150, 66, 0, 0.22), inset 0 2px 0 rgba(255, 255, 255, 0.4), 0 3px 0 rgba(130, 75, 20, 0.3), 0 7px 12px rgba(100, 70, 25, 0.16); touch-action: none; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
+  .face small { font-size: 0.42em; margin-top: 2px; letter-spacing: 0.06em; }
+  .face.b { left: 2%; top: 40%; }
+  .face.a { left: 58%; top: 10%; }
+  .face.c { left: 50.5%; top: 63%; width: 30%; background: radial-gradient(circle at 34% 28%, #ffe6c9 0%, #ffc993 55%, #f0a862 100%); }
+  .face.on, .pill.on { transform: translateY(2px); box-shadow: inset 0 -2px 0 rgba(140, 62, 0, 0.25), inset 0 2px 4px rgba(120, 60, 10, 0.28); filter: brightness(0.96); }
+  body.pocket .menu { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  body.pocket .mstart { grid-area: mstart; justify-content: flex-end; } body.pocket .mtools { grid-area: mtools; justify-content: flex-start; }
+  body.pocket .pill { background: #5a534a; color: var(--shell-lt); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.3); font-size: 10px; }
+  body.pocket .pill.start { background: #46403a; padding: 8px 16px; }
+  body.pocket .pill.tool { background: #e8dcc5; color: var(--ink); box-shadow: inset 0 -3px 0 rgba(120, 95, 50, 0.22); }
+  .pill.tool#snd[aria-pressed="true"] { background: var(--teal); color: var(--ink); }
+  body.pocket .pill.tool#snd[aria-pressed="false"] { text-decoration: line-through; }
+  body.desk .pill.tool#snd[aria-pressed="false"] { text-decoration: line-through; opacity: 0.8; }
+  .grille { grid-area: brand; justify-self: end; align-self: center; display: flex; gap: 5px; margin-right: 10px; pointer-events: none; }   /* the speaker, beside the 9F POCKET label (it sat over the buttons) */
+  .grille span { width: 4px; height: 18px; border-radius: 3px; background: #d6cab2; box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.2); transform: skewX(-24deg); }
+  body.desk .grille { display: none; }
+  /* sideways: the D-pad left of the screen and the buttons right of it, in one of two looks, picked by the switch at the top right (and SIDEWAYS in MENU):
+     PLAIN, the first look: no handheld, just the screen and the buttons on black (Michael, 2 Nov, 21:18 Central); HANDHELD: the 9F POCKET's shell (21:27) */
+  .looksw { display: none; }
+  @media (orientation: landscape) {
+    body.pocket .pocket { --side: clamp(calc(108px * var(--btnk, 1)), calc(18vw * var(--btnk, 1)), calc(170px * var(--btnk, 1))); grid-template-columns: var(--side) auto var(--side); grid-template-rows: 1fr auto;
+      grid-template-areas: "dpad screen btns" "mstart screen mtools"; justify-content: center; align-items: center; gap: 6px 10px;
+      padding: max(6px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left)); }
+    body.pocket .screen-wrap { width: auto; max-width: none; padding: 8px 12px 10px; border-radius: 12px; }
+    body.pocket canvas#screen { width: min(calc((var(--vh) - 56px) * 1.6), calc(100vw - 2 * var(--side) - 84px)); }
+    body.pocket .brand, body.pocket .grille { display: none; }
+    .dpad { width: calc(var(--side) - 12px); }
+    .btns { width: calc(var(--side) - 6px); }
+    body.pocket .menu { align-self: end; justify-content: center; gap: 6px; }
+    body.pocket .looksw { display: flex; position: fixed; z-index: 3; top: max(8px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); padding: 2px; border-radius: 999px; background: rgba(90, 70, 40, 0.14); }
+    .looksw button { border: 0; border-radius: 999px; padding: 5px 9px; font-size: 9px; letter-spacing: 0.08em; background: none; color: #7d725f; }
+    .looksw button[aria-pressed="true"] { background: #5a534a; color: var(--shell-lt); }
+    /* PLAIN */
+    body.pocket.sideplain .pocket { gap: 6px 12px; background: #000; box-shadow: none; }
+    body.pocket.sideplain .screen-wrap { padding: 0; border-radius: 0; background: none; box-shadow: none; }
+    body.pocket.sideplain .bezel-top { display: none; }
+    body.pocket.sideplain canvas#screen { border-radius: 2px; box-shadow: none;
+      width: min(calc((var(--vh) - max(6px, env(safe-area-inset-top)) - max(6px, env(safe-area-inset-bottom))) * 1.6), calc(100vw - 2 * var(--side) - max(14px, env(safe-area-inset-left)) - max(14px, env(safe-area-inset-right)) - 24px)); }
+    body.sideplain .dpad .bar { background: linear-gradient(180deg, #4d4945, #36322f); box-shadow: inset 0 -4px 0 #1f1d1b, inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 0 0 1px rgba(255, 255, 255, 0.07); }
+    body.sideplain .dpad .hub { background: #3e3a36; }
+    body.pocket.sideplain .pill, body.pocket.sideplain .pill.start, body.pocket.sideplain .pill.tool { background: rgba(255, 255, 255, 0.13); color: var(--text); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.35); }
+    body.sideplain .looksw { background: rgba(255, 255, 255, 0.1); }
+    body.sideplain .looksw button { color: var(--muted); }
+    body.sideplain .looksw button[aria-pressed="true"] { background: rgba(255, 255, 255, 0.24); color: var(--text); }
+  }
+  /* the page's MENU (the fallback for what the game cannot do) and the small dialog of js/bridge.js, both in the game's own look (B20: the menu kit's
+     PROMPT WINDOW): dark glass with faint scan lines, teal corner brackets, a >_ strip for each heading, the picked button a yellow bar with ink letters */
+  .help, .bqask { position: fixed; inset: 0; background: rgba(5, 8, 16, 0.84); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 7; }
+  .help[hidden], .bqask[hidden] { display: none; }
+  .bqask { z-index: 8; background: rgba(5, 8, 16, 0.7); }
+  .help .card, .bqask .win { position: relative; color: #f6efe2; background: #11162a repeating-linear-gradient(180deg, rgba(0, 0, 0, 0) 0 2px, #141a31 2px 3px);
+    border: 1px solid #232c52; box-shadow: 0 0 0 1px #0b0c10, 4px 5px 0 rgba(0, 0, 0, 0.45); }
+  .help .card { max-width: 460px; width: 100%; padding: 18px 18px 14px; max-height: 92vh; overflow: auto; touch-action: pan-y; }
+  .help .card::before, .bqask .win::before { content: ""; position: absolute; inset: -2px; pointer-events: none; --b: #2ec4b6;
+    background: linear-gradient(var(--b), var(--b)) 0 0 / 10px 2px no-repeat, linear-gradient(var(--b), var(--b)) 0 0 / 2px 10px no-repeat,
+      linear-gradient(var(--b), var(--b)) 100% 0 / 10px 2px no-repeat, linear-gradient(var(--b), var(--b)) 100% 0 / 2px 10px no-repeat,
+      linear-gradient(var(--b), var(--b)) 0 100% / 10px 2px no-repeat, linear-gradient(var(--b), var(--b)) 0 100% / 2px 10px no-repeat,
+      linear-gradient(var(--b), var(--b)) 100% 100% / 10px 2px no-repeat, linear-gradient(var(--b), var(--b)) 100% 100% / 2px 10px no-repeat; }
+  .help h2 { font-family: var(--f-pix); font-size: 14px; margin: 0 0 10px; padding: 5px 8px; letter-spacing: 0.06em; background: #1b2342; color: #f6efe2; font-weight: normal; }
+  .help h2::before { content: ">_ "; color: #2ec4b6; }
+  .help dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 0 0 12px; font-size: 13.5px; }
+  .help dt { font-family: var(--f-pix); font-size: 11px; padding-top: 2px; color: #8f9ac8; }
+  .help dd { margin: 0; color: #e7e9f0; }
+  .help p { margin: 0 0 10px; font-size: 13px; color: #c3c7d4; }
+  .help a { color: #2ec4b6; }
+  .help button, .bqask button { border: 0; border-radius: 0; background: #1b2342; color: #f6efe2; padding: 9px 16px; font-size: 11px; box-shadow: inset 0 -2px 0 #0b0c10; }
+  .help .set { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+  .help .row { display: grid; grid-template-columns: 92px 1fr; align-items: center; gap: 8px; }
+  .help .row > span { font-family: var(--f-pix); font-size: 10px; color: #8f9ac8; }
+  .help .seg { display: flex; flex-wrap: wrap; gap: 4px; }
+  .help .seg button { padding: 8px 10px; font-size: 10px; }
+  .help .seg button[aria-pressed="true"] { background: #2a3460; color: #ffd23f; box-shadow: inset 0 -2px 0 #ffd23f; }
+  .help button:focus, .bqask button:focus, .help a:focus { outline: none; background: #ffd23f; color: #0b0c10; box-shadow: inset 3px 0 0 #c99a12, inset 0 -2px 0 #c99a12; }   /* the picked one: the yellow bar, never colour alone (the > before it) */
+  .help button:focus::before, .bqask button:focus::before { content: "> "; }
+  .help p.small { font-size: 12px; }
+  .help h2 + dl { margin-top: 4px; }
+  .help textarea.code, .bqask textarea { display: block; width: 100%; font: 12px monospace; padding: 6px; border-radius: 0; border: 1px solid #2a3460; background: #0b0f1e; color: #f6efe2; }
+  .bqask .win { width: min(440px, 100%); max-height: 100%; overflow-y: auto; padding: 0 0 14px; font-family: var(--f-pix); }
+  body.pocket .bqask { padding: 8px; }   /* the handheld: js/bridge.js fits it over the screen, clear of the D-pad and the buttons, which move in it */
+  .bqask .strip { display: flex; align-items: center; gap: 8px; margin: 3px; padding: 6px 10px; background: #1b2342; font-size: 12px; letter-spacing: 0.06em; }
+  .bqask .strip b { color: #2ec4b6; font-weight: normal; }
+  .bqask .strip i { margin-left: auto; width: 8px; height: 8px; background: #ff8a1e; }
+  .bqask p { margin: 10px 14px 0; font-size: 11px; line-height: 1.65; }
+  .bqask .why { color: #ffd23f; min-height: 1.2em; }
+  .bqask textarea { margin: 10px 14px 0; width: calc(100% - 28px); }
+  .bqask textarea[hidden] { display: none; }   /* its display: block above would beat the hidden attribute */
+  .bqask .bqrow { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 14px 0; }   /* not .btns: that is the handheld's buttons, hidden on a computer */
+  .bqask button { min-height: 40px; letter-spacing: 0.06em; }   /* big enough to tap (Game Accessibility Guidelines: large and well spaced) */
+  .bqask.shake .win { animation: bqshake 0.25s; }
+  @keyframes bqshake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+  @media (prefers-reduced-motion: reduce) { .bqask.shake .win { animation: none; } }
+</style>
+</head>
+<body class="desk">
+<canvas id="amb" width="96" height="54" aria-hidden="true"></canvas>
+<div class="pocket" id="pocket">
+  <div class="looksw" id="looksw" role="group" aria-label="The look on its side"><button type="button" data-side="plain">PLAIN</button><button type="button" data-side="shell">HANDHELD</button></div>
+  <div class="screen-wrap">
+    <div class="bezel-top"><span class="led" id="led"></span><span>BATON QUEST</span><span class="beta">BETA</span></div>
+    <canvas id="screen" width="320" height="200" tabindex="0" aria-label="Baton Quest's screen"></canvas>
+  </div>
+  <div class="brand" aria-hidden="true"><span class="badge">9F</span>POCKET</div>
+  <div class="dpad" id="dpad" role="group" aria-label="D-pad"><span class="bar h"></span><span class="bar v"></span><span class="hub"></span><i class="u"></i><i class="d"></i><i class="l"></i><i class="r"></i></div>
+  <div class="btns" role="group" aria-label="Buttons">
+    <button class="face b" type="button" data-k="b" aria-label="B, the baton">B</button>
+    <button class="face a" type="button" data-k="a" aria-label="A, jump">A</button>
+    <button class="face c" type="button" data-k="c" aria-label="C, dash">C<small>DASH</small></button>
+  </div>
+  <div class="menu mstart">
+    <button class="pill start" type="button" data-k="start">START</button>
+  </div>
+  <div class="menu mtools">
+    <span class="pill betatag" title="Baton Quest is in beta: things may change, and your saves carry over">BETA</span>
+    <button class="pill tool" type="button" id="snd" aria-pressed="false" aria-label="Sound">SOUND</button>
+    <button class="pill tool" type="button" id="shot">PHOTO</button>
+    <button class="pill tool" type="button" id="share">SHARE</button>
+    <button class="pill tool" type="button" id="full" hidden>FULL</button>
+    <button class="pill tool" type="button" id="helpBtn" aria-haspopup="dialog">MENU</button>
+  </div>
+  <div class="grille" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+<div class="under" aria-label="Keys">
+  <span><kbd>&larr;</kbd> <kbd>&rarr;</kbd> move</span>
+  <span><kbd>SPACE</kbd> jump</span>
+  <span><kbd>X</kbd> baton</span>
+  <span><kbd>C</kbd> dash</span>
+  <span><kbd>&darr;</kbd> drop</span>
+  <span><kbd>&uarr;</kbd> doors</span>
+  <span><kbd>ENTER</kbd> pause</span>
+  <span>A controller works too.</span>
+</div>
+<div class="note" id="note" role="status" aria-live="polite"></div>
+<div class="help" id="help" role="dialog" aria-modal="true" aria-labelledby="helpTitle" hidden>
+  <div class="card">
+    <h2 id="helpTitle">SETTINGS <span class="beta" style="vertical-align: 2px; margin-left: 6px">BETA</span></h2>
+    <div class="set" id="settings">
+      <div class="row"><span>VIEW</span><div class="seg" data-set="view"><button type="button" data-v="auto">AUTO</button><button type="button" data-v="desk">FULL WINDOW</button><button type="button" data-v="pocket">HANDHELD</button></div></div>
+      <div class="row"><span>SIDEWAYS</span><div class="seg" data-set="side"><button type="button" data-v="plain">PLAIN</button><button type="button" data-v="shell">HANDHELD</button></div></div>
+      <div class="row"><span>PIXELS</span><div class="seg" data-set="pixels"><button type="button" data-v="auto">AUTO</button><button type="button" data-v="sharp">SHARP</button><button type="button" data-v="fill">FILL</button></div></div>
+      <div class="row"><span>WIDESCREEN</span><div class="seg" data-set="wide"><button type="button" data-v="auto">AUTO</button><button type="button" data-v="off">OFF</button></div></div>
+      <div class="row"><span>SIDE GLOW</span><div class="seg" data-set="glow"><button type="button" data-v="on">ON</button><button type="button" data-v="off">OFF</button></div></div>
+      <div class="row"><span>BUTTONS</span><div class="seg" data-set="buttons"><button type="button" data-v="s">SMALL</button><button type="button" data-v="m">MEDIUM</button><button type="button" data-v="l">LARGE</button></div></div>
+      <div class="row"><span>VIBRATION</span><div class="seg" data-set="buzz"><button type="button" data-v="on">ON</button><button type="button" data-v="off">OFF</button></div></div>
+    </div>
+    <p class="small">AUTO: the handheld on a phone or tablet (with a controller pressed, the game fills the screen; touch it for the buttons again), the whole window with a mouse. SIDEWAYS: a phone on its side shows just the screen and the buttons (PLAIN) or the handheld (HANDHELD); the switch at the top right does it too. SHARP: whole-number pixel steps (crisp, may leave a border). FILL: as big as the window allows. WIDESCREEN AUTO: on a computer, a wide window shows more of each level, up to 32:9, never stretched; OFF keeps the classic 320 by 200 (the handheld always does). Kept in this browser.</p>
+    <h2>HOW TO PLAY</h2>
+    <dl>
+      <dt>MOVE</dt><dd>The D-pad, the arrow keys or W A S D, or a controller's stick.</dd>
+      <dt>A</dt><dd>Jump. Hold it to jump higher. Space or Z on a keyboard; the bottom button on a controller.</dd>
+      <dt>B</dt><dd>Swing the baton. Hold it, then let go, to throw a note. X on a keyboard; the right button on a controller.</dd>
+      <dt>C</dt><dd>Dash, once you have QUICK KEYS. C on a keyboard; the left or top button, or a bumper, on a controller.</dd>
+      <dt>DOWN</dt><dd>On a thin shelf: drop through it.</dd>
+      <dt>UP</dt><dd>Open a door at the end of a level.</dd>
+      <dt>START</dt><dd>Pause: the codex, the music, the codes and the map. Enter on a keyboard.</dd>
+    </dl>
+    <p>BATTLE MODE online (GAME MODES, BATTLE): one device hosts and runs the match; friends join with its 6-letter code or its link (SHARE copies it while you host). In the lobby the host can remove anyone who joins (A on their seat). Joining keeps a small random tag for that game in this browser for a day, so a host who removed you knows this browser again. Like any game played directly between browsers, players in one game can see each other's internet address. Some strict networks (school or office) block direct connections.</p>
+    <p>It saves at the coffee mugs, in this browser, in one of three files. On a phone, turn it sideways for a bigger screen, or add it to your home screen to play full screen.</p>
+    <p><a href="https://github.com/michaelbegley/baton-quest/issues">Feedback</a> &middot; version 123</p>
+    <button type="button" id="helpClose">GOT IT</button>
+  </div>
+</div>
+<script src="js/runtime.js?v=123"></script>
+<script src="js/pocket.js?v=123"></script>
+<script src="js/net.js?v=123"></script>
+<script src="js/game.js?v=123"></script>
+<script>POCKET_OPEN();</script>
+<script src="js/saves.js?v=123"></script>
+<script src="js/bridge.js?v=123"></script>
+</body>
+</html>
