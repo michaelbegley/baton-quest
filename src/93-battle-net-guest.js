@@ -62,7 +62,7 @@
         var why;
         if (!m || typeof m !== 'object' || typeof m.t !== 'string') return;
         if (m.t === 'seat') { if (BT.nInt(m.you, 1, 3, -1) >= 0) { G.you = BT.nInt(m.you, 1, 3, -1); if (G.st === 'find' || G.st === 'wait' || G.st === 'busy') G.st = 'seat'; } }
-        else if (m.t === 'no') { why = m.why === 'full' || m.why === 'old' || m.why === 'busy' || m.why === 'away' ? m.why : ''; if (why === 'busy') G.st = 'busy'; else if (why) BT.guestClose(why); }
+        else if (m.t === 'no') { why = m.why === 'full' || m.why === 'old' || m.why === 'busy' || m.why === 'away' || m.why === 'out' ? m.why : ''; if (why === 'busy') G.st = 'busy'; else if (why) BT.guestClose(why); }   // out (B22): the host removed us
         else if (m.t === 'lob') lobby(m);
         else if (m.t === 'm') match(m);
         else if (m.t === 'end') BT.guestClose('end');

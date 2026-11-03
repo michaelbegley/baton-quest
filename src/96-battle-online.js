@@ -2,16 +2,19 @@
     // JOIN: four letter wheels (up and down change a letter, left and right move, A joins); a ?join= link fills them and joins at once. The lobby: the code,
     // four slots (YOU, friends, CPUs), the rules, the arena; the host also picks his colour and name, turns empty slots CPU or OFF, and STARTs; a guest picks
     // his own colour (left, right) and name (up, down) and waits. B asks first, then leaves (the host's leaving closes the game for everyone).
+    // B22: BT.CODEN (6) wheels; a link with an old code opens JOIN with its plain line; in the host's lobby A on a friend's seat asks REMOVE? (NO first).
     (function () {
-      var U = Q.ui, JO = { w: [0, 0, 0, 0], at: 0, t: 0 }, LO = { row: 0, col: 1, t: 0, ask: false, askSel: 0, warn: 0 }, NO = { why: '', t: 0 };
-      function wheelsOf(code) { for (var i = 0; i < 4; i++) JO.w[i] = Math.max(0, BT.CODEA.indexOf(code.charAt(i))); }
-      function codeOfWheels() { var s = '', i; for (i = 0; i < 4; i++) s += BT.CODEA.charAt(JO.w[i]); return s; }
+      var U = Q.ui, JO = { w: [], at: 0, t: 0 }, LO = { row: 0, col: 1, t: 0, ask: false, askSel: 0, warn: 0, rm: -1, rmSel: 0, rmId: '' }, NO = { why: '', t: 0 }, i0;
+      for (i0 = 0; i0 < BT.CODEN; i0++) JO.w.push(0);
+      function wheelsOf(code) { for (var i = 0; i < BT.CODEN; i++) JO.w[i] = Math.max(0, BT.CODEA.indexOf(code.charAt(i))); }
+      function codeOfWheels() { var s = '', i; for (i = 0; i < BT.CODEN; i++) s += BT.CODEA.charAt(JO.w[i]); return s; }
       BT.joinCode = codeOfWheels;
       function joinNow() { var c = codeOfWheels(); if (!BT.guestOpen(c)) { NO.why = 'start'; Q.go('bnote', { why: 'start' }); return; } Q.sfx('select'); }
       Q.defScene('bjoin', {
         enter: function (opts) {
           U.entered(); U.cancel(); U.clearToasts(); BT.padClear(); JO.t = 0; Q.music('map');
-          if (opts && BT.codeOk(opts.code)) { wheelsOf(opts.code); JO.at = 3; if (opts.go) joinNow(); }
+          if (opts && opts.why && Object.prototype.hasOwnProperty.call(BT.netWords, opts.why) && !BT.NG.on) BT.NG.why = opts.why;   // B22: a link with an old code: its line in red
+          if (opts && BT.codeOk(opts.code)) { wheelsOf(opts.code); JO.at = BT.CODEN - 1; if (opts.go) joinNow(); }
         },
         update: function (dt) {
           var k = BT.keys(), B = BT.BIT, G = BT.NG, n = BT.CODEA.length;
@@ -24,8 +27,8 @@
             return;
           }
           if (k & B.b) { Q.sfx('back'); Q.go('bsplash'); return; }
-          if (k & B.left) { JO.at = (JO.at + 3) % 4; Q.sfx('move'); }
-          if (k & B.right) { JO.at = (JO.at + 1) % 4; Q.sfx('move'); }
+          if (k & B.left) { JO.at = (JO.at + BT.CODEN - 1) % BT.CODEN; Q.sfx('move'); }
+          if (k & B.right) { JO.at = (JO.at + 1) % BT.CODEN; Q.sfx('move'); }
           if (k & B.up) { JO.w[JO.at] = (JO.w[JO.at] + 1) % n; Q.sfx('move'); G.why = ''; }
           if (k & B.down) { JO.w[JO.at] = (JO.w[JO.at] + n - 1) % n; Q.sfx('move'); G.why = ''; }
           if (k & (B.a | B.start)) joinNow();
@@ -34,8 +37,8 @@
           var G = BT.NG, i, x, on, s, col, dots = '...'.slice(0, 1 + Math.floor(JO.t * 3) % 3), lines;
           BT.backdrop(g, JO.t); BT.head(g, 'JOIN A GAME');
           s = 'THE HOST\'S CODE'; U.text(s, 160 - (U.width(s) >> 1), 36, '#8f9ac8');
-          for (i = 0; i < 4; i++) {
-            x = 85 + i * 40; on = i === JO.at && !G.on;
+          for (i = 0; i < BT.CODEN; i++) {
+            x = 160 - ((BT.CODEN * 36 - 6) >> 1) + i * 36; on = i === JO.at && !G.on;   // B22: six boxes of 30, 6 apart (four were 40 apart)
             U.box(g, x, 52, 30, 38, on ? '#ffd23f' : '#3c4160', on ? '#24284a' : '#151a36');
             U.text(BT.CODEA.charAt(JO.w[i]), x + 8, 61, G.on ? '#f6efe2' : on ? '#ffd23f' : '#ffffff', 3);
             if (on && Math.floor(JO.t * 2.5) % 3) { U.arrow(g, x + 13, 46, '#ffd23f', true); U.arrow(g, x + 13, 93, '#ffd23f', false); }
@@ -88,7 +91,8 @@
         if (LO.row === 1 && k & (B.left | B.right)) { LO.col = 1 + (LO.col - 1 + (k & B.left ? 2 : 1)) % 3; Q.sfx('move'); }
         if (LO.row === 1 && k & B.a) {
           s = H.slots[LO.col];
-          if (s.on && s.who === 'human') Q.sfx('nope');
+          if (s.on && s.who === 'human' && s.peer) { LO.rm = LO.col; LO.rmSel = 0; LO.rmId = s.peer; U.mk.snd('open'); }   // B22: a friend's seat: REMOVE? (NO first)
+          else if (s.on && s.who === 'human') Q.sfx('nope');   // a controller on this device: its own B gives the seat back
           else { s.on = !s.on; s.who = 'cpu'; if (s.on) BT.hostTidy(LO.col); H.dirty = true; Q.sfx('move'); }
         }
         if (LO.row === 2 && k & B.a) { Q.sfx('select'); Q.go('brules', { back: 'blobby' }); return; }
@@ -101,9 +105,9 @@
         if (k & B.c) { if (BT.netApi() && BT.netApi().share()) Q.sfx('select'); }
       }
       Q.defScene('blobby', {
-        enter: function (opts) { U.entered(); U.cancel(); BT.padClear(); LO.t = 0; LO.ask = false; LO.warn = 0; if (opts && opts.row !== undefined) LO.row = opts.row; Q.music('map'); BT.NH.dirty = true; },
+        enter: function (opts) { U.entered(); U.cancel(); BT.padClear(); LO.t = 0; LO.ask = false; LO.warn = 0; LO.rm = -1; if (opts && opts.row !== undefined) LO.row = opts.row; Q.music('map'); BT.NH.dirty = true; },
         update: function (dt) {
-          var k = BT.keysDev(), B = BT.BIT, G = BT.NG;
+          var k = BT.keysDev(), B = BT.BIT, G = BT.NG, s;
           LO.t += dt; if (LO.warn > 0) LO.warn -= dt;
           if (host()) { BT.hostPoll(); if (!BT.NH.on) { Q.go('bnote', { why: BT.NH.why || 'start' }); return; } }
           else if (G.on) {
@@ -117,16 +121,24 @@
             else if (k & (B.a | B.start)) { LO.ask = false; if (LO.askSel) { Q.sfx('back'); if (host()) BT.hostClose('closed'); else BT.guestClose(''); Q.go('bsplash'); } else Q.sfx('back'); }
             return;
           }
+          if (LO.rm >= 0) {   // B22: REMOVE <NAME>? (the menu kit's question): any direction NO or YES, B is NO, A or START chooses; it closes if he has gone meanwhile
+            s = host() ? BT.NH.slots[LO.rm] : null;
+            if (!s || s.peer !== LO.rmId) { LO.rm = -1; return; }
+            if (k & (B.left | B.right | B.up | B.down)) { LO.rmSel = 1 - LO.rmSel; U.mk.snd('move'); }
+            if (k & B.b) { LO.rm = -1; U.mk.snd('back'); }
+            else if (k & (B.a | B.start)) { if (LO.rmSel && BT.hostRemove(LO.rm)) Q.sfx('hit'); else U.mk.snd('back'); LO.rm = -1; }
+            return;
+          }
           if (k & B.b) { LO.ask = true; LO.askSel = 0; Q.sfx('select'); return; }
           if (host()) { hostUpdate(k); return; }
           if (k & (B.left | B.right)) { BT.guestPick(k & B.left ? -1 : 1, 0); Q.sfx('move'); }
           if (k & (B.up | B.down)) { BT.guestPick(0, k & B.up ? -1 : 1); Q.sfx('move'); }
         },
-        draw: function (g) { BT.drawLobby(g, LO, slotsNow(), TAG, host()); U.drawTalk(g); },
+        draw: function (g) { BT.drawLobby(g, LO, slotsNow(), TAG, host()); if (LO.rm >= 0 && host()) BT.drawRemove(g, LO); U.drawTalk(g); },
         leave: function () {},
         sides: BT.sides
       });
-      BT.lobbyAt = function () { return { row: LO.row, col: LO.col, ask: LO.ask, host: host(), slots: slotsNow().map(function (s) { return s.w; }), arena: host() ? BT.S.arena : BT.NG.lob && BT.NG.lob.ar }; };
+      BT.lobbyAt = function () { return { row: LO.row, col: LO.col, ask: LO.ask, rm: LO.rm, rmSel: LO.rmSel, host: host(), slots: slotsNow().map(function (s) { return s.w; }), arena: host() ? BT.S.arena : BT.NG.lob && BT.NG.lob.ar }; };
       // ---------- a message, then back to the splash ----------
       Q.defScene('bnote', {
         enter: function (opts) { U.entered(); U.cancel(); BT.padClear(); NO.why = opts && opts.why || 'host'; NO.t = 0; Q.music('map'); },

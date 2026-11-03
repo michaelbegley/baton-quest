@@ -3,26 +3,45 @@
 // Two transports behind one small interface (open a room; send to a peer or to all; leave; told when a peer comes, goes or sends):
 //   'trystero': Trystero 0.26.0 on its free public Nostr relays (js/trystero-0.26.0.js, vendored here, loaded only when a player chooses HOST or JOIN);
 //   'local': this browser only, tab to tab (a BroadcastChannel), for the checks and for trying it with two tabs: ?net=local (and &lag=MS&jitter=MS&loss=PERCENT).
-// Between players go only the game's own messages and three notes of ours (I AM THE HOST, a heartbeat, BYE). Nothing typed, nothing stored.
+// Between players go only the game's own messages and three notes of ours (I AM THE HOST, a heartbeat, BYE). Nothing typed.
+// B22: a guest's notes to its host also carry its room tag (12 random letters made by this page the first time it joins that code), which the host's page
+// gives its game once (a poll event 'tag'), so a host who removed someone knows that browser again after a reload. The one thing stored: a guest's tags,
+// in this browser only (localStorage 'bq-net-rooms', the 8 newest codes, none older than a day); a new tag for every room, so no two rooms can link them.
 (function () {
   'use strict';
   var A = window.NFX && window.NFX.arcade; if (!A || !A.setNet) return;
-  var ALPHA = 'BCDFGHJKLMNPQRSTVWXZ', APP = 'baton-quest-battle', BEAT_MS = 1000, QUIET_MS = 8000, INBOX_MAX = 3000;   // codes: 4 of these 20 letters (no vowels, no Y: no words)
+  var ALPHA = 'BCDFGHJKLMNPQRSTVWXZ', APP = 'baton-quest-battle', BEAT_MS = 1000, QUIET_MS = 8000, INBOX_MAX = 3000;   // codes: CODE_N of these 20 letters (no vowels, no Y: no words)
+  var CODE_N = 6, TAG_N = 12, TAGS_KEY = 'bq-net-rooms', TAGS_MAX = 8, TAGS_AGE = 24 * 3600 * 1000, TAG_RE = new RegExp('^[' + ALPHA + ']{' + TAG_N + '}$');   // B22 (codes were 4 letters)
   var search = String(location.search || ''), kind = /[?&]net=local\b/.test(search) ? 'local' : 'trystero';
-  var S = { state: 'off', role: '', code: '', room: null, self: '', host: '', peers: {}, heard: {}, inbox: [], beat: null, invite: '', why: '', gen: 0 };
+  var S = { state: 'off', role: '', code: '', room: null, self: '', host: '', peers: {}, heard: {}, inbox: [], beat: null, invite: '', why: '', gen: 0, tag: '', tags: {} };
   function num(name, def) { var m = search.match(new RegExp('[?&]' + name + '=(\\d+)')); return m ? +m[1] : def; }
   function sim() {   // the local transport's pretend network: window.BQ_NET_SIM (checks) or the link's lag, jitter and loss (ms, ms, percent)
     var o = window.BQ_NET_SIM || {};
     return { lag: +o.lag || num('lag', 0), jitter: +o.jitter || num('jitter', 0), loss: (+o.loss || num('loss', 0)) / 100, mode: o.mode === 'reliable' ? 'reliable' : 'drop', seed: (+o.seed >>> 0) || 0 };
   }
   function rid(n) { var a = new Uint32Array(n), s = '', i; try { crypto.getRandomValues(a); } catch (e) { for (i = 0; i < n; i++) a[i] = Math.floor(Math.random() * 4294967296); } for (i = 0; i < n; i++) s += ALPHA.charAt(a[i] % ALPHA.length); return s; }
-  function cleanCode(c) { c = String(c || '').toUpperCase().replace(/[^A-Z]/g, ''); if (c.length !== 4) return ''; for (var i = 0; i < 4; i++) if (ALPHA.indexOf(c.charAt(i)) < 0) return ''; return c; }
+  function cleanCode(c) { c = String(c || '').toUpperCase().replace(/[^A-Z]/g, ''); if (c.length !== CODE_N) return ''; for (var i = 0; i < CODE_N; i++) if (ALPHA.indexOf(c.charAt(i)) < 0) return ''; return c; }
+  var MEMTAG = {};
+  function tagFor(code) {   // B22: this browser's tag for one room it joins as a guest: memory first (this page), then storage (a reload, another tab), else new
+    var now = Date.now(), list = [], keep = [], t = MEMTAG[code] || '', i, o;
+    try { list = JSON.parse(localStorage.getItem(TAGS_KEY) || '[]'); } catch (e) { list = []; }
+    if (!Array.isArray(list)) list = [];
+    for (i = 0; i < list.length && i < 64; i++) {
+      o = list[i];
+      if (!o || typeof o.c !== 'string' || cleanCode(o.c) !== o.c || typeof o.w !== 'string' || !TAG_RE.test(o.w) || !(+o.t > now - TAGS_AGE)) continue;   // a bad or day-old entry is dropped
+      if (o.c === code) { if (!t) t = o.w; } else if (keep.length < TAGS_MAX - 1) keep.push({ c: o.c, w: o.w, t: +o.t });
+    }
+    if (!t) t = rid(TAG_N);
+    MEMTAG[code] = t; keep.unshift({ c: code, w: t, t: now });
+    try { localStorage.setItem(TAGS_KEY, JSON.stringify(keep)); } catch (e) {}   // storage refused (some private windows): this page still knows it
+    return t;
+  }
   function push(e) { S.inbox.push(e); if (S.inbox.length > INBOX_MAX) S.inbox.splice(0, S.inbox.length - INBOX_MAX); }
   function own(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
   function key(id) { return 'p:' + id; }
 
   // ---------- the link: ?join=CODE opens the game straight into joining that code (given to the game once) ----------
-  (function () { var m = search.match(/[?&]join=([A-Za-z]{4})\b/); if (m) S.invite = cleanCode(m[1]); })();
+  (function () { var m = search.match(/[?&]join=([A-Za-z]{1,16})\b/); if (m) S.invite = m[1].toUpperCase(); })();   // B22: any letters; the game checks them (an old 4-letter link is told so)
   function linkFor(code) { return String(location.href).split('#')[0].split('?')[0] + '?join=' + code; }
 
   // ---------- the transports ----------
@@ -82,6 +101,7 @@
     var gen;
     close(true);
     gen = ++S.gen; S.state = role === 'host' ? 'host' : 'join'; S.role = role; S.code = code; S.host = ''; S.peers = {}; S.heard = {}; S.why = '';
+    S.tags = {}; S.tag = role === 'host' ? '' : tagFor(code);   // B22: a guest's tag for this room
     function start() {
       if (gen !== S.gen) return;
       var cb = {
@@ -101,13 +121,13 @@
   function close(quiet) {
     if (S.beat) { clearInterval(S.beat); S.beat = null; }
     if (S.room) { try { S.room.leave(); } catch (e) {} S.room = null; }
-    S.state = 'off'; S.role = ''; S.code = ''; S.host = ''; S.peers = {}; S.heard = {}; S.gen++;
+    S.state = 'off'; S.role = ''; S.code = ''; S.host = ''; S.peers = {}; S.heard = {}; S.gen++; S.tags = {}; S.tag = '';
     if (!quiet) S.inbox = [];
   }
   function gone(id) {   // a peer left (its BYE, the transport, or too long quiet)
     var k = key(id);
     if (!own(S.peers, k)) return;
-    delete S.peers[k]; delete S.heard[k];
+    delete S.peers[k]; delete S.heard[k]; delete S.tags[k];
     if (S.role === 'host') push({ k: 'leave', from: id });
     else if (id === S.host) { S.host = ''; S.state = 'join'; push({ k: 'lost', from: id, data: JSON.stringify({ why: 'host' }) }); }
   }
@@ -116,6 +136,7 @@
     if (!m || typeof m !== 'object') return;
     if (!own(S.peers, k)) { S.peers[k] = id; if (S.role === 'host') push({ k: 'join', from: id }); }
     S.heard[k] = Date.now();
+    if (S.role === 'host' && typeof m.w === 'string' && TAG_RE.test(m.w) && S.tags[k] !== m.w) { S.tags[k] = m.w; push({ k: 'tag', from: id, data: JSON.stringify({ w: m.w }) }); }   // B22: before his message
     if (m.n === 'role' || (m.n === 'beat' && m.host)) {
       if (S.role === 'host') { push({ k: 'clash', from: id }); return; }   // two hosts with one code: the game opens a new one
       if (!S.host) { S.host = id; S.state = 'guest'; push({ k: 'host', from: id }); }
@@ -130,7 +151,7 @@
     var now = Date.now(), k;
     if (!S.room) return;
     if (S.role === 'host') S.room.send('', { n: 'beat', host: 1 });
-    else if (S.host) S.room.send(S.host, { n: 'beat' });
+    else if (S.host) S.room.send(S.host, { n: 'beat', w: S.tag });
     for (k in S.heard) if (own(S.heard, k) && now - S.heard[k] > QUIET_MS) gone(S.peers[k]);
   }
   function send(to, text) {
@@ -141,7 +162,7 @@
       S.room.send(to, { n: 'g', d: text }); return true;
     }
     if (!S.host || (to !== 'host' && to !== S.host)) return false;
-    S.room.send(S.host, { n: 'g', d: text }); return true;
+    S.room.send(S.host, { n: 'g', d: text, w: S.tag }); return true;
   }
   function can() {
     if (kind === 'local') return typeof BroadcastChannel === 'function';
@@ -153,7 +174,7 @@
   A.setNet({
     ok: function () { return can(); },
     state: function () { return S.state; },
-    host: function () { if (!can()) return ''; var c = rid(4); open(c, 'host'); return c; },
+    host: function () { if (!can()) return ''; var c = rid(CODE_N); open(c, 'host'); return c; },
     join: function (code) { var c = cleanCode(code); if (!c || !can()) return false; open(c, 'guest'); return true; },
     leave: function () { if (S.room) { try { S.room.send('', { n: 'bye' }); } catch (e) {} } close(false); },
     code: function () { return S.code; },
@@ -161,7 +182,7 @@
     peers: function () { var l = [], k; if (S.role === 'host') { for (k in S.peers) if (own(S.peers, k)) l.push(S.peers[k]); } else if (S.host) l.push(S.host); return l; },
     send: send,
     poll: function () { var l = S.inbox; S.inbox = []; return l; },
-    invite: function () { var c = S.invite; S.invite = ''; if (c) { try { history.replaceState(null, '', String(location.href).replace(/([?&])join=[A-Za-z]{4}&?/, '$1').replace(/[?&]$/, '')); } catch (e) {} } return c; },
+    invite: function () { var c = S.invite; S.invite = ''; if (c) { try { history.replaceState(null, '', String(location.href).replace(/([?&])join=[A-Za-z]{1,16}&?/, '$1').replace(/[?&]$/, '')); } catch (e) {} } return c; },
     share: function () {
       if (S.role !== 'host' || !S.code) return false;
       var url = linkFor(S.code), note = window.POCKET_NOTE || function () {};
@@ -175,7 +196,7 @@
   });
   window.BQ_NET = {   // for the page (SHARE shares the join link while hosting) and for checks
     link: function () { return S.role === 'host' && S.code ? linkFor(S.code) : ''; },
-    kind: kind, state: function () { return S.state; }, code: function () { return S.code; },
+    kind: kind, state: function () { return S.state; }, code: function () { return S.code; }, tag: function () { return S.tag; },   // tag (B22): a guest's room tag, for checks
     cut: function () { if (S.room && S.room.cut) S.room.cut(); if (S.beat) { clearInterval(S.beat); S.beat = null; } S.room = null; }   // checks: this tab goes silent at once
   };
 })();

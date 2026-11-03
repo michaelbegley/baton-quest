@@ -77,8 +77,8 @@
       BT.drawLobby = function (g, LO, sl, TAG, isHost) {
         var code = BT.NH.on ? BT.NH.code : BT.NG.code, i, s, x, cx, col, on, f, r, txt, sel, G = BT.NG, ru, ar, y;
         BT.backdrop(g, LO.t); BT.head(g, 'ONLINE GAME');
-        U.text('CODE', 74, 36, '#8f9ac8');
-        for (i = 0; i < 4; i++) { x = 110 + i * 24; U.box(g, x, 29, 20, 21, '#ffd23f', '#24284a'); U.text(code.charAt(i), x + 5, 33, '#ffd23f', 2); }
+        U.text('CODE', 72, 36, '#8f9ac8');   // B22: the word and six boxes centred on the screen (four were from 110, the word at 74)
+        for (i = 0; i < BT.CODEN; i++) { x = 108 + i * 24; U.box(g, x, 29, 20, 21, '#ffd23f', '#24284a'); U.text(code.charAt(i), x + 5, 33, '#ffd23f', 2); }
         s = isHost ? (BT.NH.trouble > 0 ? BT.netWords.trouble : 'C: SHARE THE LINK') : 'YOU ARE IN. THE HOST STARTS THE MATCH.';
         U.text(s, 160 - (U.width(s) >> 1), 54, BT.NH.trouble > 0 && isHost ? '#ff8a6a' : '#8f9ac8');
         for (i = 0; i < 4; i++) {
@@ -102,7 +102,8 @@
         } else if (Math.floor(LO.t * 2) % 2) { s = 'WAITING FOR THE HOST'; U.text(s, 160 - (U.width(s) >> 1), 172, '#ffd23f'); }
         y = 0;
         if (LO.warn > 0) s = 'TWO CONDUCTORS AT LEAST';
-        else if (isHost) s = LO.row === 0 ? 'LEFT/RIGHT: YOUR COLOUR  A: YOUR NAME  B: CLOSE' : LO.row === 1 ? 'LEFT/RIGHT: A SLOT  A: CPU OR OFF  B: CLOSE' : 'FRIENDS JOIN WITH THE CODE   B: CLOSE';
+        else if (isHost && LO.rm >= 0) s = 'LEFT/RIGHT: NO OR YES  A: CHOOSE  B: NO';   // B22: the REMOVE question is up
+        else if (isHost) s = LO.row === 0 ? 'LEFT/RIGHT: YOUR COLOUR  A: YOUR NAME  B: CLOSE' : LO.row === 1 ? (sl[LO.col] && sl[LO.col].w === 'net' ? 'LEFT/RIGHT: A SLOT  A: REMOVE  B: CLOSE' : 'LEFT/RIGHT: A SLOT  A: CPU OR OFF  B: CLOSE') : 'FRIENDS JOIN WITH THE CODE   B: CLOSE';
         else s = 'LEFT/RIGHT: COLOUR  UP/DOWN: NAME  B: LEAVE';
         BT.foot(s);
         if (LO.ask) {
@@ -110,5 +111,9 @@
           U.box(g, 60, 76, 200, 48, '#ff8a6a', '#1d1d24'); U.text(s, 160 - (U.width(s) >> 1), 86, '#ffffff');
           U.item('NO', 128, 104, LO.askSel === 0, false, 'center'); U.item('YES', 192, 104, LO.askSel === 1, false, 'center');
         }
+      };
+      BT.drawRemove = function (g, LO) {   // B22: REMOVE <NAME>? over the host's lobby, in the menu kit's look (B20's U.mk.ask): NO first, YES on a red bar
+        var s = BT.NH.slots[LO.rm], nm = s ? BT.NAMES[s.name] || '?' : '?';
+        U.mk.ask(g, 'blobby-rm', 'REMOVE', ['REMOVE ' + nm + ' FROM THIS GAME?', nm + ' IS TURNED AWAY IF THEY TRY AGAIN.'], ['NO', 'YES'], LO.rmSel, { danger: true });
       };
     })();

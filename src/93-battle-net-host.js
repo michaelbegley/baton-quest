@@ -4,8 +4,11 @@
     // the CPUs move here; a guest's conductor moves by that guest's reports, and between them by the host's guess (BT.sim with the buttons last reported).
     // From the step the host decides a knock, a respawn or a new round for a guest's conductor until that guest acknowledges the event, the host keeps to its
     // guess (c.hold) and ignores older reports, so a report sent before the guest knew can never undo it. A guest who leaves becomes a CPU (event 'left').
+    // B22: in the lobby the host can remove a friend (BT.hostRemove): his seat is a CPU again, he is told 'out', and for the room's life the host turns away
+    // his transport id (out) and his room tag (outW: the tag his page sent, given here by js/net.js as a poll event 'tag'), so a reload does not let him in.
     (function () {
-      var H = BT.NH = { on: false, code: '', slots: [], guests: {}, away: {}, t: 0, lobT: 0, dirty: false, phase: '', k: 0, M: null, setup: null, seq: 0, log: [], extra: [], why: '', trouble: 0 };
+      var H = BT.NH = { on: false, code: '', slots: [], guests: {}, away: {}, t: 0, lobT: 0, dirty: false, phase: '', k: 0, M: null, setup: null, seq: 0, log: [], extra: [], why: '', trouble: 0,
+        out: {}, outW: {}, tags: {}, tell: {} };
       function key(id) { return 'p:' + id; }
       function own(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
       function each(fn) { var k; for (k in H.guests) if (own(H.guests, k)) fn(H.guests[k]); }
@@ -28,6 +31,7 @@
         if (!n || !n.ok()) return '';
         code = n.host(); if (!BT.codeOk(code)) { n.leave(); return ''; }
         H.on = true; H.code = code; H.guests = {}; H.away = {}; H.phase = 'lobby'; H.dirty = true; H.M = null; H.why = ''; H.t = 0; H.lobT = 0; H.trouble = 0; H.slots = [];
+        H.out = {}; H.outW = {}; H.tags = {}; H.tell = {};   // a new room: nobody is out of it yet
         for (i = 0; i < 4; i++) { s = BT.S.slots[i]; H.slots.push({ on: i === 0 ? true : s.on, who: i === 0 ? 'human' : 'cpu', pad: i === 0 ? 1 : 0, col: s.col, name: s.name, peer: '' }); }
         for (i = 1; i < 4; i++) if (H.slots[i].on) tidy(i);
         return code;
@@ -35,8 +39,23 @@
       BT.hostClose = function (why) {   // CLOSE (or the page lost its room): every guest is told, the room is left
         var n = BT.netApi();
         if (H.on) { each(function (g) { BT.netSend(g.id, { t: 'end' }); }); if (n) n.leave(); }
-        H.on = false; H.guests = {}; H.phase = ''; H.M = null; H.why = why || '';
+        H.on = false; H.guests = {}; H.phase = ''; H.M = null; H.why = why || ''; H.out = {}; H.outW = {}; H.tags = {}; H.tell = {};
       };
+      function isOut(from) { var k = key(from); return own(H.out, k) || (own(H.tags, k) && own(H.outW, H.tags[k])); }   // B22: removed from this room, by his id or by his tag
+      BT.hostRemove = function (i) {   // B22, the host's YES to REMOVE in the lobby: that friend is told 'out' and kept out of this room; his seat is a CPU again (as when one leaves)
+        var g = bySlot(i), k, s;
+        if (!H.on || H.phase !== 'lobby' || !g) return false;
+        k = key(g.id); H.out[k] = true; if (own(H.tags, k)) H.outW[H.tags[k]] = true;
+        delete H.guests[k]; delete H.away[k];
+        s = H.slots[i]; H.slots[i] = { on: true, who: 'cpu', pad: 0, col: s.col, name: s.name, peer: '' }; H.dirty = true;
+        H.tell[k] = { id: g.id, n: 1 }; BT.netSend(g.id, { t: 'no', why: 'out' });
+        Q.toast(BT.NAMES[s.name] + ' REMOVED: A CPU TAKES THE SEAT', 2.4);
+        return true;
+      };
+      function tellOut() {   // a removed friend still in the room is told again every LOB_EVERY steps (a lost message is mended), OUT_TELL times at most
+        var k, o;
+        for (k in H.tell) if (own(H.tell, k)) { o = H.tell[k]; if (o.n >= BT.NT.OUT_TELL) delete H.tell[k]; else { o.n++; BT.netSend(o.id, { t: 'no', why: 'out' }); } }
+      }
       function freeSlot() { for (var i = 1; i < 4; i++) if (!(H.slots[i].on && H.slots[i].who === 'human')) return i; return -1; }
       function seat(from, m) {   // a hello: the first free slot, its colour and name as asked when no one else has them
         var i = freeSlot(), g;
@@ -66,6 +85,7 @@
         var g = own(H.guests, key(from)) ? H.guests[key(from)] : null, s;
         if (!m || typeof m !== 'object' || typeof m.t !== 'string') return;
         if (m.t === 'hi') {
+          if (isOut(from)) { BT.netSend(from, { t: 'no', why: 'out' }); return; }   // B22: removed from this room: turned away, whatever he asks
           delete H.away[key(from)];
           if (BT.nInt(m.v, 0, 999, -1) !== BT.NETV) { BT.netSend(from, { t: 'no', why: 'old' }); return; }
           if (!g) {
@@ -103,12 +123,14 @@
         for (i = 0; i < l.length && H.on; i++) {
           e = l[i];
           if (e.k === 'msg') message(e.from, e.msg);
-          else if (e.k === 'leave') gone(e.from);
+          else if (e.k === 'tag') { if (e.msg && BT.tagOk(e.msg.w)) H.tags[key(e.from)] = e.msg.w; }   // B22: this peer's room tag (js/net.js gives it before his first message)
+          else if (e.k === 'leave') { gone(e.from); delete H.tags[key(e.from)]; delete H.tell[key(e.from)]; }
           else if (e.k === 'clash') { if (!BT.hostGuests() && H.phase === 'lobby') { n = BT.netApi(); c = n ? n.host() : ''; if (BT.codeOk(c)) { H.code = c; H.dirty = true; } } }   // another host had our code: a new one
           else if (e.k === 'trouble') H.trouble = 300;
           else if (e.k === 'lost') { BT.hostClose(e.msg && e.msg.why === 'load' ? 'load' : 'start'); return; }
         }
         if (H.phase === 'match') awayCheck();
+        if (H.t % BT.NT.LOB_EVERY === 0) tellOut();
         if (H.phase === 'lobby' && (H.dirty || ++H.lobT >= BT.NT.LOB_EVERY)) { H.lobT = 0; H.dirty = false; each(function (g) { BT.netSend(g.id, lobbyOf(g)); }); }
         if (H.phase === 'results' && H.M && H.log.length && H.t % 6 === 0) send(H.M, false);   // the last events, until every guest has them
       };
@@ -177,6 +199,8 @@
       BT.hostAt = function () {   // for checks
         var gs = [];
         each(function (g) { gs.push({ slot: g.slot, ack: g.ack, lastS: g.lastS, hasK: g.hasK }); });
-        return { on: H.on, code: H.code, phase: H.phase, k: H.k, seq: H.seq, log: H.log.length, guests: gs, slots: H.slots.map(function (s) { return { on: s.on, who: s.who, pad: s.pad, col: s.col, name: s.name, net: !!s.peer }; }), why: H.why };
+        var n = function (o) { var c = 0, k; for (k in o) if (own(o, k)) c++; return c; };
+        return { on: H.on, code: H.code, phase: H.phase, k: H.k, seq: H.seq, log: H.log.length, guests: gs, slots: H.slots.map(function (s) { return { on: s.on, who: s.who, pad: s.pad, col: s.col, name: s.name, net: !!s.peer }; }), why: H.why,
+          out: n(H.out), outW: n(H.outW), tags: n(H.tags), tell: n(H.tell) };   // B22: how many ids and tags are out of this room, tags known, removed friends still being told
       };
     })();

@@ -3,9 +3,11 @@
     // the match (BT.host, BT.hostRound and the CPUs run there only); each guest moves its own conductor (BT.sim) and shows the others from the host's
     // snapshots, a little in the past (Gambetta, entity interpolation). Each decision of the host is an event with a number, sent again in every packet until
     // the guest says it has it, and carried out once (BT.apply). Nothing that arrives is ever drawn as text: names and colours are numbers into our own lists.
-    BT.NETV = 1;   // the messages' version: a hello from another version is told to reload
-    BT.CODEA = 'BCDFGHJKLMNPQRSTVWXZ';   // a code is 4 of these 20 letters (no vowels, no Y, so no code is a word: Crockford's reason, taken further)
-    BT.NT = { HOST_EVERY: 3, GUEST_EVERY: 2, SNAP_EVERY: 3, BEHIND: 8, HELLO: 30, FIND_T: 25, EV_MAX: 64, LOB_EVERY: 30, SNAPS: 16, STALE: 30, AWAY: 600 };   // steps (60 a second), except FIND_T (s)
+    BT.NETV = 2;   // the messages' version: a hello from another version is told to reload (2, B22: the host's 'no' can say 'out', a removed friend)
+    BT.CODEA = 'BCDFGHJKLMNPQRSTVWXZ';   // a code is BT.CODEN of these 20 letters (no vowels, no Y, so no code is a word: Crockford's reason, taken further)
+    BT.CODEN = 6;   // B22: 6 letters, 64,000,000 codes (4 before: 160,000), so a stranger cannot guess his way into a lobby
+    BT.TAGN = 12;   // B22: a guest's room tag, 12 of the same letters, made by his page (js/net.js) and handed to the host's game as a poll event 'tag'
+    BT.NT = { HOST_EVERY: 3, GUEST_EVERY: 2, SNAP_EVERY: 3, BEHIND: 8, HELLO: 30, FIND_T: 25, EV_MAX: 64, LOB_EVERY: 30, SNAPS: 16, STALE: 30, AWAY: 600, OUT_TELL: 20 };   // steps (60 a second), except FIND_T (s) and OUT_TELL (times told, LOB_EVERY apart)
     BT.netApi = function () { var a = Q.api; return a && a.net && typeof a.net.ok === 'function' ? a.net : null; };
     BT.netOk = function () { var n = BT.netApi(); return !!(n && n.ok()); };
     BT.netSend = function (to, m) { var n = BT.netApi(); return !!(n && n.send(to, m)); };
@@ -16,7 +18,9 @@
     BT.nInt = function (v, lo, hi, def) { v = btNum(v, lo, hi); return v === v ? Math.floor(v) : def; };
     function r2(v) { return Math.round(v * 100) / 100; }
     function r3(v) { return Math.round(v * 1000) / 1000; }
-    BT.codeOk = function (c) { var i; c = String(c || ''); if (c.length !== 4) return false; for (i = 0; i < 4; i++) if (BT.CODEA.indexOf(c.charAt(i)) < 0) return false; return true; };
+    function btLetters(s, n) { var i; if (typeof s !== 'string' || s.length !== n) return false; for (i = 0; i < n; i++) if (BT.CODEA.indexOf(s.charAt(i)) < 0) return false; return true; }
+    BT.codeOk = function (c) { return btLetters(String(c || ''), BT.CODEN); };   // a lobby's code: exactly BT.CODEN of BT.CODEA (an old 4-letter one is not)
+    BT.tagOk = function (w) { return btLetters(w, BT.TAGN); };   // a room tag from the page, checked on arrival
     // ---------- a conductor, both ways: a guest's report of its own (FLAGS), the host's snapshot of every one ----------
     var FLAGS = ['ground', 'charged', 'dashing', 'hovering', 'pounding', 'flying', 'drop', 'wasB'];
     function btFlags(c) { var f = 0, i; for (i = 0; i < FLAGS.length; i++) if (c[FLAGS[i]]) f |= 1 << i; return f; }
@@ -98,5 +102,6 @@
       none: 'NO GAME WITH THAT CODE. ASK THE HOST AGAIN.', full: 'THAT GAME IS FULL: FOUR PLAYERS ALREADY.', busy: 'A MATCH IS ON THERE. YOU JOIN WHEN IT ENDS.',
       old: 'THAT GAME IS ON ANOTHER VERSION. BOTH OF YOU: RELOAD THE PAGE.', host: 'THE HOST LEFT THE GAME.', end: 'THE HOST CLOSED THE GAME.',
       load: 'ONLINE PLAY COULD NOT START ON THIS PAGE.', start: 'ONLINE PLAY COULD NOT START ON THIS PAGE.', trouble: 'NO DIRECT LINK: THIS NETWORK MAY BLOCK GAMES.',
-      away: 'YOU WERE AWAY TOO LONG: A CPU TOOK YOUR PLACE.', closed: 'YOU CLOSED THE GAME.'
+      away: 'YOU WERE AWAY TOO LONG: A CPU TOOK YOUR PLACE.', closed: 'YOU CLOSED THE GAME.',
+      out: 'THE HOST REMOVED YOU FROM THIS GAME.', link: 'THAT LINK IS OLD: CODES HAVE 6 LETTERS NOW. ASK THE HOST FOR A NEW ONE.'   // B22
     };

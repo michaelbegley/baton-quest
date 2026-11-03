@@ -43,7 +43,7 @@
       return {
         ok: function () { return netCall('ok', 0, 0, false) === true; },   // this page can play online
         state: function () { return String(netCall('state', 0, 0, 'off')); },   // 'off', 'host' (a room of our own), 'join' (in a room, looking for its host), 'guest' (the host found)
-        host: function () { return String(netCall('host', 0, 0, '') || ''); },   // opens a room of our own; gives its 4-letter code ('' if it cannot)
+        host: function () { return String(netCall('host', 0, 0, '') || ''); },   // opens a room of our own; gives its 6-letter code ('' if it cannot; 6 since version 123, B22)
         join: function (code) { return netCall('join', String(code || ''), 0, false) === true; },   // into the room of that code, to find its host
         leave: function () { netCall('leave', 0, 0, null); },
         code: function () { return String(netCall('code', 0, 0, '') || ''); },

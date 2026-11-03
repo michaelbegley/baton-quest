@@ -14070,9 +14070,11 @@
     // the match (BT.host, BT.hostRound and the CPUs run there only); each guest moves its own conductor (BT.sim) and shows the others from the host's
     // snapshots, a little in the past (Gambetta, entity interpolation). Each decision of the host is an event with a number, sent again in every packet until
     // the guest says it has it, and carried out once (BT.apply). Nothing that arrives is ever drawn as text: names and colours are numbers into our own lists.
-    BT.NETV = 1;   // the messages' version: a hello from another version is told to reload
-    BT.CODEA = 'BCDFGHJKLMNPQRSTVWXZ';   // a code is 4 of these 20 letters (no vowels, no Y, so no code is a word: Crockford's reason, taken further)
-    BT.NT = { HOST_EVERY: 3, GUEST_EVERY: 2, SNAP_EVERY: 3, BEHIND: 8, HELLO: 30, FIND_T: 25, EV_MAX: 64, LOB_EVERY: 30, SNAPS: 16, STALE: 30, AWAY: 600 };   // steps (60 a second), except FIND_T (s)
+    BT.NETV = 2;   // the messages' version: a hello from another version is told to reload (2, B22: the host's 'no' can say 'out', a removed friend)
+    BT.CODEA = 'BCDFGHJKLMNPQRSTVWXZ';   // a code is BT.CODEN of these 20 letters (no vowels, no Y, so no code is a word: Crockford's reason, taken further)
+    BT.CODEN = 6;   // B22: 6 letters, 64,000,000 codes (4 before: 160,000), so a stranger cannot guess his way into a lobby
+    BT.TAGN = 12;   // B22: a guest's room tag, 12 of the same letters, made by his page (js/net.js) and handed to the host's game as a poll event 'tag'
+    BT.NT = { HOST_EVERY: 3, GUEST_EVERY: 2, SNAP_EVERY: 3, BEHIND: 8, HELLO: 30, FIND_T: 25, EV_MAX: 64, LOB_EVERY: 30, SNAPS: 16, STALE: 30, AWAY: 600, OUT_TELL: 20 };   // steps (60 a second), except FIND_T (s) and OUT_TELL (times told, LOB_EVERY apart)
     BT.netApi = function () { var a = Q.api; return a && a.net && typeof a.net.ok === 'function' ? a.net : null; };
     BT.netOk = function () { var n = BT.netApi(); return !!(n && n.ok()); };
     BT.netSend = function (to, m) { var n = BT.netApi(); return !!(n && n.send(to, m)); };
@@ -14083,7 +14085,9 @@
     BT.nInt = function (v, lo, hi, def) { v = btNum(v, lo, hi); return v === v ? Math.floor(v) : def; };
     function r2(v) { return Math.round(v * 100) / 100; }
     function r3(v) { return Math.round(v * 1000) / 1000; }
-    BT.codeOk = function (c) { var i; c = String(c || ''); if (c.length !== 4) return false; for (i = 0; i < 4; i++) if (BT.CODEA.indexOf(c.charAt(i)) < 0) return false; return true; };
+    function btLetters(s, n) { var i; if (typeof s !== 'string' || s.length !== n) return false; for (i = 0; i < n; i++) if (BT.CODEA.indexOf(s.charAt(i)) < 0) return false; return true; }
+    BT.codeOk = function (c) { return btLetters(String(c || ''), BT.CODEN); };   // a lobby's code: exactly BT.CODEN of BT.CODEA (an old 4-letter one is not)
+    BT.tagOk = function (w) { return btLetters(w, BT.TAGN); };   // a room tag from the page, checked on arrival
     // ---------- a conductor, both ways: a guest's report of its own (FLAGS), the host's snapshot of every one ----------
     var FLAGS = ['ground', 'charged', 'dashing', 'hovering', 'pounding', 'flying', 'drop', 'wasB'];
     function btFlags(c) { var f = 0, i; for (i = 0; i < FLAGS.length; i++) if (c[FLAGS[i]]) f |= 1 << i; return f; }
@@ -14165,7 +14169,8 @@
       none: 'NO GAME WITH THAT CODE. ASK THE HOST AGAIN.', full: 'THAT GAME IS FULL: FOUR PLAYERS ALREADY.', busy: 'A MATCH IS ON THERE. YOU JOIN WHEN IT ENDS.',
       old: 'THAT GAME IS ON ANOTHER VERSION. BOTH OF YOU: RELOAD THE PAGE.', host: 'THE HOST LEFT THE GAME.', end: 'THE HOST CLOSED THE GAME.',
       load: 'ONLINE PLAY COULD NOT START ON THIS PAGE.', start: 'ONLINE PLAY COULD NOT START ON THIS PAGE.', trouble: 'NO DIRECT LINK: THIS NETWORK MAY BLOCK GAMES.',
-      away: 'YOU WERE AWAY TOO LONG: A CPU TOOK YOUR PLACE.', closed: 'YOU CLOSED THE GAME.'
+      away: 'YOU WERE AWAY TOO LONG: A CPU TOOK YOUR PLACE.', closed: 'YOU CLOSED THE GAME.',
+      out: 'THE HOST REMOVED YOU FROM THIS GAME.', link: 'THAT LINK IS OLD: CODES HAVE 6 LETTERS NOW. ASK THE HOST FOR A NEW ONE.'   // B22
     };
     // ===== 93-battle-net-guest.js =====
     // ---------- 93-battle-net-guest.js: BATTLE MODE online, a guest's side (B18; ONLINE.md) ----------
@@ -14232,7 +14237,7 @@
         var why;
         if (!m || typeof m !== 'object' || typeof m.t !== 'string') return;
         if (m.t === 'seat') { if (BT.nInt(m.you, 1, 3, -1) >= 0) { G.you = BT.nInt(m.you, 1, 3, -1); if (G.st === 'find' || G.st === 'wait' || G.st === 'busy') G.st = 'seat'; } }
-        else if (m.t === 'no') { why = m.why === 'full' || m.why === 'old' || m.why === 'busy' || m.why === 'away' ? m.why : ''; if (why === 'busy') G.st = 'busy'; else if (why) BT.guestClose(why); }
+        else if (m.t === 'no') { why = m.why === 'full' || m.why === 'old' || m.why === 'busy' || m.why === 'away' || m.why === 'out' ? m.why : ''; if (why === 'busy') G.st = 'busy'; else if (why) BT.guestClose(why); }   // out (B22): the host removed us
         else if (m.t === 'lob') lobby(m);
         else if (m.t === 'm') match(m);
         else if (m.t === 'end') BT.guestClose('end');
@@ -14312,8 +14317,11 @@
     // the CPUs move here; a guest's conductor moves by that guest's reports, and between them by the host's guess (BT.sim with the buttons last reported).
     // From the step the host decides a knock, a respawn or a new round for a guest's conductor until that guest acknowledges the event, the host keeps to its
     // guess (c.hold) and ignores older reports, so a report sent before the guest knew can never undo it. A guest who leaves becomes a CPU (event 'left').
+    // B22: in the lobby the host can remove a friend (BT.hostRemove): his seat is a CPU again, he is told 'out', and for the room's life the host turns away
+    // his transport id (out) and his room tag (outW: the tag his page sent, given here by js/net.js as a poll event 'tag'), so a reload does not let him in.
     (function () {
-      var H = BT.NH = { on: false, code: '', slots: [], guests: {}, away: {}, t: 0, lobT: 0, dirty: false, phase: '', k: 0, M: null, setup: null, seq: 0, log: [], extra: [], why: '', trouble: 0 };
+      var H = BT.NH = { on: false, code: '', slots: [], guests: {}, away: {}, t: 0, lobT: 0, dirty: false, phase: '', k: 0, M: null, setup: null, seq: 0, log: [], extra: [], why: '', trouble: 0,
+        out: {}, outW: {}, tags: {}, tell: {} };
       function key(id) { return 'p:' + id; }
       function own(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
       function each(fn) { var k; for (k in H.guests) if (own(H.guests, k)) fn(H.guests[k]); }
@@ -14336,6 +14344,7 @@
         if (!n || !n.ok()) return '';
         code = n.host(); if (!BT.codeOk(code)) { n.leave(); return ''; }
         H.on = true; H.code = code; H.guests = {}; H.away = {}; H.phase = 'lobby'; H.dirty = true; H.M = null; H.why = ''; H.t = 0; H.lobT = 0; H.trouble = 0; H.slots = [];
+        H.out = {}; H.outW = {}; H.tags = {}; H.tell = {};   // a new room: nobody is out of it yet
         for (i = 0; i < 4; i++) { s = BT.S.slots[i]; H.slots.push({ on: i === 0 ? true : s.on, who: i === 0 ? 'human' : 'cpu', pad: i === 0 ? 1 : 0, col: s.col, name: s.name, peer: '' }); }
         for (i = 1; i < 4; i++) if (H.slots[i].on) tidy(i);
         return code;
@@ -14343,8 +14352,23 @@
       BT.hostClose = function (why) {   // CLOSE (or the page lost its room): every guest is told, the room is left
         var n = BT.netApi();
         if (H.on) { each(function (g) { BT.netSend(g.id, { t: 'end' }); }); if (n) n.leave(); }
-        H.on = false; H.guests = {}; H.phase = ''; H.M = null; H.why = why || '';
+        H.on = false; H.guests = {}; H.phase = ''; H.M = null; H.why = why || ''; H.out = {}; H.outW = {}; H.tags = {}; H.tell = {};
       };
+      function isOut(from) { var k = key(from); return own(H.out, k) || (own(H.tags, k) && own(H.outW, H.tags[k])); }   // B22: removed from this room, by his id or by his tag
+      BT.hostRemove = function (i) {   // B22, the host's YES to REMOVE in the lobby: that friend is told 'out' and kept out of this room; his seat is a CPU again (as when one leaves)
+        var g = bySlot(i), k, s;
+        if (!H.on || H.phase !== 'lobby' || !g) return false;
+        k = key(g.id); H.out[k] = true; if (own(H.tags, k)) H.outW[H.tags[k]] = true;
+        delete H.guests[k]; delete H.away[k];
+        s = H.slots[i]; H.slots[i] = { on: true, who: 'cpu', pad: 0, col: s.col, name: s.name, peer: '' }; H.dirty = true;
+        H.tell[k] = { id: g.id, n: 1 }; BT.netSend(g.id, { t: 'no', why: 'out' });
+        Q.toast(BT.NAMES[s.name] + ' REMOVED: A CPU TAKES THE SEAT', 2.4);
+        return true;
+      };
+      function tellOut() {   // a removed friend still in the room is told again every LOB_EVERY steps (a lost message is mended), OUT_TELL times at most
+        var k, o;
+        for (k in H.tell) if (own(H.tell, k)) { o = H.tell[k]; if (o.n >= BT.NT.OUT_TELL) delete H.tell[k]; else { o.n++; BT.netSend(o.id, { t: 'no', why: 'out' }); } }
+      }
       function freeSlot() { for (var i = 1; i < 4; i++) if (!(H.slots[i].on && H.slots[i].who === 'human')) return i; return -1; }
       function seat(from, m) {   // a hello: the first free slot, its colour and name as asked when no one else has them
         var i = freeSlot(), g;
@@ -14374,6 +14398,7 @@
         var g = own(H.guests, key(from)) ? H.guests[key(from)] : null, s;
         if (!m || typeof m !== 'object' || typeof m.t !== 'string') return;
         if (m.t === 'hi') {
+          if (isOut(from)) { BT.netSend(from, { t: 'no', why: 'out' }); return; }   // B22: removed from this room: turned away, whatever he asks
           delete H.away[key(from)];
           if (BT.nInt(m.v, 0, 999, -1) !== BT.NETV) { BT.netSend(from, { t: 'no', why: 'old' }); return; }
           if (!g) {
@@ -14411,12 +14436,14 @@
         for (i = 0; i < l.length && H.on; i++) {
           e = l[i];
           if (e.k === 'msg') message(e.from, e.msg);
-          else if (e.k === 'leave') gone(e.from);
+          else if (e.k === 'tag') { if (e.msg && BT.tagOk(e.msg.w)) H.tags[key(e.from)] = e.msg.w; }   // B22: this peer's room tag (js/net.js gives it before his first message)
+          else if (e.k === 'leave') { gone(e.from); delete H.tags[key(e.from)]; delete H.tell[key(e.from)]; }
           else if (e.k === 'clash') { if (!BT.hostGuests() && H.phase === 'lobby') { n = BT.netApi(); c = n ? n.host() : ''; if (BT.codeOk(c)) { H.code = c; H.dirty = true; } } }   // another host had our code: a new one
           else if (e.k === 'trouble') H.trouble = 300;
           else if (e.k === 'lost') { BT.hostClose(e.msg && e.msg.why === 'load' ? 'load' : 'start'); return; }
         }
         if (H.phase === 'match') awayCheck();
+        if (H.t % BT.NT.LOB_EVERY === 0) tellOut();
         if (H.phase === 'lobby' && (H.dirty || ++H.lobT >= BT.NT.LOB_EVERY)) { H.lobT = 0; H.dirty = false; each(function (g) { BT.netSend(g.id, lobbyOf(g)); }); }
         if (H.phase === 'results' && H.M && H.log.length && H.t % 6 === 0) send(H.M, false);   // the last events, until every guest has them
       };
@@ -14485,7 +14512,9 @@
       BT.hostAt = function () {   // for checks
         var gs = [];
         each(function (g) { gs.push({ slot: g.slot, ack: g.ack, lastS: g.lastS, hasK: g.hasK }); });
-        return { on: H.on, code: H.code, phase: H.phase, k: H.k, seq: H.seq, log: H.log.length, guests: gs, slots: H.slots.map(function (s) { return { on: s.on, who: s.who, pad: s.pad, col: s.col, name: s.name, net: !!s.peer }; }), why: H.why };
+        var n = function (o) { var c = 0, k; for (k in o) if (own(o, k)) c++; return c; };
+        return { on: H.on, code: H.code, phase: H.phase, k: H.k, seq: H.seq, log: H.log.length, guests: gs, slots: H.slots.map(function (s) { return { on: s.on, who: s.who, pad: s.pad, col: s.col, name: s.name, net: !!s.peer }; }), why: H.why,
+          out: n(H.out), outW: n(H.outW), tags: n(H.tags), tell: n(H.tell) };   // B22: how many ids and tags are out of this room, tags known, removed friends still being told
       };
     })();
     // ===== 94-battle-cpu.js =====
@@ -15347,16 +15376,19 @@
     // JOIN: four letter wheels (up and down change a letter, left and right move, A joins); a ?join= link fills them and joins at once. The lobby: the code,
     // four slots (YOU, friends, CPUs), the rules, the arena; the host also picks his colour and name, turns empty slots CPU or OFF, and STARTs; a guest picks
     // his own colour (left, right) and name (up, down) and waits. B asks first, then leaves (the host's leaving closes the game for everyone).
+    // B22: BT.CODEN (6) wheels; a link with an old code opens JOIN with its plain line; in the host's lobby A on a friend's seat asks REMOVE? (NO first).
     (function () {
-      var U = Q.ui, JO = { w: [0, 0, 0, 0], at: 0, t: 0 }, LO = { row: 0, col: 1, t: 0, ask: false, askSel: 0, warn: 0 }, NO = { why: '', t: 0 };
-      function wheelsOf(code) { for (var i = 0; i < 4; i++) JO.w[i] = Math.max(0, BT.CODEA.indexOf(code.charAt(i))); }
-      function codeOfWheels() { var s = '', i; for (i = 0; i < 4; i++) s += BT.CODEA.charAt(JO.w[i]); return s; }
+      var U = Q.ui, JO = { w: [], at: 0, t: 0 }, LO = { row: 0, col: 1, t: 0, ask: false, askSel: 0, warn: 0, rm: -1, rmSel: 0, rmId: '' }, NO = { why: '', t: 0 }, i0;
+      for (i0 = 0; i0 < BT.CODEN; i0++) JO.w.push(0);
+      function wheelsOf(code) { for (var i = 0; i < BT.CODEN; i++) JO.w[i] = Math.max(0, BT.CODEA.indexOf(code.charAt(i))); }
+      function codeOfWheels() { var s = '', i; for (i = 0; i < BT.CODEN; i++) s += BT.CODEA.charAt(JO.w[i]); return s; }
       BT.joinCode = codeOfWheels;
       function joinNow() { var c = codeOfWheels(); if (!BT.guestOpen(c)) { NO.why = 'start'; Q.go('bnote', { why: 'start' }); return; } Q.sfx('select'); }
       Q.defScene('bjoin', {
         enter: function (opts) {
           U.entered(); U.cancel(); U.clearToasts(); BT.padClear(); JO.t = 0; Q.music('map');
-          if (opts && BT.codeOk(opts.code)) { wheelsOf(opts.code); JO.at = 3; if (opts.go) joinNow(); }
+          if (opts && opts.why && Object.prototype.hasOwnProperty.call(BT.netWords, opts.why) && !BT.NG.on) BT.NG.why = opts.why;   // B22: a link with an old code: its line in red
+          if (opts && BT.codeOk(opts.code)) { wheelsOf(opts.code); JO.at = BT.CODEN - 1; if (opts.go) joinNow(); }
         },
         update: function (dt) {
           var k = BT.keys(), B = BT.BIT, G = BT.NG, n = BT.CODEA.length;
@@ -15369,8 +15401,8 @@
             return;
           }
           if (k & B.b) { Q.sfx('back'); Q.go('bsplash'); return; }
-          if (k & B.left) { JO.at = (JO.at + 3) % 4; Q.sfx('move'); }
-          if (k & B.right) { JO.at = (JO.at + 1) % 4; Q.sfx('move'); }
+          if (k & B.left) { JO.at = (JO.at + BT.CODEN - 1) % BT.CODEN; Q.sfx('move'); }
+          if (k & B.right) { JO.at = (JO.at + 1) % BT.CODEN; Q.sfx('move'); }
           if (k & B.up) { JO.w[JO.at] = (JO.w[JO.at] + 1) % n; Q.sfx('move'); G.why = ''; }
           if (k & B.down) { JO.w[JO.at] = (JO.w[JO.at] + n - 1) % n; Q.sfx('move'); G.why = ''; }
           if (k & (B.a | B.start)) joinNow();
@@ -15379,8 +15411,8 @@
           var G = BT.NG, i, x, on, s, col, dots = '...'.slice(0, 1 + Math.floor(JO.t * 3) % 3), lines;
           BT.backdrop(g, JO.t); BT.head(g, 'JOIN A GAME');
           s = 'THE HOST\'S CODE'; U.text(s, 160 - (U.width(s) >> 1), 36, '#8f9ac8');
-          for (i = 0; i < 4; i++) {
-            x = 85 + i * 40; on = i === JO.at && !G.on;
+          for (i = 0; i < BT.CODEN; i++) {
+            x = 160 - ((BT.CODEN * 36 - 6) >> 1) + i * 36; on = i === JO.at && !G.on;   // B22: six boxes of 30, 6 apart (four were 40 apart)
             U.box(g, x, 52, 30, 38, on ? '#ffd23f' : '#3c4160', on ? '#24284a' : '#151a36');
             U.text(BT.CODEA.charAt(JO.w[i]), x + 8, 61, G.on ? '#f6efe2' : on ? '#ffd23f' : '#ffffff', 3);
             if (on && Math.floor(JO.t * 2.5) % 3) { U.arrow(g, x + 13, 46, '#ffd23f', true); U.arrow(g, x + 13, 93, '#ffd23f', false); }
@@ -15433,7 +15465,8 @@
         if (LO.row === 1 && k & (B.left | B.right)) { LO.col = 1 + (LO.col - 1 + (k & B.left ? 2 : 1)) % 3; Q.sfx('move'); }
         if (LO.row === 1 && k & B.a) {
           s = H.slots[LO.col];
-          if (s.on && s.who === 'human') Q.sfx('nope');
+          if (s.on && s.who === 'human' && s.peer) { LO.rm = LO.col; LO.rmSel = 0; LO.rmId = s.peer; U.mk.snd('open'); }   // B22: a friend's seat: REMOVE? (NO first)
+          else if (s.on && s.who === 'human') Q.sfx('nope');   // a controller on this device: its own B gives the seat back
           else { s.on = !s.on; s.who = 'cpu'; if (s.on) BT.hostTidy(LO.col); H.dirty = true; Q.sfx('move'); }
         }
         if (LO.row === 2 && k & B.a) { Q.sfx('select'); Q.go('brules', { back: 'blobby' }); return; }
@@ -15446,9 +15479,9 @@
         if (k & B.c) { if (BT.netApi() && BT.netApi().share()) Q.sfx('select'); }
       }
       Q.defScene('blobby', {
-        enter: function (opts) { U.entered(); U.cancel(); BT.padClear(); LO.t = 0; LO.ask = false; LO.warn = 0; if (opts && opts.row !== undefined) LO.row = opts.row; Q.music('map'); BT.NH.dirty = true; },
+        enter: function (opts) { U.entered(); U.cancel(); BT.padClear(); LO.t = 0; LO.ask = false; LO.warn = 0; LO.rm = -1; if (opts && opts.row !== undefined) LO.row = opts.row; Q.music('map'); BT.NH.dirty = true; },
         update: function (dt) {
-          var k = BT.keysDev(), B = BT.BIT, G = BT.NG;
+          var k = BT.keysDev(), B = BT.BIT, G = BT.NG, s;
           LO.t += dt; if (LO.warn > 0) LO.warn -= dt;
           if (host()) { BT.hostPoll(); if (!BT.NH.on) { Q.go('bnote', { why: BT.NH.why || 'start' }); return; } }
           else if (G.on) {
@@ -15462,16 +15495,24 @@
             else if (k & (B.a | B.start)) { LO.ask = false; if (LO.askSel) { Q.sfx('back'); if (host()) BT.hostClose('closed'); else BT.guestClose(''); Q.go('bsplash'); } else Q.sfx('back'); }
             return;
           }
+          if (LO.rm >= 0) {   // B22: REMOVE <NAME>? (the menu kit's question): any direction NO or YES, B is NO, A or START chooses; it closes if he has gone meanwhile
+            s = host() ? BT.NH.slots[LO.rm] : null;
+            if (!s || s.peer !== LO.rmId) { LO.rm = -1; return; }
+            if (k & (B.left | B.right | B.up | B.down)) { LO.rmSel = 1 - LO.rmSel; U.mk.snd('move'); }
+            if (k & B.b) { LO.rm = -1; U.mk.snd('back'); }
+            else if (k & (B.a | B.start)) { if (LO.rmSel && BT.hostRemove(LO.rm)) Q.sfx('hit'); else U.mk.snd('back'); LO.rm = -1; }
+            return;
+          }
           if (k & B.b) { LO.ask = true; LO.askSel = 0; Q.sfx('select'); return; }
           if (host()) { hostUpdate(k); return; }
           if (k & (B.left | B.right)) { BT.guestPick(k & B.left ? -1 : 1, 0); Q.sfx('move'); }
           if (k & (B.up | B.down)) { BT.guestPick(0, k & B.up ? -1 : 1); Q.sfx('move'); }
         },
-        draw: function (g) { BT.drawLobby(g, LO, slotsNow(), TAG, host()); U.drawTalk(g); },
+        draw: function (g) { BT.drawLobby(g, LO, slotsNow(), TAG, host()); if (LO.rm >= 0 && host()) BT.drawRemove(g, LO); U.drawTalk(g); },
         leave: function () {},
         sides: BT.sides
       });
-      BT.lobbyAt = function () { return { row: LO.row, col: LO.col, ask: LO.ask, host: host(), slots: slotsNow().map(function (s) { return s.w; }), arena: host() ? BT.S.arena : BT.NG.lob && BT.NG.lob.ar }; };
+      BT.lobbyAt = function () { return { row: LO.row, col: LO.col, ask: LO.ask, rm: LO.rm, rmSel: LO.rmSel, host: host(), slots: slotsNow().map(function (s) { return s.w; }), arena: host() ? BT.S.arena : BT.NG.lob && BT.NG.lob.ar }; };
       // ---------- a message, then back to the splash ----------
       Q.defScene('bnote', {
         enter: function (opts) { U.entered(); U.cancel(); BT.padClear(); NO.why = opts && opts.why || 'host'; NO.t = 0; Q.music('map'); },
@@ -15569,8 +15610,8 @@
       BT.drawLobby = function (g, LO, sl, TAG, isHost) {
         var code = BT.NH.on ? BT.NH.code : BT.NG.code, i, s, x, cx, col, on, f, r, txt, sel, G = BT.NG, ru, ar, y;
         BT.backdrop(g, LO.t); BT.head(g, 'ONLINE GAME');
-        U.text('CODE', 74, 36, '#8f9ac8');
-        for (i = 0; i < 4; i++) { x = 110 + i * 24; U.box(g, x, 29, 20, 21, '#ffd23f', '#24284a'); U.text(code.charAt(i), x + 5, 33, '#ffd23f', 2); }
+        U.text('CODE', 72, 36, '#8f9ac8');   // B22: the word and six boxes centred on the screen (four were from 110, the word at 74)
+        for (i = 0; i < BT.CODEN; i++) { x = 108 + i * 24; U.box(g, x, 29, 20, 21, '#ffd23f', '#24284a'); U.text(code.charAt(i), x + 5, 33, '#ffd23f', 2); }
         s = isHost ? (BT.NH.trouble > 0 ? BT.netWords.trouble : 'C: SHARE THE LINK') : 'YOU ARE IN. THE HOST STARTS THE MATCH.';
         U.text(s, 160 - (U.width(s) >> 1), 54, BT.NH.trouble > 0 && isHost ? '#ff8a6a' : '#8f9ac8');
         for (i = 0; i < 4; i++) {
@@ -15594,7 +15635,8 @@
         } else if (Math.floor(LO.t * 2) % 2) { s = 'WAITING FOR THE HOST'; U.text(s, 160 - (U.width(s) >> 1), 172, '#ffd23f'); }
         y = 0;
         if (LO.warn > 0) s = 'TWO CONDUCTORS AT LEAST';
-        else if (isHost) s = LO.row === 0 ? 'LEFT/RIGHT: YOUR COLOUR  A: YOUR NAME  B: CLOSE' : LO.row === 1 ? 'LEFT/RIGHT: A SLOT  A: CPU OR OFF  B: CLOSE' : 'FRIENDS JOIN WITH THE CODE   B: CLOSE';
+        else if (isHost && LO.rm >= 0) s = 'LEFT/RIGHT: NO OR YES  A: CHOOSE  B: NO';   // B22: the REMOVE question is up
+        else if (isHost) s = LO.row === 0 ? 'LEFT/RIGHT: YOUR COLOUR  A: YOUR NAME  B: CLOSE' : LO.row === 1 ? (sl[LO.col] && sl[LO.col].w === 'net' ? 'LEFT/RIGHT: A SLOT  A: REMOVE  B: CLOSE' : 'LEFT/RIGHT: A SLOT  A: CPU OR OFF  B: CLOSE') : 'FRIENDS JOIN WITH THE CODE   B: CLOSE';
         else s = 'LEFT/RIGHT: COLOUR  UP/DOWN: NAME  B: LEAVE';
         BT.foot(s);
         if (LO.ask) {
@@ -15602,6 +15644,10 @@
           U.box(g, 60, 76, 200, 48, '#ff8a6a', '#1d1d24'); U.text(s, 160 - (U.width(s) >> 1), 86, '#ffffff');
           U.item('NO', 128, 104, LO.askSel === 0, false, 'center'); U.item('YES', 192, 104, LO.askSel === 1, false, 'center');
         }
+      };
+      BT.drawRemove = function (g, LO) {   // B22: REMOVE <NAME>? over the host's lobby, in the menu kit's look (B20's U.mk.ask): NO first, YES on a red bar
+        var s = BT.NH.slots[LO.rm], nm = s ? BT.NAMES[s.name] || '?' : '?';
+        U.mk.ask(g, 'blobby-rm', 'REMOVE', ['REMOVE ' + nm + ' FROM THIS GAME?', nm + ' IS TURNED AWAY IF THEY TRY AGAIN.'], ['NO', 'YES'], LO.rmSel, { danger: true });
       };
     })();
     // ===== 96-battle-online-link.js =====
@@ -15615,7 +15661,8 @@
       if (BT.inviteDone) return false;
       BT.inviteDone = true;
       n = BT.netApi(); c = n && n.ok() ? n.invite() : '';
-      if (!BT.codeOk(c) || !Object.prototype.hasOwnProperty.call(Q.SCENE, 'bjoin')) return false;
+      if (!c || !Object.prototype.hasOwnProperty.call(Q.SCENE, 'bjoin')) return false;
+      if (!BT.codeOk(c)) { Q.go('bjoin', { why: 'link' }); return true; }   // B22: the link's letters are no code of ours (an old 4-letter link): JOIN A GAME says so, plainly
       Q.go('bjoin', { code: c, go: true });
       return true;
     };

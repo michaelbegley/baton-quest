@@ -8,7 +8,8 @@
       if (BT.inviteDone) return false;
       BT.inviteDone = true;
       n = BT.netApi(); c = n && n.ok() ? n.invite() : '';
-      if (!BT.codeOk(c) || !Object.prototype.hasOwnProperty.call(Q.SCENE, 'bjoin')) return false;
+      if (!c || !Object.prototype.hasOwnProperty.call(Q.SCENE, 'bjoin')) return false;
+      if (!BT.codeOk(c)) { Q.go('bjoin', { why: 'link' }); return true; }   // B22: the link's letters are no code of ours (an old 4-letter link): JOIN A GAME says so, plainly
       Q.go('bjoin', { code: c, go: true });
       return true;
     };
