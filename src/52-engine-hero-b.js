@@ -33,7 +33,7 @@
     }
     function engFallOut(P) {   // out of the bottom of the level: a heart, back to the last safe ground
       var s = engSave(); s.falls = (s.falls || 0) + 1;
-      P.x = P.safeX; P.y = P.safeY; P.vx = 0; P.vy = 0; P.dashing = false; P.hovering = false; P.pounding = false; P.on = null; P.knockT = 0;
+      P.x = P.safeX; P.y = P.safeY; P.vx = 0; P.vy = 0; P.dashing = false; P.hovering = false; P.pounding = false; P.on = null; P.knockT = 0; engMovesLanded(P);
       var free = engGod || engCheatOn('wfh');   // WORK FROM HOME: a fall costs no heart either
       if (!free) P.hp = Math.max(0, P.hp - 1);
       Q.emit('fall', { n: free ? 0 : 1 });   // part 14.1 (n: the heart it cost)
@@ -74,6 +74,8 @@
       else if (P.hovering) f = 13 + Math.floor(P.animT * 8) % 2;
       else if (P.throwT > 0) f = 11;
       else if (P.swingT > 0) f = P.swingT > H.SWING_T * 0.55 ? 8 : 9;
+      else if (P.sliding) f = 18;   // PUSHBACK: his back to the wall, a glove on it (52-engine-moves.js)
+      else if (P.djT > 0 && !P.ground) f = 19;   // FOLLOW UP: knees up, the baton high
       else if (!P.ground) f = P.vy < 0 ? 6 : 7;
       else if (Math.abs(P.vx) > 8) { P.runT += dt * Math.max(0.6, Math.abs(P.vx) / H.RUN); f = 2 + Math.floor(P.runT * 10) % 4; }
       else if (P.charged || P.chargeT > 0.15) f = 10;

@@ -18,8 +18,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen&display=swap">
+<style>
+  /* Silkscreen, from our own files (fonts/, SIL Open Font License 1.1: fonts/OFL-Silkscreen.txt), so the page asks no outside server for anything */
+  @font-face { font-family: 'Silkscreen'; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/silkscreen-latin-400-normal.woff2) format('woff2'); }
+</style>
 <style>
   /* Two looks. On a computer (a mouse): the game fills the window, its sides lit by a soft glow of the game's own colours, a small toolbar top right
      that hides when the mouse is still. On a phone or tablet (touch): the 9F POCKET, a handheld of our own that fills the screen: upright, the screen
@@ -256,16 +258,16 @@
     </dl>
     <p>BATTLE MODE online (GAME MODES, BATTLE): one device hosts and runs the match; friends join with its 4-letter code or its link (SHARE copies it while you host). Like any game played directly between browsers, players in one game can see each other's internet address. Some strict networks (school or office) block direct connections.</p>
     <p>It saves at the coffee mugs, in this browser, in one of three files. On a phone, turn it sideways for a bigger screen, or add it to your home screen to play full screen.</p>
-    <p><a href="https://github.com/michaelbegley/baton-quest/issues">Feedback</a> &middot; version 121</p>
+    <p><a href="https://github.com/michaelbegley/baton-quest/issues">Feedback</a> &middot; version 122</p>
     <button type="button" id="helpClose">GOT IT</button>
   </div>
 </div>
-<script src="js/runtime.js?v=121"></script>
-<script src="js/pocket.js?v=121"></script>
-<script src="js/net.js?v=121"></script>
-<script src="js/game.js?v=121"></script>
+<script src="js/runtime.js?v=122"></script>
+<script src="js/pocket.js?v=122"></script>
+<script src="js/net.js?v=122"></script>
+<script src="js/game.js?v=122"></script>
 <script>POCKET_OPEN();</script>
-<script src="js/saves.js?v=121"></script>
-<script src="js/bridge.js?v=121"></script>
+<script src="js/saves.js?v=122"></script>
+<script src="js/bridge.js?v=122"></script>
 </body>
 </html>

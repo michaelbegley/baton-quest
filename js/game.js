@@ -142,11 +142,12 @@
       return out;
     };
     // ===== 20-art-hero.js =====
-    // ---------- 20-art-hero.js: the conductor, 'hero' (16 by 20, 18 frames; ART, builder 3) ----------
+    // ---------- 20-art-hero.js: the conductor, 'hero' (16 by 20, 20 frames; ART, builder 3; frames 18 and 19: B21 MOVES) ----------
     // A terminal for a head (a light monitor with a black screen and a green >_ prompt), a dark shirt with short tails, a white bow tie, white gloves,
     // dark trousers, and a thin white baton with a dark handle. Facing right; the body (10 by 14) is columns 3 to 12, rows 6 to 19, feet on row 19.
-    // Frames (QUEST-API.md part 8): 0-1 idle, 2-5 run, 6 jump, 7 fall, 8-9 swing, 10 charge, 11 throw, 12 dash, 13-14 hover, 15 pound, 16 hurt, 17 cheer.
-    Q.art.HERO = { idle: [0, 1], run: [2, 3, 4, 5], jump: [6], fall: [7], swing: [8, 9], charge: [10], throw: [11], dash: [12], hover: [13, 14], pound: [15], hurt: [16], cheer: [17] };
+    // Frames (QUEST-API.md part 8): 0-1 idle, 2-5 run, 6 jump, 7 fall, 8-9 swing, 10 charge, 11 throw, 12 dash, 13-14 hover, 15 pound, 16 hurt, 17 cheer;
+    // B21 MOVES (2 Nov, QUEST-API.md part 23): 18 PUSHBACK (on a wall at his back, a glove on it), 19 FOLLOW UP (a tuck, the baton thrown up).
+    Q.art.HERO = { idle: [0, 1], run: [2, 3, 4, 5], jump: [6], fall: [7], swing: [8, 9], charge: [10], throw: [11], dash: [12], hover: [13, 14], pound: [15], hurt: [16], cheer: [17], walljump: [18], doublejump: [19] };
     Q.art.heroPal = Q.art.pal({
       c: '#f6f3ea', m: '#dcd6c8', n: '#a8a090',            // the monitor: light, main, shade
       s: '#07080b', g: '#6dfc9a', G: '#2f9e5c',            // the screen, the prompt, a dim glow
@@ -271,6 +272,29 @@
         '..kPpk...kPpk... ..kPpk...kPpk...',
         '.khhk.....khhk.. .khhk.....khhk..',
         '.kkk.......kkk.. .kkkk.....kkkkk.'
+      ],
+      // frames 18-19 (B21 MOVES): PUSHBACK 18 (his back to a wall on his left, the left glove up on it, knees bent toward it), FOLLOW UP 19 (the tuck)
+      [
+        '...kkkkkkkkkk... ...kkkkkkkkkk.w.',
+        '..kcccccccccmk.. ..kcccccccccmkw.',
+        '.kkcmsssssssnk.. ..kcmsssssssnkw.',
+        'kwkcmsgsssssnk.. ..kcmsgsssssnkw.',
+        'kwkcmssgssssnk.. ..kcmssgssssnkb.',
+        'kdkcmsgssggsnk.. ..kcmsgssggsnkwk',
+        'kdkcmsssssssnk.. ..kcmsssssssnkdk',
+        'kdkmnnnnnnnnnk.. ..kmnnnnnnnnnkdk',
+        '.kdkkkkkkkkkk... kw.kkkkkkkkkkdk.',
+        '..kdkDUdddUk...w kdk.kDUdddUkdk..',
+        '...kDduuvuuk..wk .kdkDduuvuudk...',
+        '...kDdvdddvkkwk. ..kkDdvdddvk....',
+        '...kDdddddkkwbk. ...kDdddddkk....',
+        '...kDddddekwk... ..kkkkkkkkkPpk..',
+        '..kekkkkkkkk.... .kPpppppppPpk...',
+        '..kdkPpPpPk..... .kPpkkkkkkPpk...',
+        '...kPpkkPpk..... .khhk....khhk...',
+        '..kPpk.kPpk..... .kkkk....kkkk...',
+        '.khhk..khhk..... ................',
+        '.kkkk..kkkk..... ................'
       ]
     ]);
     // ===== 20-art-hero-b.js =====
@@ -393,6 +417,29 @@
         '...kpPk...kpPk.. ...kpPk...kpPk..',
         '..khhk.....khhk. ..khhk.....khhk.',
         '..kkk.......kkk. .kkkkk.....kkkk.'
+      ],
+      // frames 18-19 (B21 MOVES): PUSHBACK (the wall at his back, on his right), FOLLOW UP (the tuck); mirrored, the screen's >_ kept
+      [
+        '...kkkkkkkkkk... .w.kkkkkkkkkk...',
+        '..kmccccccccck.. .wkmccccccccck..',
+        '..knsssssssmckk. .wknsssssssmck..',
+        '..knsgsssssmckwk .wknsgsssssmck..',
+        '..knssgssssmckwk .bknssgssssmck..',
+        '..knsgssggsmckdk kwknsgssggsmck..',
+        '..knsssssssmckdk kdknsssssssmck..',
+        '..knnnnnnnnnmkdk kdknnnnnnnnnmk..',
+        '...kkkkkkkkkkdk. .kdkkkkkkkkkk.wk',
+        'w...kUdddUDkdk.. ..kdkUdddUDk.kdk',
+        'kw..kuuvuudDk... ...kduuvuudDkdk.',
+        '.kwkkvdddvdDk... ....kvdddvdDkk..',
+        '.kbwkkdddddDk... ....kkdddddDk...',
+        '...kwkeddddDk... ..kpPkkkkkkkkk..',
+        '....kkkkkkkkek.. ...kpPpppppppPk.',
+        '.....kPpPpPkdk.. ...kpPkkkkkkpPk.',
+        '.....kpPkkpPk... ...khhk....khhk.',
+        '.....kpPk.kpPk.. ...kkkk....kkkk.',
+        '.....khhk..khhk. ................',
+        '.....kkkk..kkkk. ................'
       ]
     ]);
     // ---------- 'hero-gold' and 'hero-gold-l': the conductor in the GOLD BOW TIE (VEND-9's, QUEST-API part 13 item 25) ----------
@@ -959,6 +1006,28 @@
         'kkkkkkkkhk..',
         '........khhk',
         '.........kk.'
+      ]
+    ]);
+    // ===== 23-art-ui-moves.js =====
+    // ---------- 23-art-ui-moves.js (ART, B21 MOVES, 2 Nov): the two new moves' icons and THE FOLLOW-UP, the email that teaches FOLLOW UP (QUEST-API.md part 23) ----------
+    // ic-walljump: PUSHBACK, an arrow kicking up and away from a wall, on the office's orange (the conductor's own move, not an agent's colour).
+    // ic-doublejump: FOLLOW UP, two jumps up, on the office's teal. followup (12 by 10, 2 frames): a cream envelope, its flap, an orange stamp, a glint.
+    Q.art.icon('ic-walljump', { C: '#ff8a1e', L: '#ffc58a', D: '#c45f0a', q: '#5a2a06' },
+      ['w..wwww.', 'w...www.', 'w..w.ww.', 'w.w...w.', 'ww......', 'w.......', 'w.......', 'w.......']);
+    Q.art.icon('ic-doublejump', { C: '#2ec4b6', L: '#a6efe8', D: '#1d8f85', q: '#0c3f3a' },
+      ['...ww...', '..wwww..', '.ww..ww.', '........', '...ww...', '..wwww..', '.ww..ww.', '........']);
+    Q.art.def('followup', 12, 10, Q.art.pal({ c: '#f6efe2', m: '#d8cbb0', n: '#a8987a', o: '#ff8a1e', O: '#ffc58a', w: '#ffffff' }), [
+      [
+        '.kkkkkkkkkk. .kkkkkkkkkk.',
+        'kcmccccccmOk kcmwcccccmOk',
+        'kccmccccmcok kccmwcccmcok',
+        'kcccmccmccck kcccmccmccck',
+        'kccccmmcccck kccccmmcccck',
+        'kcccccccccck kcccccccccck',
+        'kcccccccccck kcccccccccck',
+        'kmmmmmmmmmmk kmmmmmmmmmmk',
+        'knnnnnnnnnnk knnnnnnnnnnk',
+        '.kkkkkkkkkk. .kkkkkkkkkk.'
       ]
     ]);
     // ===== 24-art-tiles.js =====
@@ -2865,6 +2934,28 @@
       'A MUG SAVES THE GAME. THE COFFEE IS COLD.',
       'THE OFFICE CAT HIDES IN EVERY WORLD. MRRP.'
     ];
+    // ===== 49-story-moves.js =====
+    // ---------- 49-story-moves.js (STORY's words, B21 MOVES, 2 Nov): learning PUSHBACK and FOLLOW UP, and every move's line in the codex (QUEST-API.md part 23) ----------
+    // learn-walljump plays after w4-won in THE ROOT TICKET (the engine's LEARNED PUSHBACK toast first); learn-doublejump when he touches THE FOLLOW-UP, the
+    // unread email at the top of the shaft behind SPAM TOWER. Q.story.moves: one line per move for the codex's MOVES page (92 or fewer: two lines of 46).
+    Q.defScript('learn-walljump', [
+      { who: 'facil', text: 'YOU JUST SAID NO TO ONE MORE THING. THAT IS CALLED PUSHBACK, AND IT TURNS OUT WALLS TAKE IT TOO.' },
+      { who: 'facil', text: 'IN THE AIR, HOLD INTO A WALL TO SLIDE DOWN IT, THEN A TO KICK OFF. TWO WALLS FACE TO FACE? KICK BETWEEN THEM, ALL THE WAY UP.' },
+      { who: 'facil', text: 'ONE MORE THING, AND I DO SEE THE IRONY: AN EMAIL IS STUCK UP A SHAFT BEHIND SPAM TOWER. NO RUSH. IT HAS WAITED THIS LONG.' }
+    ]);
+    Q.defScript('learn-doublejump', [
+      { who: 'none', text: 'AN UNREAD EMAIL, STUCK BEHIND THE TOWER SINCE FOREVER. SUBJECT: JUST FOLLOWING UP. THE WHOLE MESSAGE: JUMP AGAIN.' },
+      { who: 'facil', text: 'FOLLOW UP: IN THE AIR, PRESS A ONCE MORE FOR ONE MORE JUMP. LANDING, OR A KICK OFF A WALL, GIVES IT BACK.' },
+      { who: 'hero', text: '> FOLLOWING UP.' }
+    ]);
+    Q.story = Q.story || {};
+    Q.story.moves = {
+      dash: 'FROM C1. A BURST SIDEWAYS: ANY TIME ON THE GROUND, ONCE IN THE AIR UNTIL HE LANDS.',
+      hover: 'FROM C2. HOLD A WHILE FALLING AND HE STOPS IN THE AIR, DRIFTING, TO THINK A WHILE.',
+      pound: 'FROM C3. DOWN AND B IN THE AIR: STRAIGHT DOWN, THROUGH BLOCKS, AND THE FLOOR SHAKES.',
+      walljump: 'FOR TELLING SCOPE CREEP NO. SLIDE DOWN A WALL, KICK OFF IT. BETWEEN TWO WALLS: UP.',
+      doublejump: 'FROM AN EMAIL BEHIND SPAM TOWER. ONE MORE JUMP IN THE AIR, BACK ON LANDING OR A KICK.'
+    };
     // ===== 50-engine-sprites.js =====
     // ---------- 50-engine-sprites.js (ENGINE): Q.spr and the sprite sheets ----------
     // Every Q.SPRITE is built once into a small canvas at start: row 0 as drawn, row 1 mirrored, rows 2 and 3 the same in white (for hit flashes).
@@ -3167,6 +3258,7 @@
         coyote: 0, buffer: 0, jumping: false, airDash: true, airHover: true, dashT: 0, dashDir: 1, hoverT: 0, poundT: 0, poundId: 0, lagT: 0,
         swingT: 0, swingId: 0, swingBuf: 0, chargeT: 0, charged: false, throwT: 0, wasB: false, rhythmT: 0, knockT: 0, tapDir: 0, tapT: -9,
         dashBuf: 0, dashCool: 0, carryT: 0, trail: [], trailT: 0,
+        airJump: true, kickWall: null, kickT: 0, kickDir: 0, sliding: 0, slideFx: 0, djT: 0, newAir: false,   // PUSHBACK and FOLLOW UP (52-engine-moves.js)
         on: null, dropT: 0, drop: false, safeX: px, safeY: py, landT: 0, animT: 0, runT: 0, frame: 0, dead: false, deadT: 0, cheer: false, cheerT: 0, py: py, fallV: 0 };
     }
     function engFirm(tx, ty) { var t = engInfoT(tx, ty); return !!t && (t.solid || t.oneWay) && !t.breakBy && !t.hurt && !(t.def && t.def.notSafe); }   // notSafe: part 13, 27
@@ -3205,6 +3297,8 @@
       if (P.throwT > 0) P.throwT -= dt;
       if (P.landT > 0) P.landT -= dt;
       if (P.dropT > 0) P.dropT -= dt;
+      if (P.kickT > 0) P.kickT -= dt;
+      if (P.djT > 0) P.djT -= dt;
       P.drop = P.dropT > 0;
       if (P.rhythm < P.rhythmMax) { P.rhythmT += dt; if (P.rhythmT >= H.RHYTHM_T) { P.rhythmT -= H.RHYTHM_T; P.rhythm++; } } else P.rhythmT = 0;
       if (tA) P.buffer = H.BUFFER; else if (P.buffer > 0) P.buffer -= dt;
@@ -3246,6 +3340,7 @@
           Q.sfx('jump'); Q.fx('dust', P.x + P.w / 2, P.y + P.h, { n: 2 }); Q.emit('jump');
         }
       }
+      if (P.buffer > 0 && !P.ground && !(P.coyote > 0) && free && !P.pounding) engAirMoves(P, tA, L, R);   // PUSHBACK's kick, else FOLLOW UP (52-engine-moves.js)
 
       // across
       if (P.dashing) P.vx = P.dashDir * H.DASH_V;
@@ -3253,24 +3348,28 @@
       else if (!free) P.vx = Q.approach(P.vx, 0, (P.knockT > 0 ? 260 : H.STOP) * dt);
       else {
         k = (R ? 1 : 0) - (L ? 1 : 0);
+        if (P.kickT > 0) k = P.kickDir;   // PUSHBACK: pushed away from the wall for KICK_LOCK, whatever is held
         var max = P.hovering ? H.HOVER_RUN : H.RUN;
         if (k) {
           P.face = k;
           if (P.vx * k < 0) P.vx = Q.approach(P.vx, k * max, H.STOP * dt);
-          else if (Math.abs(P.vx) > max) P.vx = Q.approach(P.vx, k * max, (P.carryT > 0 ? H.DASH_SLOW : H.STOP) * dt);   // faster than a run after a dash: eased off, not cut
+          else if (Math.abs(P.vx) > max) P.vx = Q.approach(P.vx, k * max, (P.carryT > 0 || P.kickT > 0 ? H.DASH_SLOW : H.STOP) * dt);   // faster than a run after a dash or a kick: eased off, not cut
           else P.vx = Q.approach(P.vx, k * max, (P.ground ? H.ACC : H.AIRACC) * dt);
         } else P.vx = Q.approach(P.vx, 0, (P.ground ? H.STOP : H.AIRACC) * dt);
       }
       // down: a dash holds him level, a pound waits then drops, a hover drifts, else gravity (A held while rising: GRAV_UP)
+      P.sliding = engSlideSide(P, L, R, free); if (P.sliding) P.face = -P.sliding;   // PUSHBACK: down a wall he is held into, facing out
       var wasGround = P.ground, v0 = P.vy, v1 = v0, mid;
       if (P.dashing) { P.dashT -= dt; v1 = 0; mid = 0; }
       else if (P.pounding) { if (P.poundT > 0) { P.poundT -= dt; v1 = 0; } else v1 = H.POUND_V; mid = v1; }
       else if (P.hovering) { P.hoverT -= dt; v1 = H.HOVER_FALL; mid = v1; }
+      else if (P.sliding) { v1 = engSlideBrake(P, v0); mid = (v0 + v1) * 0.5; }
       else { v1 = Math.min(v0 + (v0 < 0 && A ? H.GRAV_UP : H.GRAV) * dt, H.FALL); mid = (v0 + v1) * 0.5; }   // the mean speed: exact heights
       P.vy = mid;
       var bottom0 = P.y + P.h;
       Q.move(P, dt);
       if (!P.ground && !P.ceil) P.vy = v1;
+      engMovesTop(P);
       if (!P.ground) engPlatformLand(P, bottom0);
       else P.on = null;
       P.fallV = Math.max(P.fallV, v1);
@@ -3285,7 +3384,7 @@
         } else if (!wasGround) {
           if (P.fallV > 160) { Q.sfx('land'); Q.fx('dust', P.x + P.w / 2, P.y + P.h); P.landT = 0.1; }
         }
-        if (P.ground) { P.airDash = true; P.airHover = true; P.jumping = false; P.hovering = false; P.fallV = 0; }
+        if (P.ground) { P.airDash = true; P.airHover = true; P.jumping = false; P.hovering = false; P.fallV = 0; engMovesLanded(P); }
         if (P.ground && !P.on && !P.pounding) {   // the last safe ground: both feet on firm tiles, no spikes beside him
           b = Math.floor((P.y + P.h + 1) / 16); var lx = Math.floor((P.x + 1) / 16), rx = Math.floor((P.x + P.w - 1) / 16), ry = Math.floor((P.y + P.h - 1) / 16);
           var bad = false; for (tx = lx - 1; tx <= rx + 1; tx++) { var ht = engInfoT(tx, ry); if (ht && ht.hurt) bad = true; }
@@ -3299,6 +3398,7 @@
       }
       // the swing's box, for its first 0.14 s: enemies (once each per swing) and crates
       if (P.swingT > 0 && P.swingT > H.SWING_T - 0.14) { b = engSwingBox(P); engHitBox(b, P.power, 'baton', P.swingId); engBreakBox(b, 'baton'); }
+      engSlideFx(P, dt);
       engHurtTiles(P);
       if (P.y > engTH * 16 + 24) engFallOut(P);
       engHeroFrame(P, dt);
@@ -3339,7 +3439,7 @@
     }
     function engFallOut(P) {   // out of the bottom of the level: a heart, back to the last safe ground
       var s = engSave(); s.falls = (s.falls || 0) + 1;
-      P.x = P.safeX; P.y = P.safeY; P.vx = 0; P.vy = 0; P.dashing = false; P.hovering = false; P.pounding = false; P.on = null; P.knockT = 0;
+      P.x = P.safeX; P.y = P.safeY; P.vx = 0; P.vy = 0; P.dashing = false; P.hovering = false; P.pounding = false; P.on = null; P.knockT = 0; engMovesLanded(P);
       var free = engGod || engCheatOn('wfh');   // WORK FROM HOME: a fall costs no heart either
       if (!free) P.hp = Math.max(0, P.hp - 1);
       Q.emit('fall', { n: free ? 0 : 1 });   // part 14.1 (n: the heart it cost)
@@ -3380,6 +3480,8 @@
       else if (P.hovering) f = 13 + Math.floor(P.animT * 8) % 2;
       else if (P.throwT > 0) f = 11;
       else if (P.swingT > 0) f = P.swingT > H.SWING_T * 0.55 ? 8 : 9;
+      else if (P.sliding) f = 18;   // PUSHBACK: his back to the wall, a glove on it (52-engine-moves.js)
+      else if (P.djT > 0 && !P.ground) f = 19;   // FOLLOW UP: knees up, the baton high
       else if (!P.ground) f = P.vy < 0 ? 6 : 7;
       else if (Math.abs(P.vx) > 8) { P.runT += dt * Math.max(0.6, Math.abs(P.vx) / H.RUN); f = 2 + Math.floor(P.runT * 10) % 4; }
       else if (P.charged || P.chargeT > 0.15) f = 10;
@@ -3444,6 +3546,88 @@
       }
       P.x = P.safeX; P.y = P.safeY; P.vx = 0; P.vy = 0; P.on = null;
       return true;
+    }
+    // ===== 52-engine-moves.js =====
+    // ---------- 52-engine-moves.js (ENGINE, B21 MOVES, 2 Nov): two new moves, each learned once in the game (QUEST-API.md part 23) ----------
+    // PUSHBACK (Q.has('walljump')): in the air, falling and held toward a wall, he slides down it at SLIDE_V. A (or a press the jump buffer kept) with a wall
+    // within KICK_REACH px of his side kicks him up (KICK_VY, a jump's own: let go early, lower) and away (KICK_VX); for KICK_LOCK he is pushed away whatever
+    // is held. A wall is a solid tile of the map that stays put (not a crate, a pound block, a hazard or a tile that comes and goes) along his middle; never
+    // the level's sides or anything above its top, never a thin shelf or a moving platform (those are no solid tiles). The wall he last kicked off takes no
+    // slide and no kick again until he lands or kicks off another, and he cannot get back over it either (it stands on up to the sky for him until then):
+    // one wall alone cannot be climbed, two facing walls can.
+    // FOLLOW UP (Q.has('doublejump')): one more jump in the air, a fresh press of A once the coyote time is over: his upward speed is set to DJUMP (not added),
+    // A held keeps it rising, as a jump. Refilled on landing and by a kick only (never by a dash, a hover, a stomp, a lift or a hurt). Falling with the ground
+    // within 18 px, the press is the landing's buffered jump instead (the hover's own rule). It ends a hover (spent) and a dash (the way a dash ends itself).
+    // Neither move makes the old three stronger: a kick refills no dash and no hover, and FOLLOW UP refills nothing. Once he knows either move the level's
+    // top is a ceiling (nothing takes him out of a level's edges or top). Research, numbers and sources: the scratchpad's b21/MOVES.md.
+    Q.HERO.SLIDE_V = 45; Q.HERO.SLIDE_GRIP = 1800;   // px/s down a wall, and how fast a faster fall is braked to it
+    Q.HERO.KICK_REACH = 3; Q.HERO.KICK_VX = 150; Q.HERO.KICK_VY = 300; Q.HERO.KICK_LOCK = 0.16;   // a wall this near still kicks; the kick's speeds; the push's time
+    Q.HERO.DJUMP = 260; Q.HERO.DJUMP_POSE = 0.3;   // FOLLOW UP's upward speed (a jump is 300), and how long its pose shows
+    Q.ABILITY.walljump = { name: 'PUSHBACK', from: 'secret', how: 'HOLD INTO A WALL, A TO KICK OFF' };
+    Q.ABILITY.doublejump = { name: 'FOLLOW UP', from: 'secret', how: 'IN THE AIR, A AGAIN TO JUMP' };   // 31 letters or fewer: the pause's ABILITIES window (U.AB_HOW, B20)
+    Q.MOVES = ['dash', 'hover', 'pound', 'walljump', 'doublejump'];   // every move in the order they are shown (the HUD, the pause menu, the codex)
+
+    function engWallTile(tx, ty) {   // a tile he can slide down and kick off: solid, in the map, not breakable, not a hazard, not one that comes and goes
+      var t;
+      if (!engInfo || tx < 0 || tx >= engTW || ty < 0 || ty >= engTH) return false;
+      t = engInfo[ty * engTW + tx];
+      return !!t && !!t.solid && !t.breakBy && !t.hurt && !(t.def && t.def.notSafe);
+    }
+    function engWallAt(P, s, reach) {   // the column of a wall on side s (1 right, -1 left) within reach px of his side, all along his middle (y + 4 to y + h - 4), else -1
+      var tx = Math.floor((s > 0 ? P.x + P.w + reach - 0.01 : P.x - reach) / 16), y0 = Math.floor((P.y + 4) / 16), y1 = Math.floor((P.y + P.h - 4) / 16), ty;
+      if (P.y + 4 < 0) return -1;   // above the level's top there are no walls
+      for (ty = y0; ty <= y1; ty++) if (!engWallTile(tx, ty)) return -1;
+      return tx;
+    }
+    function engWallFree(P, s, tx) { var k = P.kickWall; return !(k && k.s === s && k.tx === tx); }   // not the wall he last kicked off
+    Q.wallAt = function (s, reach) { var P = Q.P; return P ? engWallAt(P, s, reach === undefined ? Q.HERO.KICK_REACH : reach) : -1; };   // for checks: a wall beside him now
+    Q.wallFree = function (s, tx) { return !!Q.P && engWallFree(Q.P, s, tx); };
+
+    function engSlideSide(P, L, R, free) {   // PUSHBACK's slide: the side of the wall he slides down (1 right, -1 left), else 0
+      var s = R && !L ? 1 : L && !R ? -1 : 0, tx;
+      if (!s || P.ground || !free || P.dashing || P.pounding || P.hovering || P.kickT > 0 || P.vy < 0 || !Q.has('walljump')) return 0;
+      tx = engWallAt(P, s, 1);
+      return tx >= 0 && engWallFree(P, s, tx) ? s : 0;
+    }
+    function engKick(P, s, tx) {   // off the wall on side s: up and away, the push held for KICK_LOCK, FOLLOW UP back
+      var H = Q.HERO;
+      P.vx = -s * H.KICK_VX; P.vy = -H.KICK_VY; P.jumping = true; P.kickT = H.KICK_LOCK; P.kickDir = -s; P.face = -s; P.kickWall = { s: s, tx: tx };
+      P.airJump = true; P.newAir = true; P.buffer = 0; P.coyote = 0; P.hovering = false; P.sliding = 0; P.dashing = false; P.on = null;
+      Q.sfx('jump'); Q.fx('dust', s > 0 ? P.x + P.w : P.x, P.y + 7, { n: 3 }); Q.emit('jump', { wall: true });
+    }
+    function engFollowUp(P) {   // FOLLOW UP: the one jump in the air
+      var H = Q.HERO;
+      if (P.dashing) { P.dashing = false; P.vx = P.dashDir * H.DASH_END; }   // it ends a dash the way a dash ends itself (no speed kept)
+      P.vy = -H.DJUMP; P.jumping = true; P.airJump = false; P.newAir = true; P.hovering = false; P.buffer = 0; P.djT = H.DJUMP_POSE;
+      Q.sfx('jump'); Q.fx('dust', P.x + P.w / 2, P.y + P.h, { n: 2 }); Q.emit('jump', { air: true });
+    }
+    function engAirMoves(P, tA, L, R) {   // in the air, once the ground jump (and the coyote time) had its chance: a kick off a wall near him, else FOLLOW UP
+      var H = Q.HERO, pick = R && !L ? 1 : L && !R ? -1 : P.face, i, s, tx;
+      if (P.buffer > 0 && Q.has('walljump')) {
+        for (i = 0; i < 2; i++) {   // the wall he holds toward (or faces) first, then the other
+          s = i ? -pick : pick; tx = engWallAt(P, s, H.KICK_REACH);
+          if (tx >= 0 && engWallFree(P, s, tx)) { engKick(P, s, tx); return true; }
+        }
+      }
+      if (tA && P.airJump && P.y >= 0 && Q.has('doublejump') && (P.vy <= 0 || !engGroundNear(P, 18))) { engFollowUp(P); return true; }
+      return false;
+    }
+    function engSlideBrake(P, v0) {   // his speed down a wall this step
+      var H = Q.HERO;
+      return v0 > H.SLIDE_V ? Q.approach(v0, H.SLIDE_V, H.SLIDE_GRIP * Q.DT) : Math.min(v0 + H.GRAV * Q.DT, H.SLIDE_V);
+    }
+    function engMovesLanded(P) { P.airJump = true; P.kickWall = null; P.newAir = false; P.kickT = 0; P.sliding = 0; }   // on the ground: both moves ready again
+    function engMovesTop(P) {   // once he knows a new move the level's top is a ceiling; and the wall he last kicked off stands on up to the sky until he lands
+      var k = P.kickWall, fx;
+      if (P.y < 0 && (P.newAir || Q.has('walljump') || Q.has('doublejump'))) { P.y = 0; if (P.vy < 0) P.vy = 0; }
+      if (!k) return;
+      if (k.s < 0) { fx = (k.tx + 1) * 16; if (P.x < fx) { P.x = fx; if (P.vx < 0) P.vx = 0; P.wallL = true; } }   // a left wall: never back over it
+      else { fx = k.tx * 16; if (P.x + P.w > fx) { P.x = fx - P.w; if (P.vx > 0) P.vx = 0; P.wallR = true; } }
+    }
+    function engSlideFx(P, dt) {   // a little dust where his glove meets the wall, while he slides
+      if (!P.sliding) { P.slideFx = 0; return; }
+      P.slideFx -= dt;
+      if (P.slideFx <= 0) { P.slideFx = 0.09; Q.fx('dust', P.sliding > 0 ? P.x + P.w : P.x, P.y + 5, { n: 1 }); }
     }
     // ===== 53-engine-ents.js =====
     // ---------- 53-engine-ents.js (ENGINE): entities: Q.spawn, Q.remove, the loop, touching the conductor, Q.damage, drawing ----------
@@ -4430,9 +4614,9 @@
       } });
     Q.defCheat('cash', { name: 'PETTY CASH', code: 'a a a a b b b b', once: true, what: '250 TOKENS', done: 'PETTY CASH: 250 TOKENS.', not: '',
       go: function () { Q.tokens(250); Q.sfx('token'); return true; } });
-    Q.defCheat('toolkit', { name: 'FULL TOOLKIT', code: 'right right a a down b up up', once: true, what: 'QUICK KEYS, PAUSE TO THINK AND FIRM HAND, EARLY',
-      done: 'FULL TOOLKIT: ALL THREE MOVES.', not: 'YOU HAVE ALL THREE ALREADY.',
-      go: function (s) { var l = ['dash', 'hover', 'pound'], i, n = 0; engQuiet = true; for (i = 0; i < l.length; i++) if (Q.learn(l[i])) n++; engQuiet = false; return n > 0; } });
+    Q.defCheat('toolkit', { name: 'FULL TOOLKIT', code: 'right right a a down b up up', once: true, what: 'EVERY MOVE, EARLY: THE THREE, PUSHBACK, FOLLOW UP',
+      done: 'FULL TOOLKIT: ALL FIVE MOVES.', not: 'YOU HAVE ALL FIVE ALREADY.',   // B21: every move there is (Q.MOVES), the two new ones too
+      go: function (s) { var l = Q.MOVES || ['dash', 'hover', 'pound'], i, n = 0; engQuiet = true; for (i = 0; i < l.length; i++) if (Q.learn(l[i])) n++; engQuiet = false; return n > 0; } });
     Q.defCheat('wfh', { name: 'WORK FROM HOME', code: 'down down down down up up up up', what: 'NOTHING HURTS (NO GOLD STARS WHILE ON)' });
     Q.defCheat('light', { name: 'LIGHT WORKLOAD', code: 'up a up a up a up a', what: 'FLOATY JUMPS (NO GOLD STARS WHILE ON)' });
     Q.defCheat('tall', { name: 'TALL ORDER', code: 'up up up up up up up up', what: 'A TALLER CONDUCTOR' });
@@ -4540,6 +4724,62 @@
       engFilesStore();
       return true;
     };
+    // ===== 59-engine-moves.js =====
+    // ---------- 59-engine-moves.js (ENGINE, B21 MOVES, 2 Nov): where the two new moves are learned (QUEST-API.md part 23) ----------
+    // PUSHBACK: at the end of the story, in THE ROOT TICKET (w4-boss has ability: 'walljump'): SCOPE CREEP is told no at last, and the arena's own learn step
+    // (55-engine-level.js) teaches it after w4-won, with learn-walljump. Not in THE ENCORE (its fights have no rescue). A file that won before this version
+    // learns it the first time it is continued, with its toast.
+    // FOLLOW UP: a found thing, THE FOLLOW-UP (the legend's 'followup'), an unread email stuck at the top of a shaft behind SPAM TOWER (w1-3) that only
+    // PUSHBACK climbs: touching it teaches FOLLOW UP, with learn-doublejump. Once known it is not there any more. Its def says move and need, so the lint
+    // checks it is reached with what it needs and never without (tools/quest_lint_reach.js).
+    Q.defEnemy('followup', {
+      name: 'THE FOLLOW-UP', w: 10, h: 8, hp: 1, xp: 0, tokens: 0, touch: 0, gravity: 0, solid: false, nohit: true, sprite: 'followup',
+      move: 'doublejump', need: 'walljump',   // what it teaches, and the move it takes to reach it
+      init: function (e) {
+        e.face = 1;
+        if (e.o && typeof e.o.tx === 'number') { e.x = e.o.tx * 16 + 3; e.y = e.o.ty * 16 + 4; }   // in the middle of its tile, floating
+        e.y0 = e.y;
+        if (Q.has('doublejump')) e.dead = true;   // read once: gone for good
+      },
+      update: function (e) { e.y = e.y0 + Math.round(Math.sin(e.t * 2.4) * 1.5); e.frame = Math.floor(e.t * 3) % 2; e.vx = 0; e.vy = 0; },
+      got: function (e) {
+        if (e.dead) return;
+        e.dead = true;
+        Q.fx('confetti', e.x + 5, e.y + 4, { n: 24 }); Q.fx('spark', e.x + 5, e.y + 4, { n: 8, col: '#ffd23f' });
+        if (engOwn(Q.SFX, 'secret')) Q.sfx('secret');
+        Q.learn('doublejump');
+        engSay('learn-doublejump');
+        Q.saveGame();
+      }
+    });
+    // The tokens for the new moves: the legend's movetoken (one) and movebig (five), drawn and picked up as the map's o and O, placed where only PUSHBACK
+    // or FOLLOW UP reach (the lint checks it: their def's spot). Their bob is their tile's, not Q.rand's, so a level that has them draws the same random
+    // numbers as before (its enemies do what they did); a map's o would draw one.
+    function engMoveTok(id, kind, w, n) {
+      Q.defEnemy(id, {
+        name: 'TOKEN', w: w, h: w, hp: 1, xp: 0, tokens: 0, touch: 0, gravity: 0, solid: false, nohit: true, sprite: kind, spot: kind,
+        init: function (e) { var o = e.o || {}; if (typeof o.tx === 'number') { e.x = o.tx * 16 + (16 - w) / 2; e.y = o.ty * 16 + (16 - w) / 2; } e.bob = ((o.tx | 0) * 5 + (o.ty | 0) * 3) % 6; },
+        update: function (e) { e.frame = Math.floor(e.t * 8 + e.bob); e.vx = 0; e.vy = 0; },
+        draw: function (e, g) {   // 53-engine-ents-b.js's pickup, standing
+          var s = engSheet(e.sprite), dy = Math.round(Math.sin(Q.t * 3 + e.bob) * 1.5);
+          if (!s) { Q.spr(g, e.sprite, 0, e.x - Q.cam.x, e.y - Q.cam.y + dy); return; }
+          engBlit(g, s, e.frame, e.x + (e.w - s.w) / 2 - Q.cam.x, e.y + e.h - s.h - Q.cam.y + dy, false, false);
+        },
+        got: function (e) {
+          var cx = e.x + e.w / 2, cy = e.y + e.h / 2;
+          if (e.dead) return;
+          Q.tokens(n); Q.sfx('token'); if (n > 1) Q.fx('text', cx, cy - 6, { text: '+' + n, col: '#ffd23f' }); Q.emit('pickup', { kind: kind, n: n });
+          Q.fx('spark', cx, cy, { n: n > 1 ? 6 : 3 }); Q.remove(e);
+        }
+      });
+    }
+    engMoveTok('movetoken', 'token', 8, 1); engMoveTok('movebig', 'bigtoken', 12, 5);
+    function engMovesCatchUp() {   // a file that beat SCOPE CREEP before this version: PUSHBACK now, with its toast
+      var s = Q.SAVE;
+      if (s && s.won && s.abilities && s.abilities.indexOf('walljump') < 0) Q.learn('walljump');
+    }
+    var engMovesCont0 = Q.continueGame;
+    Q.continueGame = function () { engMovesCatchUp(); return engMovesCont0.apply(this, arguments); };
     // ===== 59-engine-root.js =====
     // ---------- 59-engine-root.js (ENGINE): THE ROOT FOLDER (QUEST-API part 14.6): its five rooms' flow, Q.rootOpen and Q.rootDone ----------
     // Open once the game is won with SECRETS 4/4 (the map's stop starts root-1). Each room (root: true) goes on by its E to its next and clears nothing in
@@ -5041,7 +5281,8 @@
     // Q.ui.stat(): the numbers the HUD and the menus show (QUEST-API.md part 13, 5: the body from Q.P, falling back to Q.SAVE; the rest from Q.SAVE).
     (function () {
       var U = Q.ui, H = { at: -1, tok: null, tokT: 0, lv: null, lvT: 0, boss: null, hp: 0, trail: 0, hitT: 0 };
-      var ABIL = ['dash', 'hover', 'pound'];
+      var ABIL0 = ['dash', 'hover', 'pound'];
+      function moves() { return Q.MOVES || ABIL0; }   // every move in its order: the three, then PUSHBACK and FOLLOW UP (B21, 52-engine-moves.js)
       function num(v, d) { return typeof v === 'number' && isFinite(v) ? v : d; }
       U.num = num;
       U.lvOf = function (xp) { var lv = 1; for (var i = 1; i < Q.LV.length; i++) if (xp >= Q.LV[i]) lv = i + 1; return lv; };
@@ -5066,10 +5307,10 @@
           memos: U.memoCount(S), time: num(S.time, 0), falls: num(S.falls, 0)
         };
       };
-      U.iconCount = function () { var n = 0; for (var i = 0; i < ABIL.length; i++) if (U.learned(ABIL[i])) n++; return n; };
+      U.iconCount = function () { var n = 0, ab = moves(); for (var i = 0; i < ab.length; i++) if (U.learned(ab[i])) n++; return n; };
       U.icons = function (g, x, y, gap) {   // the abilities learned, as small icons from x to the right
-        var n = 0;
-        for (var i = 0; i < ABIL.length; i++) if (U.learned(ABIL[i])) { Q.spr(g, 'ic-' + ABIL[i], 0, x + n * gap, y); n++; }
+        var n = 0, ab = moves();
+        for (var i = 0; i < ab.length; i++) if (U.learned(ab[i])) { Q.spr(g, 'ic-' + ab[i], 0, x + n * gap, y); n++; }
       };
       function bookkeep(s, now) {   // once a frame: flashes when the tokens or the LV change, the boss bar's trail
         var dt = H.at < 0 ? 0 : Q.clamp(now - H.at, 0, 0.05), b = Q.boss, hp, max;
@@ -6644,6 +6885,46 @@
         }
       };
     })();
+    // ===== 75-ui-codex-moves.js =====
+    // ---------- 75-ui-codex-moves.js (UI, B21 MOVES, 2 Nov): the codex's MOVES page (QUEST-API.md part 23) ----------
+    // Every move in Q.MOVES with a picture of the conductor in its pose (the hero's own frames: QUICK KEYS 12, PAUSE TO THINK 13, FIRM HAND 15, PUSHBACK 18,
+    // FOLLOW UP 19), its name and how line; the one chosen has its codex line (Q.story.moves) at the foot. A move not learned yet reads ???. The page opens once
+    // a new move is known (PUSHBACK or FOLLOW UP), so every page list before then is as it was. Its tab comes after SPRINT REVIEW and before HOLD MUSIC:
+    // CODES keeps its place after STARS (director_codes_test) and HOLD MUSIC stays the last page.
+    (function () {
+      var U = Q.ui, SEC = U.codexSec || (U.codexSec = {}), ORD = U.codexOrder;
+      var POSE = { dash: 12, hover: 13, pound: 15, walljump: 18, doublejump: 19 };
+      function list() { return Q.MOVES || ['dash', 'hover', 'pound']; }
+      function known(a) { return !!(U.learned && U.learned(a)); }
+      function count() { var l = list(), n = 0, i; for (i = 0; i < l.length; i++) if (known(l[i])) n++; return n; }
+      U.movesKnown = function () { var l = list(), out = [], i; for (i = 0; i < l.length; i++) if (known(l[i])) out.push(l[i]); return out; };   // for checks
+      if (ORD && ORD.indexOf('moves') < 0) ORD.splice(ORD.indexOf('music') < 0 ? ORD.length : ORD.indexOf('music'), 0, 'moves');   // its tab before HOLD MUSIC
+      SEC.moves = {
+        name: 'MOVES', pages: function () { return 1; }, rows: function () { return list().length; },
+        open: function () { return known('walljump') || known('doublejump'); },
+        col: function () { return '#ff8a1e'; }, title: function () { return 'THE CONDUCTOR\'S MOVES'; },
+        count: function () { return 'KNOWN ' + count() + '/' + list().length; },
+        hint: function () { return 'UP/DOWN: CHOOSE   LEFT/RIGHT: PAGE   B: BACK'; },
+        tab: function (g, x, y) { U.sprOr(g, 'ic-walljump', 0, x + 2, y + 2); },
+        draw: function (g, sub, sel) {
+          var l = list(), i, a, y, on, id = U.hero ? U.hero() : 'hero', txt, lines;
+          for (i = 0; i < l.length; i++) {
+            a = Q.ABILITY[l[i]] || { name: l[i].toUpperCase(), how: '' }; y = 44 + i * 21; on = sel === i;
+            if (on) U.fill(g, 14, y - 1, 292, 21, '#262838');
+            U.fill(g, 18, y, 18, 20, '#0b0c10');
+            if (known(l[i])) {
+              Q.spr(g, id, POSE[l[i]] || 0, 19, y);   // his pose, the whole 16 by 20
+              U.item(a.name, 44, y + 2, on); U.text(a.how, 44, y + 11, '#8a93a8');
+              Q.spr(g, 'ic-' + l[i], 0, 292, y + 4);
+            } else { U.text('?', 24, y + 6, '#5d6378'); U.item('???', 44, y + 6, on, !on); }
+          }
+          U.fill(g, 14, 151, 292, 1, '#2a2c3a');
+          a = l[Math.min(sel, l.length - 1)]; txt = Q.story && Q.story.moves && Q.story.moves[a];
+          if (a && known(a) && txt) { lines = Q.wrap(String(txt), 46); for (i = 0; i < Math.min(2, lines.length); i++) U.text(lines[i], 160, 156 + i * 10, '#c3c7d4', 1, 'center'); }
+          else if (a) U.text('NOT LEARNED YET.', 160, 160, '#5d6378', 1, 'center');
+        }
+      };
+    })();
     // ===== 75-ui-codex-music.js =====
     // ---------- 75-ui-codex-music.js: the codex's HOLD MUSIC page, the jukebox (UI, builder 5; QUEST-API.md part 14.5) ----------
     // After the ending: every song in Q.TRACK by its name, in STORY's order (every song in Q.SONG by its id while there are no tracks). Up and down choose,
@@ -6902,8 +7183,12 @@
       var HELP = { RESUME: 'BACK TO PLAY', CODEX: 'THE MEMOS, BESTIARY AND TIMES', MUSIC: 'FULL, LOW OR OFF', TEXT: 'HOW FAST THE TEXT BOX TYPES',   // each fits beside A: CHOOSE  B: BACK
         'BOW TIE': 'GOLD, OR THE WHITE IT WAS', CODES: 'TYPE A CODE: EIGHT PRESSES', SYSTEM: 'SCREEN, SOUND, SAVES, MANUAL', MAP: 'SAVE, AND OUT TO THE MAP', TITLE: 'SAVE, AND BACK TO THE TITLE' };
       function value(it) { return it === 'MUSIC' ? U.musicOpt() : it === 'BOW TIE' ? U.tieOpt() : it === 'TEXT' ? (U.textFast() ? 'FAST' : 'NORMAL') : ''; }
+      // B21 MOVES (QUEST-API.md part 23): with four or five moves learned (PUSHBACK and FOLLOW UP come after the story) the ABILITIES window has a row each,
+      // 11 apart: the icon, the name and its keys in 13 letters or fewer (U.KEYS; each move's whole how line is on the codex's MOVES page). Three or fewer: as B20 drew it.
+      U.KEYS = { dash: 'C, TAP TWICE', hover: 'FALL, HOLD A', pound: 'DOWN AND B', walljump: 'WALL, THEN A', doublejump: 'AIR, A AGAIN' };
       function pauseMenu(g) {   // the menu at the left, LV and the numbers at the top right, the abilities under them
-          var K = U.mk, C = K.C, s = U.stat(), list = items(), i, x, y, n, ab = ['dash', 'hover', 'pound'], a, any = 0, rows = [], rh = list.length > 9 ? 11 : 12;
+          var K = U.mk, C = K.C, s = U.stat(), list = items(), i, x, y, n, ab = Q.MOVES || ['dash', 'hover', 'pound'], a, any = 0, many = 0, rows = [], rh = list.length > 9 ? 11 : 12;
+          for (i = 0; i < ab.length; i++) if (Q.ABILITY[ab[i]] && U.learned(ab[i])) many++;
           for (i = 0; i < list.length; i++) rows.push({ label: list[i], value: value(list[i]) });
           U.text('PAUSED', 160, 7, C.cream, 2, 'center');
           n = U.starCount();   // GOLD STARS won (part 14.2), at the right of the header
@@ -6929,6 +7214,15 @@
             U.text('FALLS ' + s.falls, 310, 87, C.muted, 1, 'right');
           }, { noLight: true });
           K.window(g, 123, 102, 195, 74, 'ABILITIES', 'pause-ab', function () {
+            if (many > 3) {   // B21: a row each (the icons 12 tall, 11 apart, share their ink edge); the keys at the right
+              for (i = 0; i < ab.length; i++) {
+                a = Q.ABILITY[ab[i]]; if (!a || !U.learned(ab[i])) continue;
+                y = 118 + any * 11; any++;
+                Q.spr(g, 'ic-' + ab[i], 0, 128, y - 1);
+                U.text(a.name, 143, y + 1, C.cream); U.text(U.KEYS[ab[i]] || '', 312, y + 1, C.help, 1, 'right');
+              }
+              return;
+            }
             for (i = 0; i < ab.length; i++) {
               a = Q.ABILITY[ab[i]]; if (!a || !U.learned(ab[i])) continue;
               y = 121 + any * 18; any++;
@@ -8875,7 +9169,7 @@
 
     Q.defLevel('w1-3', {
       world: 1, name: "SPAM TOWER", music: 'w1', bg: 'inbox',
-      legend: {'s': 'spam', 'u': 'unsub', 'g': 'ooo', 'f': 'flag'},
+      legend: {'y': 'movetoken', 'z': 'followup', 's': 'spam', 'u': 'unsub', 'g': 'ooo', 'f': 'flag'},
       map: [
         '#......................................................................................................................................................#',
         '#......................................................................................................................................................#',
@@ -8899,24 +9193,24 @@
         '#............................................U.....X.........======.........UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
         '#............................................UY@omoX...oo...................UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
         '#............................................UUUUUUU=======.................UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
-        '#..................................................U........................UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
-        '#..................................................U............k..u........UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
-        '#..................................................U........UUUUUUUUUU......UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
-        '#..................................................U........................UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
-        '#..................................................U.....................oo.UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
-        '#..................................................U....................====UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
-        '#..................................................U........................UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
-        '#..................................................U..............======....UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
-        '#..................................................U........................UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
-        '#..................................................U........................UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
-        '#..................................................U....UUUUUUUUU...........UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
-        '#..................................................U........................UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
-        '#..................................................U..................oo....UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
-        '#..................................................U...............=======..UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
-        '#..................................................U......o..o..............UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
-        '#..................................................U...=========............UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
-        '#.......................................W...W......U........................UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
-        '#..................................[]..............U............g.....u.....UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
+        '#...............................................Uz.U........................UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
+        '#...............................................U..U............k..u........UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
+        '#...............................................U..U........UUUUUUUUUU......UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
+        '#...............................................U..U........................UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
+        '#...............................................U..U.....................oo.UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
+        '#...............................................Uy.U....................====UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
+        '#...............................................U..U........................UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
+        '#...............................................U..U..............======....UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
+        '#...............................................U..U........................UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
+        '#...............................................U.yU........................UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
+        '#...............................................U..U....UUUUUUUUU...........UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
+        '#...............................................U..U........................UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
+        '#...............................................U..U..................oo....UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
+        '#...............................................Uy.U...............=======..UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
+        '#...............................................U..U......o..o..............UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
+        '#...............................................U..U...=========............UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
+        '#.......................................W...W...U..U........................UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
+        '#..................................[]...........U..U............g.....u.....UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
         '#..........[]......................................U..............UUUUUUUUU.UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
         '#....................o.......omo...................U........................UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
         '#.................o..U.......UUU............................................UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU#',
@@ -10181,7 +10475,7 @@
     Q.w2 = Q.w2 || {};
     Q.w2.LEGEND = { b: 'bug', t: 'timeout', p: 'ping', s: 'spark' };
     Q.defLevel('w2-1', {
-      world: 2, name: 'THE COLD AISLE', bg: 'server', w2look: 'cold', legend: Q.w2.LEGEND, music: 'w2',
+      world: 2, name: 'THE COLD AISLE', bg: 'server', w2look: 'cold', legend: { b: 'bug', t: 'timeout', p: 'ping', s: 'spark', y: 'movetoken', w: 'movebig' }, music: 'w2',   // B21: world 2's legend and the tokens for the new moves (59-engine-moves.js)
       secret: 'w2-bonus',   // the rack with its door ajar (D, column 128) leads to COLD STORAGE
       signs: ['THE COLD AISLE. PLEASE CLOSE THE DOOR.', 'BUGS ON THE WALL ARE NORMAL. SADLY.', 'TIMEOUTS FREEZE YOU. DON\'T HUG THEM.', 'QUICK KEYS: JUMP, THEN PRESS C.'],
       memos: ['m2-1a', 'm2-1b'],
@@ -10192,7 +10486,7 @@
         '#    L          L          L          L          L          L          L          L          L          L          L          L          L          L          L           #',
         '#                                                                                                                     m                                                    #',
         '#                                                                                                                     HH                                                   #',
-        '#           N                       N                       N                       N                       N         HH        N                       N                  #',
+        '#           N ywy                   N                       N                       N                       N         HH        N                       N                  #',
         '#                                                                o       o o b !       oOh                         o  HH                                                   #',
         '# BBB     BBB     BBB     BBB     BBB     BBB     BBB     BBB   ====HHHHHHHHHHHHH BBB  HHHBBB     BBB     BBB     === HHb BBB     BBB     BBB     BBB     BBB     BBB      #',
         '# BBB     BBB     BBB T   BBB     BBB     BBB  T  BBB     BBB     BBHHHHHHHHHHHHH BBB  HHHBBB   T BBB     BBB     BBB HH  BBB T   BBB     BbB     BBB     BBB    TBBB      #',
@@ -11407,7 +11701,7 @@
     // w3-1 teaches the upload arrows and the drifting clouds, gently; it needs no ability, and one optional gap (and its island) teaches the hover.
     Q.w3 = Q.w3 || {};
     Q.defLevel('w3-1', { world: 3, name: 'UPLOAD MEADOWS', bg: 'cloud', w3sky: 'day', w3dots: 1, secret: 'w3-bonus',   // a stack of old file versions on the high ridge (a D) leads to FINAL_FINAL_V7
-      legend: { a: 'spinner', p: 'push', d: 'w3drift', v: 'w3lift' },
+      legend: { y: 'movetoken', w: 'movebig', a: 'spinner', p: 'push', d: 'w3drift', v: 'w3lift' },
       signs: ['UPLOAD MEADOWS. PLEASE KEEP OFF THE SKY.', 'ARROWS LIFT YOU. STAND ON THEM.', 'CLOUDS DRIFT. HOP ON AND ENJOY THE RIDE.',
         'NEW TRICK: HOLD A WHILE FALLING TO HOVER.', 'ALMOST DONE... (IT IS NOT.)'],
       memos: ['m3-1a', 'm3-1b'],
@@ -11418,7 +11712,7 @@
       '                                                                                                            UU     p   p     @                        ',
       '                                                                                W                           UU Y o oD o O   ===            o   o      ',
       '                                                                                                            UU############                            ',
-      '                                                                                                           oUU############                UU  Y  E  Y ',
+      '          ywy                                                                                              oUU############                UU  Y  E  Y ',
       '                            UU o Y o                                            p   p          oo           UU############                UU##########',
       ' W                          UU######                                        o                               UU############                UU##########',
       '               W           oUU######  o                                        Y  oo  !       oOmo         oUU############                UU##########',
@@ -12479,7 +12773,7 @@
     // w4-1 THE LATER PILE: teaches the TICKET, then the NICE TO HAVE, then mixes them. Fine without the pound (one P block hides a big token).
     Q.defLevel('w4-1', {
       world: 4, name: 'THE LATER PILE', music: 'w4', bg: 'backlog',
-      legend: { t: 'ticket', n: 'nice' },
+      legend: { y: 'movetoken', w: 'movebig', t: 'ticket', n: 'nice' },
       signs: [
         'THE LATER PILE. EVERYTHING HERE IS LATER.',
         'NICE TO HAVE NOTES MULTIPLY. SAY NO EARLY.',
@@ -12498,7 +12792,7 @@
         '                                   o o o                                                                                         o     o                                                        ',
         '                                                                                                                                                                                                ',
         '                                      X  m  t                                                 o o o                                  t  DX                                                      ',
-        '                                  ##P#########                                               ======                             ##########  o o           o                                     ',
+        '      ywy                         ##P#########                                               ======                             ##########  o o           o                                     ',
         '                   o           ,  ##O######### ,                  O                     o             o                       , ########## ,                    o                               ',
         '                 o o          ####################        o o o                            t   h         t                  ##################        o o  o         o      o   o               ',
         '               o     o     , ,#################### o           o   o   o                  ====          ====  o o o     *   ##################  ,                                 , !  []  E  , ',
@@ -12672,9 +12966,9 @@
       ]
     });
 
-    // w4-boss THE ROOT TICKET: SCOPE CREEP (84-w4-boss.js). No R: in the end the three agents come to help.
+    // w4-boss THE ROOT TICKET: SCOPE CREEP (84-w4-boss.js). No R: in the end the three agents come to help. Beaten, it teaches PUSHBACK (B21: 59-engine-moves.js).
     Q.defLevel('w4-boss', {
-      world: 4, name: 'THE ROOT TICKET', bg: 'backlog-root', boss: 'creep',
+      world: 4, name: 'THE ROOT TICKET', bg: 'backlog-root', boss: 'creep', ability: 'walljump',
       signs: ['THE ROOT TICKET. KEEP TIME.'],
       memos: [],
       map: [

@@ -109,8 +109,12 @@
       var HELP = { RESUME: 'BACK TO PLAY', CODEX: 'THE MEMOS, BESTIARY AND TIMES', MUSIC: 'FULL, LOW OR OFF', TEXT: 'HOW FAST THE TEXT BOX TYPES',   // each fits beside A: CHOOSE  B: BACK
         'BOW TIE': 'GOLD, OR THE WHITE IT WAS', CODES: 'TYPE A CODE: EIGHT PRESSES', SYSTEM: 'SCREEN, SOUND, SAVES, MANUAL', MAP: 'SAVE, AND OUT TO THE MAP', TITLE: 'SAVE, AND BACK TO THE TITLE' };
       function value(it) { return it === 'MUSIC' ? U.musicOpt() : it === 'BOW TIE' ? U.tieOpt() : it === 'TEXT' ? (U.textFast() ? 'FAST' : 'NORMAL') : ''; }
+      // B21 MOVES (QUEST-API.md part 23): with four or five moves learned (PUSHBACK and FOLLOW UP come after the story) the ABILITIES window has a row each,
+      // 11 apart: the icon, the name and its keys in 13 letters or fewer (U.KEYS; each move's whole how line is on the codex's MOVES page). Three or fewer: as B20 drew it.
+      U.KEYS = { dash: 'C, TAP TWICE', hover: 'FALL, HOLD A', pound: 'DOWN AND B', walljump: 'WALL, THEN A', doublejump: 'AIR, A AGAIN' };
       function pauseMenu(g) {   // the menu at the left, LV and the numbers at the top right, the abilities under them
-          var K = U.mk, C = K.C, s = U.stat(), list = items(), i, x, y, n, ab = ['dash', 'hover', 'pound'], a, any = 0, rows = [], rh = list.length > 9 ? 11 : 12;
+          var K = U.mk, C = K.C, s = U.stat(), list = items(), i, x, y, n, ab = Q.MOVES || ['dash', 'hover', 'pound'], a, any = 0, many = 0, rows = [], rh = list.length > 9 ? 11 : 12;
+          for (i = 0; i < ab.length; i++) if (Q.ABILITY[ab[i]] && U.learned(ab[i])) many++;
           for (i = 0; i < list.length; i++) rows.push({ label: list[i], value: value(list[i]) });
           U.text('PAUSED', 160, 7, C.cream, 2, 'center');
           n = U.starCount();   // GOLD STARS won (part 14.2), at the right of the header
@@ -136,6 +140,15 @@
             U.text('FALLS ' + s.falls, 310, 87, C.muted, 1, 'right');
           }, { noLight: true });
           K.window(g, 123, 102, 195, 74, 'ABILITIES', 'pause-ab', function () {
+            if (many > 3) {   // B21: a row each (the icons 12 tall, 11 apart, share their ink edge); the keys at the right
+              for (i = 0; i < ab.length; i++) {
+                a = Q.ABILITY[ab[i]]; if (!a || !U.learned(ab[i])) continue;
+                y = 118 + any * 11; any++;
+                Q.spr(g, 'ic-' + ab[i], 0, 128, y - 1);
+                U.text(a.name, 143, y + 1, C.cream); U.text(U.KEYS[ab[i]] || '', 312, y + 1, C.help, 1, 'right');
+              }
+              return;
+            }
             for (i = 0; i < ab.length; i++) {
               a = Q.ABILITY[ab[i]]; if (!a || !U.learned(ab[i])) continue;
               y = 121 + any * 18; any++;

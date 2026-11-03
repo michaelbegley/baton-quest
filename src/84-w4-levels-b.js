@@ -105,9 +105,9 @@
       ]
     });
 
-    // w4-boss THE ROOT TICKET: SCOPE CREEP (84-w4-boss.js). No R: in the end the three agents come to help.
+    // w4-boss THE ROOT TICKET: SCOPE CREEP (84-w4-boss.js). No R: in the end the three agents come to help. Beaten, it teaches PUSHBACK (B21: 59-engine-moves.js).
     Q.defLevel('w4-boss', {
-      world: 4, name: 'THE ROOT TICKET', bg: 'backlog-root', boss: 'creep',
+      world: 4, name: 'THE ROOT TICKET', bg: 'backlog-root', boss: 'creep', ability: 'walljump',
       signs: ['THE ROOT TICKET. KEEP TIME.'],
       memos: [],
       map: [

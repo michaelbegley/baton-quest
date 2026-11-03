@@ -7,9 +7,16 @@
 <meta name="description" content="The instruction booklet for Baton Quest: the story, the cast, the controls, the four floors and a secret or two.">
 <meta name="theme-color" content="#3b2516">
 <link rel="icon" href="icons/icon-192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Barlow+Semi+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,500&display=swap">
+<style>
+  /* Silkscreen and Barlow Semi Condensed, from our own files (fonts/, SIL Open Font License 1.1: fonts/OFL-*.txt), so the booklet asks no outside server for anything */
+  @font-face { font-family: 'Silkscreen'; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/silkscreen-latin-400-normal.woff2) format('woff2'); }
+  @font-face { font-family: 'Silkscreen'; font-style: normal; font-weight: 700; font-display: swap; src: url(fonts/silkscreen-latin-700-normal.woff2) format('woff2'); }
+  @font-face { font-family: 'Barlow Semi Condensed'; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/barlow-semi-condensed-latin-400-normal.woff2) format('woff2'); }
+  @font-face { font-family: 'Barlow Semi Condensed'; font-style: normal; font-weight: 500; font-display: swap; src: url(fonts/barlow-semi-condensed-latin-500-normal.woff2) format('woff2'); }
+  @font-face { font-family: 'Barlow Semi Condensed'; font-style: normal; font-weight: 600; font-display: swap; src: url(fonts/barlow-semi-condensed-latin-600-normal.woff2) format('woff2'); }
+  @font-face { font-family: 'Barlow Semi Condensed'; font-style: normal; font-weight: 700; font-display: swap; src: url(fonts/barlow-semi-condensed-latin-700-normal.woff2) format('woff2'); }
+  @font-face { font-family: 'Barlow Semi Condensed'; font-style: italic; font-weight: 500; font-display: swap; src: url(fonts/barlow-semi-condensed-latin-500-italic.woff2) format('woff2'); }
+</style>
 <style>
   /* Baton Quest's instruction booklet: a 24-page booklet of our own, lying on a desk. Click it open; the pages turn in 3D.
      Every page is drawn at 440 by 660 design units (--u is one unit, set from the window), so text stays sharp at any size.
@@ -607,6 +614,7 @@
       <p style="margin:0">Come straight down, hard, on whatever is underneath.</p>
     </div>
   </div>
+  <div class="tip"><img data-px="ic-walljump" data-s="2" alt=""><h4>AFTER THE LAST BOSS</h4>Two more moves. PUSHBACK: hold into a wall, A to kick off it. FOLLOW UP: in the air, A again to jump.</div>
 </section>
 
 <!-- 13: items -->
@@ -833,7 +841,7 @@
 <script>
 (function () {
   'use strict';
-  var SIZES = {"bigtoken":[12,12],"bug":[12,12],"c1-cheer":[16,20],"c1-trapped":[16,20],"c2-cheer":[16,20],"c2-trapped":[16,20],"c3-cheer":[16,20],"c3-trapped":[16,20],"cat":[16,12],"door":[16,24],"face-creep":[16,16],"facil":[12,12],"flag":[14,18],"heart":[8,8],"hero":[16,20],"hero-charge":[16,20],"hero-cheer":[16,20],"hero-dash":[16,20],"hero-gold":[16,20],"hero-hover":[16,20],"hero-jump":[16,20],"hero-pound":[16,20],"hero-run":[16,20],"hero-swing":[16,20],"ic-baton":[12,12],"ic-dash":[12,12],"ic-hover":[12,12],"ic-memofinder":[12,12],"ic-note":[12,12],"ic-pound":[12,12],"invite":[16,16],"limiter":[16,16],"logo":[196,98],"memo":[8,10],"miss":[14,14],"mug":[16,16],"nice":[10,10],"note":[8,8],"ooo":[16,14],"ping":[12,12],"push":[12,12],"shot-battle":[320,200],"shot-map":[320,200],"shot-menu":[320,200],"shot-modes":[320,200],"shot-options":[320,200],"shot-title":[320,200],"shot-w1-1":[320,200],"shot-w2-1":[320,200],"shot-w3-1":[320,200],"shot-w4-1":[320,200],"sign":[16,16],"spam":[14,12],"spark":[10,10],"spinner":[14,14],"ticket":[14,12],"timeout":[14,14],"token":[8,8],"unsub":[14,16],"urgent":[14,12],"vend":[32,48]};
+  var SIZES = {"bigtoken":[12,12],"bug":[12,12],"c1-cheer":[16,20],"c1-trapped":[16,20],"c2-cheer":[16,20],"c2-trapped":[16,20],"c3-cheer":[16,20],"c3-trapped":[16,20],"cat":[16,12],"door":[16,24],"face-creep":[16,16],"facil":[12,12],"flag":[14,18],"heart":[8,8],"hero":[16,20],"hero-charge":[16,20],"hero-cheer":[16,20],"hero-dash":[16,20],"hero-gold":[16,20],"hero-hover":[16,20],"hero-jump":[16,20],"hero-pound":[16,20],"hero-run":[16,20],"hero-swing":[16,20],"ic-baton":[12,12],"ic-dash":[12,12],"ic-hover":[12,12],"ic-memofinder":[12,12],"ic-note":[12,12],"ic-pound":[12,12],"ic-walljump":[12,12],"invite":[16,16],"limiter":[16,16],"logo":[196,98],"memo":[8,10],"miss":[14,14],"mug":[16,16],"nice":[10,10],"note":[8,8],"ooo":[16,14],"ping":[12,12],"push":[12,12],"shot-battle":[320,200],"shot-map":[320,200],"shot-menu":[320,200],"shot-modes":[320,200],"shot-options":[320,200],"shot-title":[320,200],"shot-w1-1":[320,200],"shot-w2-1":[320,200],"shot-w3-1":[320,200],"shot-w4-1":[320,200],"sign":[16,16],"spam":[14,12],"spark":[10,10],"spinner":[14,14],"ticket":[14,12],"timeout":[14,14],"token":[8,8],"unsub":[14,16],"urgent":[14,12],"vend":[32,48]};
   var root = document.documentElement, book = document.getElementById('book'), stage = document.getElementById('stage');
   var pages = [].slice.call(document.querySelectorAll('#pages > .page')), N = pages.length;
   var hint = document.getElementById('hint'), where = document.getElementById('where');

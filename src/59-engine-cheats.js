@@ -40,9 +40,9 @@
       } });
     Q.defCheat('cash', { name: 'PETTY CASH', code: 'a a a a b b b b', once: true, what: '250 TOKENS', done: 'PETTY CASH: 250 TOKENS.', not: '',
       go: function () { Q.tokens(250); Q.sfx('token'); return true; } });
-    Q.defCheat('toolkit', { name: 'FULL TOOLKIT', code: 'right right a a down b up up', once: true, what: 'QUICK KEYS, PAUSE TO THINK AND FIRM HAND, EARLY',
-      done: 'FULL TOOLKIT: ALL THREE MOVES.', not: 'YOU HAVE ALL THREE ALREADY.',
-      go: function (s) { var l = ['dash', 'hover', 'pound'], i, n = 0; engQuiet = true; for (i = 0; i < l.length; i++) if (Q.learn(l[i])) n++; engQuiet = false; return n > 0; } });
+    Q.defCheat('toolkit', { name: 'FULL TOOLKIT', code: 'right right a a down b up up', once: true, what: 'EVERY MOVE, EARLY: THE THREE, PUSHBACK, FOLLOW UP',
+      done: 'FULL TOOLKIT: ALL FIVE MOVES.', not: 'YOU HAVE ALL FIVE ALREADY.',   // B21: every move there is (Q.MOVES), the two new ones too
+      go: function (s) { var l = Q.MOVES || ['dash', 'hover', 'pound'], i, n = 0; engQuiet = true; for (i = 0; i < l.length; i++) if (Q.learn(l[i])) n++; engQuiet = false; return n > 0; } });
     Q.defCheat('wfh', { name: 'WORK FROM HOME', code: 'down down down down up up up up', what: 'NOTHING HURTS (NO GOLD STARS WHILE ON)' });
     Q.defCheat('light', { name: 'LIGHT WORKLOAD', code: 'up a up a up a up a', what: 'FLOATY JUMPS (NO GOLD STARS WHILE ON)' });
     Q.defCheat('tall', { name: 'TALL ORDER', code: 'up up up up up up up up', what: 'A TALLER CONDUCTOR' });

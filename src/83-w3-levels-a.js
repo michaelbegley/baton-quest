@@ -2,7 +2,7 @@
     // w3-1 teaches the upload arrows and the drifting clouds, gently; it needs no ability, and one optional gap (and its island) teaches the hover.
     Q.w3 = Q.w3 || {};
     Q.defLevel('w3-1', { world: 3, name: 'UPLOAD MEADOWS', bg: 'cloud', w3sky: 'day', w3dots: 1, secret: 'w3-bonus',   // a stack of old file versions on the high ridge (a D) leads to FINAL_FINAL_V7
-      legend: { a: 'spinner', p: 'push', d: 'w3drift', v: 'w3lift' },
+      legend: { y: 'movetoken', w: 'movebig', a: 'spinner', p: 'push', d: 'w3drift', v: 'w3lift' },
       signs: ['UPLOAD MEADOWS. PLEASE KEEP OFF THE SKY.', 'ARROWS LIFT YOU. STAND ON THEM.', 'CLOUDS DRIFT. HOP ON AND ENJOY THE RIDE.',
         'NEW TRICK: HOLD A WHILE FALLING TO HOVER.', 'ALMOST DONE... (IT IS NOT.)'],
       memos: ['m3-1a', 'm3-1b'],
@@ -13,7 +13,7 @@
       '                                                                                                            UU     p   p     @                        ',
       '                                                                                W                           UU Y o oD o O   ===            o   o      ',
       '                                                                                                            UU############                            ',
-      '                                                                                                           oUU############                UU  Y  E  Y ',
+      '          ywy                                                                                              oUU############                UU  Y  E  Y ',
       '                            UU o Y o                                            p   p          oo           UU############                UU##########',
       ' W                          UU######                                        o                               UU############                UU##########',
       '               W           oUU######  o                                        Y  oo  !       oOmo         oUU############                UU##########',

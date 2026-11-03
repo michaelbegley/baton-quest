@@ -117,6 +117,29 @@
         '...kpPk...kpPk.. ...kpPk...kpPk..',
         '..khhk.....khhk. ..khhk.....khhk.',
         '..kkk.......kkk. .kkkkk.....kkkk.'
+      ],
+      // frames 18-19 (B21 MOVES): PUSHBACK (the wall at his back, on his right), FOLLOW UP (the tuck); mirrored, the screen's >_ kept
+      [
+        '...kkkkkkkkkk... .w.kkkkkkkkkk...',
+        '..kmccccccccck.. .wkmccccccccck..',
+        '..knsssssssmckk. .wknsssssssmck..',
+        '..knsgsssssmckwk .wknsgsssssmck..',
+        '..knssgssssmckwk .bknssgssssmck..',
+        '..knsgssggsmckdk kwknsgssggsmck..',
+        '..knsssssssmckdk kdknsssssssmck..',
+        '..knnnnnnnnnmkdk kdknnnnnnnnnmk..',
+        '...kkkkkkkkkkdk. .kdkkkkkkkkkk.wk',
+        'w...kUdddUDkdk.. ..kdkUdddUDk.kdk',
+        'kw..kuuvuudDk... ...kduuvuudDkdk.',
+        '.kwkkvdddvdDk... ....kvdddvdDkk..',
+        '.kbwkkdddddDk... ....kkdddddDk...',
+        '...kwkeddddDk... ..kpPkkkkkkkkk..',
+        '....kkkkkkkkek.. ...kpPpppppppPk.',
+        '.....kPpPpPkdk.. ...kpPkkkkkkpPk.',
+        '.....kpPkkpPk... ...khhk....khhk.',
+        '.....kpPk.kpPk.. ...kkkk....kkkk.',
+        '.....khhk..khhk. ................',
+        '.....kkkk..kkkk. ................'
       ]
     ]);
     // ---------- 'hero-gold' and 'hero-gold-l': the conductor in the GOLD BOW TIE (VEND-9's, QUEST-API part 13 item 25) ----------

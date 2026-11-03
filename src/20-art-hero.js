@@ -1,8 +1,9 @@
-    // ---------- 20-art-hero.js: the conductor, 'hero' (16 by 20, 18 frames; ART, builder 3) ----------
+    // ---------- 20-art-hero.js: the conductor, 'hero' (16 by 20, 20 frames; ART, builder 3; frames 18 and 19: B21 MOVES) ----------
     // A terminal for a head (a light monitor with a black screen and a green >_ prompt), a dark shirt with short tails, a white bow tie, white gloves,
     // dark trousers, and a thin white baton with a dark handle. Facing right; the body (10 by 14) is columns 3 to 12, rows 6 to 19, feet on row 19.
-    // Frames (QUEST-API.md part 8): 0-1 idle, 2-5 run, 6 jump, 7 fall, 8-9 swing, 10 charge, 11 throw, 12 dash, 13-14 hover, 15 pound, 16 hurt, 17 cheer.
-    Q.art.HERO = { idle: [0, 1], run: [2, 3, 4, 5], jump: [6], fall: [7], swing: [8, 9], charge: [10], throw: [11], dash: [12], hover: [13, 14], pound: [15], hurt: [16], cheer: [17] };
+    // Frames (QUEST-API.md part 8): 0-1 idle, 2-5 run, 6 jump, 7 fall, 8-9 swing, 10 charge, 11 throw, 12 dash, 13-14 hover, 15 pound, 16 hurt, 17 cheer;
+    // B21 MOVES (2 Nov, QUEST-API.md part 23): 18 PUSHBACK (on a wall at his back, a glove on it), 19 FOLLOW UP (a tuck, the baton thrown up).
+    Q.art.HERO = { idle: [0, 1], run: [2, 3, 4, 5], jump: [6], fall: [7], swing: [8, 9], charge: [10], throw: [11], dash: [12], hover: [13, 14], pound: [15], hurt: [16], cheer: [17], walljump: [18], doublejump: [19] };
     Q.art.heroPal = Q.art.pal({
       c: '#f6f3ea', m: '#dcd6c8', n: '#a8a090',            // the monitor: light, main, shade
       s: '#07080b', g: '#6dfc9a', G: '#2f9e5c',            // the screen, the prompt, a dim glow
@@ -127,5 +128,28 @@
         '..kPpk...kPpk... ..kPpk...kPpk...',
         '.khhk.....khhk.. .khhk.....khhk..',
         '.kkk.......kkk.. .kkkk.....kkkkk.'
+      ],
+      // frames 18-19 (B21 MOVES): PUSHBACK 18 (his back to a wall on his left, the left glove up on it, knees bent toward it), FOLLOW UP 19 (the tuck)
+      [
+        '...kkkkkkkkkk... ...kkkkkkkkkk.w.',
+        '..kcccccccccmk.. ..kcccccccccmkw.',
+        '.kkcmsssssssnk.. ..kcmsssssssnkw.',
+        'kwkcmsgsssssnk.. ..kcmsgsssssnkw.',
+        'kwkcmssgssssnk.. ..kcmssgssssnkb.',
+        'kdkcmsgssggsnk.. ..kcmsgssggsnkwk',
+        'kdkcmsssssssnk.. ..kcmsssssssnkdk',
+        'kdkmnnnnnnnnnk.. ..kmnnnnnnnnnkdk',
+        '.kdkkkkkkkkkk... kw.kkkkkkkkkkdk.',
+        '..kdkDUdddUk...w kdk.kDUdddUkdk..',
+        '...kDduuvuuk..wk .kdkDduuvuudk...',
+        '...kDdvdddvkkwk. ..kkDdvdddvk....',
+        '...kDdddddkkwbk. ...kDdddddkk....',
+        '...kDddddekwk... ..kkkkkkkkkPpk..',
+        '..kekkkkkkkk.... .kPpppppppPpk...',
+        '..kdkPpPpPk..... .kPpkkkkkkPpk...',
+        '...kPpkkPpk..... .khhk....khhk...',
+        '..kPpk.kPpk..... .kkkk....kkkk...',
+        '.khhk..khhk..... ................',
+        '.kkkk..kkkk..... ................'
       ]
     ]);

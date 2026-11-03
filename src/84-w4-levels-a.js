@@ -2,7 +2,7 @@
     // w4-1 THE LATER PILE: teaches the TICKET, then the NICE TO HAVE, then mixes them. Fine without the pound (one P block hides a big token).
     Q.defLevel('w4-1', {
       world: 4, name: 'THE LATER PILE', music: 'w4', bg: 'backlog',
-      legend: { t: 'ticket', n: 'nice' },
+      legend: { y: 'movetoken', w: 'movebig', t: 'ticket', n: 'nice' },
       signs: [
         'THE LATER PILE. EVERYTHING HERE IS LATER.',
         'NICE TO HAVE NOTES MULTIPLY. SAY NO EARLY.',
@@ -21,7 +21,7 @@
         '                                   o o o                                                                                         o     o                                                        ',
         '                                                                                                                                                                                                ',
         '                                      X  m  t                                                 o o o                                  t  DX                                                      ',
-        '                                  ##P#########                                               ======                             ##########  o o           o                                     ',
+        '      ywy                         ##P#########                                               ======                             ##########  o o           o                                     ',
         '                   o           ,  ##O######### ,                  O                     o             o                       , ########## ,                    o                               ',
         '                 o o          ####################        o o o                            t   h         t                  ##################        o o  o         o      o   o               ',
         '               o     o     , ,#################### o           o   o   o                  ====          ====  o o o     *   ##################  ,                                 , !  []  E  , ',

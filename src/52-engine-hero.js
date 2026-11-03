@@ -13,6 +13,7 @@
         coyote: 0, buffer: 0, jumping: false, airDash: true, airHover: true, dashT: 0, dashDir: 1, hoverT: 0, poundT: 0, poundId: 0, lagT: 0,
         swingT: 0, swingId: 0, swingBuf: 0, chargeT: 0, charged: false, throwT: 0, wasB: false, rhythmT: 0, knockT: 0, tapDir: 0, tapT: -9,
         dashBuf: 0, dashCool: 0, carryT: 0, trail: [], trailT: 0,
+        airJump: true, kickWall: null, kickT: 0, kickDir: 0, sliding: 0, slideFx: 0, djT: 0, newAir: false,   // PUSHBACK and FOLLOW UP (52-engine-moves.js)
         on: null, dropT: 0, drop: false, safeX: px, safeY: py, landT: 0, animT: 0, runT: 0, frame: 0, dead: false, deadT: 0, cheer: false, cheerT: 0, py: py, fallV: 0 };
     }
     function engFirm(tx, ty) { var t = engInfoT(tx, ty); return !!t && (t.solid || t.oneWay) && !t.breakBy && !t.hurt && !(t.def && t.def.notSafe); }   // notSafe: part 13, 27
@@ -51,6 +52,8 @@
       if (P.throwT > 0) P.throwT -= dt;
       if (P.landT > 0) P.landT -= dt;
       if (P.dropT > 0) P.dropT -= dt;
+      if (P.kickT > 0) P.kickT -= dt;
+      if (P.djT > 0) P.djT -= dt;
       P.drop = P.dropT > 0;
       if (P.rhythm < P.rhythmMax) { P.rhythmT += dt; if (P.rhythmT >= H.RHYTHM_T) { P.rhythmT -= H.RHYTHM_T; P.rhythm++; } } else P.rhythmT = 0;
       if (tA) P.buffer = H.BUFFER; else if (P.buffer > 0) P.buffer -= dt;
@@ -92,6 +95,7 @@
           Q.sfx('jump'); Q.fx('dust', P.x + P.w / 2, P.y + P.h, { n: 2 }); Q.emit('jump');
         }
       }
+      if (P.buffer > 0 && !P.ground && !(P.coyote > 0) && free && !P.pounding) engAirMoves(P, tA, L, R);   // PUSHBACK's kick, else FOLLOW UP (52-engine-moves.js)
 
       // across
       if (P.dashing) P.vx = P.dashDir * H.DASH_V;
@@ -99,24 +103,28 @@
       else if (!free) P.vx = Q.approach(P.vx, 0, (P.knockT > 0 ? 260 : H.STOP) * dt);
       else {
         k = (R ? 1 : 0) - (L ? 1 : 0);
+        if (P.kickT > 0) k = P.kickDir;   // PUSHBACK: pushed away from the wall for KICK_LOCK, whatever is held
         var max = P.hovering ? H.HOVER_RUN : H.RUN;
         if (k) {
           P.face = k;
           if (P.vx * k < 0) P.vx = Q.approach(P.vx, k * max, H.STOP * dt);
-          else if (Math.abs(P.vx) > max) P.vx = Q.approach(P.vx, k * max, (P.carryT > 0 ? H.DASH_SLOW : H.STOP) * dt);   // faster than a run after a dash: eased off, not cut
+          else if (Math.abs(P.vx) > max) P.vx = Q.approach(P.vx, k * max, (P.carryT > 0 || P.kickT > 0 ? H.DASH_SLOW : H.STOP) * dt);   // faster than a run after a dash or a kick: eased off, not cut
           else P.vx = Q.approach(P.vx, k * max, (P.ground ? H.ACC : H.AIRACC) * dt);
         } else P.vx = Q.approach(P.vx, 0, (P.ground ? H.STOP : H.AIRACC) * dt);
       }
       // down: a dash holds him level, a pound waits then drops, a hover drifts, else gravity (A held while rising: GRAV_UP)
+      P.sliding = engSlideSide(P, L, R, free); if (P.sliding) P.face = -P.sliding;   // PUSHBACK: down a wall he is held into, facing out
       var wasGround = P.ground, v0 = P.vy, v1 = v0, mid;
       if (P.dashing) { P.dashT -= dt; v1 = 0; mid = 0; }
       else if (P.pounding) { if (P.poundT > 0) { P.poundT -= dt; v1 = 0; } else v1 = H.POUND_V; mid = v1; }
       else if (P.hovering) { P.hoverT -= dt; v1 = H.HOVER_FALL; mid = v1; }
+      else if (P.sliding) { v1 = engSlideBrake(P, v0); mid = (v0 + v1) * 0.5; }
       else { v1 = Math.min(v0 + (v0 < 0 && A ? H.GRAV_UP : H.GRAV) * dt, H.FALL); mid = (v0 + v1) * 0.5; }   // the mean speed: exact heights
       P.vy = mid;
       var bottom0 = P.y + P.h;
       Q.move(P, dt);
       if (!P.ground && !P.ceil) P.vy = v1;
+      engMovesTop(P);
       if (!P.ground) engPlatformLand(P, bottom0);
       else P.on = null;
       P.fallV = Math.max(P.fallV, v1);
@@ -131,7 +139,7 @@
         } else if (!wasGround) {
           if (P.fallV > 160) { Q.sfx('land'); Q.fx('dust', P.x + P.w / 2, P.y + P.h); P.landT = 0.1; }
         }
-        if (P.ground) { P.airDash = true; P.airHover = true; P.jumping = false; P.hovering = false; P.fallV = 0; }
+        if (P.ground) { P.airDash = true; P.airHover = true; P.jumping = false; P.hovering = false; P.fallV = 0; engMovesLanded(P); }
         if (P.ground && !P.on && !P.pounding) {   // the last safe ground: both feet on firm tiles, no spikes beside him
           b = Math.floor((P.y + P.h + 1) / 16); var lx = Math.floor((P.x + 1) / 16), rx = Math.floor((P.x + P.w - 1) / 16), ry = Math.floor((P.y + P.h - 1) / 16);
           var bad = false; for (tx = lx - 1; tx <= rx + 1; tx++) { var ht = engInfoT(tx, ry); if (ht && ht.hurt) bad = true; }
@@ -145,6 +153,7 @@
       }
       // the swing's box, for its first 0.14 s: enemies (once each per swing) and crates
       if (P.swingT > 0 && P.swingT > H.SWING_T - 0.14) { b = engSwingBox(P); engHitBox(b, P.power, 'baton', P.swingId); engBreakBox(b, 'baton'); }
+      engSlideFx(P, dt);
       engHurtTiles(P);
       if (P.y > engTH * 16 + 24) engFallOut(P);
       engHeroFrame(P, dt);

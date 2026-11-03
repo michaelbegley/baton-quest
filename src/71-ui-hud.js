@@ -4,7 +4,8 @@
     // Q.ui.stat(): the numbers the HUD and the menus show (QUEST-API.md part 13, 5: the body from Q.P, falling back to Q.SAVE; the rest from Q.SAVE).
     (function () {
       var U = Q.ui, H = { at: -1, tok: null, tokT: 0, lv: null, lvT: 0, boss: null, hp: 0, trail: 0, hitT: 0 };
-      var ABIL = ['dash', 'hover', 'pound'];
+      var ABIL0 = ['dash', 'hover', 'pound'];
+      function moves() { return Q.MOVES || ABIL0; }   // every move in its order: the three, then PUSHBACK and FOLLOW UP (B21, 52-engine-moves.js)
       function num(v, d) { return typeof v === 'number' && isFinite(v) ? v : d; }
       U.num = num;
       U.lvOf = function (xp) { var lv = 1; for (var i = 1; i < Q.LV.length; i++) if (xp >= Q.LV[i]) lv = i + 1; return lv; };
@@ -29,10 +30,10 @@
           memos: U.memoCount(S), time: num(S.time, 0), falls: num(S.falls, 0)
         };
       };
-      U.iconCount = function () { var n = 0; for (var i = 0; i < ABIL.length; i++) if (U.learned(ABIL[i])) n++; return n; };
+      U.iconCount = function () { var n = 0, ab = moves(); for (var i = 0; i < ab.length; i++) if (U.learned(ab[i])) n++; return n; };
       U.icons = function (g, x, y, gap) {   // the abilities learned, as small icons from x to the right
-        var n = 0;
-        for (var i = 0; i < ABIL.length; i++) if (U.learned(ABIL[i])) { Q.spr(g, 'ic-' + ABIL[i], 0, x + n * gap, y); n++; }
+        var n = 0, ab = moves();
+        for (var i = 0; i < ab.length; i++) if (U.learned(ab[i])) { Q.spr(g, 'ic-' + ab[i], 0, x + n * gap, y); n++; }
       };
       function bookkeep(s, now) {   // once a frame: flashes when the tokens or the LV change, the boss bar's trail
         var dt = H.at < 0 ? 0 : Q.clamp(now - H.at, 0, 0.05), b = Q.boss, hp, max;

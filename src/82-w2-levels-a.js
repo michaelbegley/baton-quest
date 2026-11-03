@@ -3,7 +3,7 @@
     Q.w2 = Q.w2 || {};
     Q.w2.LEGEND = { b: 'bug', t: 'timeout', p: 'ping', s: 'spark' };
     Q.defLevel('w2-1', {
-      world: 2, name: 'THE COLD AISLE', bg: 'server', w2look: 'cold', legend: Q.w2.LEGEND, music: 'w2',
+      world: 2, name: 'THE COLD AISLE', bg: 'server', w2look: 'cold', legend: { b: 'bug', t: 'timeout', p: 'ping', s: 'spark', y: 'movetoken', w: 'movebig' }, music: 'w2',   // B21: world 2's legend and the tokens for the new moves (59-engine-moves.js)
       secret: 'w2-bonus',   // the rack with its door ajar (D, column 128) leads to COLD STORAGE
       signs: ['THE COLD AISLE. PLEASE CLOSE THE DOOR.', 'BUGS ON THE WALL ARE NORMAL. SADLY.', 'TIMEOUTS FREEZE YOU. DON\'T HUG THEM.', 'QUICK KEYS: JUMP, THEN PRESS C.'],
       memos: ['m2-1a', 'm2-1b'],
@@ -14,7 +14,7 @@
         '#    L          L          L          L          L          L          L          L          L          L          L          L          L          L          L           #',
         '#                                                                                                                     m                                                    #',
         '#                                                                                                                     HH                                                   #',
-        '#           N                       N                       N                       N                       N         HH        N                       N                  #',
+        '#           N ywy                   N                       N                       N                       N         HH        N                       N                  #',
         '#                                                                o       o o b !       oOh                         o  HH                                                   #',
         '# BBB     BBB     BBB     BBB     BBB     BBB     BBB     BBB   ====HHHHHHHHHHHHH BBB  HHHBBB     BBB     BBB     === HHb BBB     BBB     BBB     BBB     BBB     BBB      #',
         '# BBB     BBB     BBB T   BBB     BBB     BBB  T  BBB     BBB     BBHHHHHHHHHHHHH BBB  HHHBBB   T BBB     BBB     BBB HH  BBB T   BBB     BbB     BBB     BBB    TBBB      #',
