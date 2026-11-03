@@ -32,6 +32,7 @@
       g.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-v') === SET[k])); });
     });
     size();
+    if (window.BQ_BRIDGE) window.BQ_BRIDGE.changed();   // B20: the game's SYSTEM screen reads the page's settings again
   }
   function gameW() {   // the game's width: on a computer with WIDESCREEN AUTO, the window's own shape at 200 tall (round(200 x width / height), 320 to 712); else the classic 320
     var w = innerWidth, h = innerHeight;
@@ -85,13 +86,16 @@
   var KEYS = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down',
     Space: 'a', KeyZ: 'a', KeyK: 'a', KeyX: 'b', KeyJ: 'b', KeyC: 'c', KeyL: 'c', Enter: 'start', KeyP: 'start' };
   var MODS = { ShiftLeft: 1, ShiftRight: 1, ControlLeft: 1, ControlRight: 1, AltLeft: 1, AltRight: 1, MetaLeft: 1, MetaRight: 1, OSLeft: 1, OSRight: 1 };
+  function dlg() { var d = window.BQ_DLG; return d && d.open() ? d : null; }   // B20: a dialog of the page's (its MENU, or a small one in the game's look: js/bridge.js) takes every way in
   window.addEventListener('keydown', function (e) {
+    var d = dlg();
+    if (d) { if (d.key(e)) e.preventDefault(); return; }   // B20: arrows move between its buttons, Z or K presses, X, J or Esc closes; Enter, Space and Tab do what they always do
     if (!$('help').hidden) { if (e.code === 'Escape') { closeHelp(); e.preventDefault(); } return; }
     wake();
     if (MODS[e.code]) { if (e.code !== 'ShiftLeft' && e.code !== 'ShiftRight') releaseAll('key'); return; }
     if (e.ctrlKey || e.altKey || e.metaKey) return;
-    if (e.code === 'Escape') { A.back(); e.preventDefault(); return; }
-    var n = KEYS[e.code]; if (n) { set('key', n, true); e.preventDefault(); }
+    if (e.code === 'Escape') { if (window.BQ_BRIDGE && window.BQ_BRIDGE.escape()) { e.preventDefault(); return; } A.back(); e.preventDefault(); return; }   // B20: Esc on the game's SYSTEM screen is its B
+    var n = KEYS[e.code]; if (n) { if (!(e.repeat && !SRC.key[n])) set('key', n, true); e.preventDefault(); }   // B20: a key held from a dialog (its repeats) reaches the game only once let go
   });
   window.addEventListener('keyup', function (e) { var n = KEYS[e.code]; if (n) { set('key', n, false); e.preventDefault(); } });
   window.addEventListener('blur', releaseEverything);
@@ -106,7 +110,13 @@
     return on;
   }
   function dpadShow(on) { ['up', 'down', 'left', 'right'].forEach(function (k) { dp.classList.toggle('on-' + k, !!on[k]); }); }
-  function dpadSet(on) { ['up', 'down', 'left', 'right'].forEach(function (k) { set('dpad', k, on[k]); }); dpadShow(on); }
+  var dpWas = {};
+  function dpadSet(on) {
+    var d = dlg();
+    if (d) { ['up', 'down', 'left', 'right'].forEach(function (k) { if (on[k] && !dpWas[k]) d.move(k === 'up' || k === 'left' ? -1 : 1); set('dpad', k, false); }); dpWas = on; dpadShow(on); return; }   // B20: in a dialog the D-pad moves between its buttons
+    dpWas = on;
+    ['up', 'down', 'left', 'right'].forEach(function (k) { set('dpad', k, on[k]); }); dpadShow(on);
+  }
   dp.addEventListener('pointerdown', function (e) { e.preventDefault(); wake(); dpId = e.pointerId; try { dp.setPointerCapture(e.pointerId); } catch (x) {} dpadSet(dpadAt(e)); buzz(); });
   dp.addEventListener('pointermove', function (e) { if (e.pointerId !== dpId) return; e.preventDefault(); dpadSet(dpadAt(e)); });
   function dpEnd(e) { if (e.pointerId !== dpId) return; dpId = null; dpadSet({}); }
@@ -115,9 +125,13 @@
 
   // ---------- A, B, C and START: each its own button (several fingers at once work) ----------
   Array.prototype.forEach.call(document.querySelectorAll('#pocket [data-k]'), function (b) {
-    var k = b.getAttribute('data-k'), ids = {};
-    b.addEventListener('pointerdown', function (e) { e.preventDefault(); wake(); ids[e.pointerId] = 1; try { b.setPointerCapture(e.pointerId); } catch (x) {} b.classList.add('on'); set('touch', k, true); buzz(); });
-    function up(e) { if (!ids[e.pointerId]) return; delete ids[e.pointerId]; if (Object.keys(ids).length) return; b.classList.remove('on'); set('touch', k, false); }
+    var k = b.getAttribute('data-k'), ids = {}, inDlg = false;
+    b.addEventListener('pointerdown', function (e) { e.preventDefault(); wake(); ids[e.pointerId] = 1; try { b.setPointerCapture(e.pointerId); } catch (x) {} b.classList.add('on'); inDlg = !!dlg(); if (!inDlg) set('touch', k, true); buzz(); });
+    function up(e) {
+      if (!ids[e.pointerId]) return; delete ids[e.pointerId]; if (Object.keys(ids).length) return; b.classList.remove('on');
+      if (inDlg) { var d = dlg(); inDlg = false; if (d && e.type === 'pointerup') { if (k === 'b') d.cancel(); else if (k === 'c') d.move(1); else d.press('touch'); } return; }   // B20: a real tap, so the dialog may open a file picker or the clipboard
+      set('touch', k, false);
+    }
     ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (t) { b.addEventListener(t, up); });
     b.addEventListener('contextmenu', function (e) { e.preventDefault(); });
   });
@@ -166,8 +180,18 @@
     }
     if (!main) { if (padOn) { padOn = false; releaseAll('pad'); note('CONTROLLER GONE'); } return; }
     if (!padOn) { padOn = true; if (!touchy.matches || SET.view !== 'auto') note('CONTROLLER READY'); }
-    NAMES.forEach(function (k) { set('pad', k, main[k]); });
+    var d = dlg();
+    if (d) { releaseAll('pad'); padDlg(d, main); NAMES.forEach(function (k) { padHold[k] = !!main[k]; }); backWas = main.back; return; }   // B20: a page dialog takes controller 1 (its D-pad moves, A or Start presses, B closes)
+    padDlgWas = main;
+    NAMES.forEach(function (k) { if (padHold[k]) { if (main[k]) return; padHold[k] = false; } set('pad', k, main[k]); });   // B20: a button still held from a dialog reaches the game only once let go
     if (main.back && !backWas) A.back(); backWas = main.back;
+  }
+  var padDlgWas = {}, padHold = {};
+  function padDlg(d, now) {   // a press is a change from the poll before (a button held when the dialog opened does nothing)
+    ['up', 'down', 'left', 'right', 'a', 'b', 'start', 'c'].forEach(function (k) {
+      if (now[k] && !padDlgWas[k]) { if (k === 'up' || k === 'left') d.move(-1); else if (k === 'down' || k === 'right' || k === 'c') d.move(1); else if (k === 'b') d.cancel(); else d.press('pad'); }
+    });
+    padDlgWas = now;
   }
   function releasePads() { if (A.setPadKey) [2, 3, 4].forEach(function (n) { NAMES.forEach(function (k) { A.setPadKey(n, k, false); }); }); }
   window.addEventListener('gamepadconnected', function () { pollPad(); });
@@ -227,7 +251,7 @@
   // ---------- MENU: the settings and how to play ----------
   function openHelp() { releaseEverything(); $('help').hidden = false; body.classList.remove('idle'); $('helpClose').focus(); }
   function closeHelp() { $('help').hidden = true; try { cv.focus(); } catch (e) {} awake(); }
-  $('helpBtn').addEventListener('click', openHelp);
+  $('helpBtn').addEventListener('click', function () { if (window.BQ_BRIDGE && window.BQ_BRIDGE.menu()) return; openHelp(); });   // B20: MENU opens the game's SYSTEM screen first (js/bridge.js); the page's own menu when the game cannot
   $('helpClose').addEventListener('click', closeHelp);
   $('help').addEventListener('click', function (e) { if (e.target === $('help')) closeHelp(); });
 
@@ -238,6 +262,7 @@
     requestAnimationFrame(loop);
     var dt = (now - last) / 1000; last = now;
     pollPad(); A.frame(dt);
+    if (window.BQ_BRIDGE) window.BQ_BRIDGE.frame();   // B20: what the game asked the page this frame, done after the frame
     if (body.classList.contains('desk') && SET.glow !== 'off' && amb.style.display !== 'none' && (++tick % 6) === 0) {   // the screen squeezed into 16 by 9 (its middle third stretched across), dimmed
       try {   // 16 by 9, then softened into 96 by 54 with a small blur (cheap at that size), then the browser stretches it smoothly
         tg.drawImage(cv, (cv.width - 240) >> 1, 10, 240, 180, 0, 0, 16, 9);   // the middle of the screen, however wide it is
@@ -249,4 +274,17 @@
   apply();
   requestAnimationFrame(loop);
   window.POCKET_OPEN = function () { A.open('quest'); try { cv.focus(); } catch (e) {} };
+  var OK = { view: ['auto', 'desk', 'pocket'], side: ['plain', 'shell'], pixels: ['auto', 'sharp', 'fill'], wide: ['auto', 'off'], glow: ['on', 'off'], buttons: ['s', 'm', 'l'], buzz: ['on', 'off'] };
+  window.BQ_PAGE = {   // B20: for js/bridge.js only: the page's own settings (kept in bq-settings, as always), its look, its sound and its menu
+    settings: function () { var o = {}; Object.keys(DEF).forEach(function (k) { o[k] = SET[k]; }); return o; },
+    set: function (k, v) { if (!OK[k] || OK[k].indexOf(v) < 0) return false; SET[k] = v; saveSet(); apply(); return true; },
+    look: function () { return { mode: mode(), touch: touchy.matches, pad: padView, vibrate: !!navigator.vibrate }; },
+    sound: function (on) {   // no argument: is it on; true or false: turn it so (a browser starts it only after a tap, a click or a key: the answer says if it runs)
+      if (on !== undefined) { if (on && !actx) wake(); else if (actx) { soundOn = !!on; try { if (soundOn) actx.resume(); else actx.suspend(); } catch (e) {} showSound(); } }
+      return soundOn && !!actx;
+    },
+    running: function () { return !!(actx && actx.state === 'running'); },
+    openHelp: openHelp, closeHelp: closeHelp, helpOpen: function () { return !$('help').hidden; }, canvas: cv, note: note, release: releaseEverything,
+    tap: function (k) { A.setKey(k, true); A.setKey(k, false); }
+  };
 })();

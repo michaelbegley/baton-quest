@@ -118,12 +118,13 @@
         if (U.press('down')) { sel = (sel + 1) % n; Q.sfx('move'); }
         return sel;
       };
-      U.item = function (s, x, y, on, off, align, k) {   // a menu item: the chosen one in yellow with the conductor's prompt before it
-        k = k || 1;
-        var col = off ? '#5d6378' : on ? '#ffd23f' : '#f6efe2';
+      U.item = function (s, x, y, on, off, align, k, how) {   // a menu item: the chosen one in yellow with the conductor's prompt before it
+        k = k || 1;                                           // how 'bar' (B20's menu kit, 71-ui-menu.js): drawn on the kit's yellow bar, so ink letters and a steady prompt that taps on the beat
+        var bar = how === 'bar', col = off ? (bar ? '#6c7396' : '#5d6378') : on ? (bar ? '#0b0c10' : '#ffd23f') : '#f6efe2';
         var x0 = align === 'center' ? x - (U.width(s, k) >> 1) : x;
         U.text(s, x0, y, col, k);
-        if (on && Math.floor(U.now() * 2.5) % 3) U.text('>', x0 - 9 * k, y, '#ffd23f', k);
+        if (on && bar) U.text('>', x0 - 9 * k - (U.mk && U.mk.tap() ? 1 : 0), y, '#0b0c10', k);
+        else if (on && Math.floor(U.now() * 2.5) % 3) U.text('>', x0 - 9 * k, y, '#ffd23f', k);
       };
 
       // ---- who speaks: the colours of the box and the name, the portrait, the typing (letters a second; the pause after a full stop) ----

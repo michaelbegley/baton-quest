@@ -4793,12 +4793,13 @@
         if (U.press('down')) { sel = (sel + 1) % n; Q.sfx('move'); }
         return sel;
       };
-      U.item = function (s, x, y, on, off, align, k) {   // a menu item: the chosen one in yellow with the conductor's prompt before it
-        k = k || 1;
-        var col = off ? '#5d6378' : on ? '#ffd23f' : '#f6efe2';
+      U.item = function (s, x, y, on, off, align, k, how) {   // a menu item: the chosen one in yellow with the conductor's prompt before it
+        k = k || 1;                                           // how 'bar' (B20's menu kit, 71-ui-menu.js): drawn on the kit's yellow bar, so ink letters and a steady prompt that taps on the beat
+        var bar = how === 'bar', col = off ? (bar ? '#6c7396' : '#5d6378') : on ? (bar ? '#0b0c10' : '#ffd23f') : '#f6efe2';
         var x0 = align === 'center' ? x - (U.width(s, k) >> 1) : x;
         U.text(s, x0, y, col, k);
-        if (on && Math.floor(U.now() * 2.5) % 3) U.text('>', x0 - 9 * k, y, '#ffd23f', k);
+        if (on && bar) U.text('>', x0 - 9 * k - (U.mk && U.mk.tap() ? 1 : 0), y, '#0b0c10', k);
+        else if (on && Math.floor(U.now() * 2.5) % 3) U.text('>', x0 - 9 * k, y, '#ffd23f', k);
       };
 
       // ---- who speaks: the colours of the box and the name, the portrait, the typing (letters a second; the pause after a full stop) ----
@@ -5123,6 +5124,143 @@
         U.tick(); U.drawToast(g);
       };
     })();
+    // ===== 71-ui-menu.js =====
+    // ---------- 71-ui-menu.js (B20 MENUS, 2 Nov): the menu kit, one look for every menu (PROMPT WINDOW: $S/b20/MENUS.md) ----------
+    // A window is the conductor's own terminal: an ink outline, dark glass with faint scan lines, teal corner brackets, a title strip with his >_ prompt
+    // and the orange 9F light. The picked line is a solid yellow bar with ink letters and a steady > that taps on the title song's beat; it glides to a
+    // new line in 0.08 s. A window warms up from a line to its height in 0.12 s the first frame it is drawn again, its rows sliding in from the right
+    // (deeper) or the left (back). Every move is only drawn: a press acts at once. Sounds: U.mk.snd('move' | 'value' | 'tab' | 'pick' | 'back' | 'no').
+    // Rows are drawn with U.item(label, x, y, on, off, align, k, 'bar'), so a check that wraps U.item still sees every row and the picked one.
+    (function () {
+      var U = Q.ui, MK = U.mk = {};
+      var C = MK.C = { ink: '#0b0c10', glass: '#11162a', scan: '#141a31', edge: '#232c52', hi: '#2a3460', teal: '#2ec4b6', strip: '#1b2342', cream: '#f6efe2',
+        muted: '#8f9ac8', dim: '#6c7396', yel: '#ffd23f', yelD: '#c99a12', ora: '#ff8a1e', foot: '#0b0f1e', help: '#c3c7d4', red: '#ff5a5a', redD: '#7a1f24' };
+      var SND = { move: 'move', value: 'tick', tab: 'tick', pick: 'select', back: 'back', no: 'nope', open: 'select' };
+      MK.ROW = 11; MK.OPEN_T = 0.12; MK.GLIDE_T = 0.08; MK.dir = 1;
+      function fill(g, x, y, w, h, c) { g.fillStyle = c; g.fillRect(x, y, w, h); }
+      MK.fill = fill;
+      MK.snd = function (kind) { if (kind === 'back') MK.dir = -1; else if (kind === 'pick' || kind === 'open') MK.dir = 1; Q.sfx(SND[kind] || kind); };
+      MK.tap = function () { var b = U.beat ? U.beat('title') : 0.43, t = U.now() % b; return t < 0.12; };   // the cursor's tap on the beat (no blink)
+      // ---- each window remembers when it was last drawn: drawn again after a gap, it warms up again ----
+      var WIN = {};
+      function openOf(key) {
+        var now = U.now(), w = WIN[key];
+        if (!w) w = WIN[key] = { at: -9, t0: now, dir: 1 };
+        if (now - w.at > 0.09 || now < w.at) { w.t0 = now; w.dir = MK.dir; }   // not drawn last frame: it opens again (the way it came: deeper or back)
+        w.at = now;
+        return Q.clamp((now - w.t0) / MK.OPEN_T, 0, 1);
+      }
+      MK.opening = function (key) { var w = WIN[key]; return w ? Q.clamp((U.now() - w.t0) / MK.OPEN_T, 0, 1) : 1; };
+      MK.reopen = function (key) { var w = WIN[key]; if (w) w.at = -9; };
+      function ease(k) { return 1 - (1 - k) * (1 - k); }
+      // ---- the frame: outline, glass, scan lines, brackets, the title strip; draw(inner) fills it, clipped to the part that has opened ----
+      MK.frame = function (g, x, y, w, h, o) {
+        o = o || {};
+        var br = o.accent || C.teal, j;
+        g.globalAlpha = 0.45; fill(g, x + 2, y + 2, w, h, '#000000'); g.globalAlpha = 1;
+        fill(g, x, y, w, h, C.ink); fill(g, x + 1, y + 1, w - 2, h - 2, o.edge || C.edge); fill(g, x + 2, y + 2, w - 4, h - 4, o.fill || C.glass);
+        for (j = y + 4; j < y + h - 2; j += 3) fill(g, x + 2, j, w - 4, 1, C.scan);
+        fill(g, x + 2, y + 2, w - 4, 1, C.hi);
+        if (h >= 8 && w >= 16) {
+          fill(g, x, y, 7, 1, br); fill(g, x, y, 1, 7, br); fill(g, x + w - 7, y, 7, 1, br); fill(g, x + w - 1, y, 1, 7, br);
+          fill(g, x, y + h - 1, 7, 1, br); fill(g, x, y + h - 7, 1, 7, br); fill(g, x + w - 7, y + h - 1, 7, 1, br); fill(g, x + w - 1, y + h - 7, 1, 7, br);
+        }
+      };
+      MK.strip = function (g, x, y, w, title, o) {   // the title strip: >_ and the name, the 9F light at the right
+        o = o || {};
+        fill(g, x + 3, y + 3, w - 6, 11, o.strip || C.strip);
+        U.text('>_', x + 7, y + 5, o.accent || C.teal); U.text(title, x + 22, y + 5, C.cream);
+        if (!o.noLight) { fill(g, x + w - 12, y + 6, 5, 5, o.light || C.ora); fill(g, x + w - 12, y + 6, 2, 1, '#ffc27a'); }
+      };
+      MK.window = function (g, x, y, w, h, title, key, draw, o) {   // a whole window; returns { x, y, w, h, top } where its rows start
+        o = o || {};
+        var k = openOf(key), e = ease(k), hh = k >= 1 ? h : Math.max(3, Math.round(h * e)), yy = y + ((h - hh) >> 1), st = WIN[key], dx = k >= 1 ? 0 : Math.round((1 - e) * 8) * (st.dir < 0 ? -1 : 1);
+        var inner = { x: x, y: y, w: w, h: h, top: y + (title ? 19 : 6), k: k };
+        MK.frame(g, x, yy, w, hh, o);
+        if (hh < 12) { fill(g, x + 2, yy + (hh >> 1), w - 4, 1, o.accent || C.teal); return inner; }   // a line of light, opening
+        g.save(); g.beginPath(); g.rect(x + 2, yy + 2, w - 4, hh - 4); g.clip();
+        if (title) MK.strip(g, x, y, w, title, o);
+        if (draw) { g.translate(dx, 0); try { draw(inner); } finally { g.translate(-dx, 0); } }
+        g.restore();
+        return inner;
+      };
+      // ---- the picked bar: it glides from the line it was on (per list) ----
+      var GL = {};
+      MK.barY = function (key, y) {
+        var s = GL[key], now = U.now();
+        if (!s || now - s.at > 0.09) { s = GL[key] = { from: y, to: y, t0: now, at: now }; }
+        if (s.to !== y) { s.from = s.cur === undefined ? s.to : s.cur; s.to = y; s.t0 = now; }
+        s.at = now; s.cur = Math.round(Q.lerp(s.from, s.to, ease(Q.clamp((now - s.t0) / MK.GLIDE_T, 0, 1))));
+        return s.cur;
+      };
+      MK.bar = function (g, x, y, w, o) {   // the yellow bar under a picked line (a row tall, from 2 above the letters; its foot a darker line)
+        o = o || {};
+        var h = o.h || MK.ROW;
+        fill(g, x, y - 2, w, h, o.col || C.yel); fill(g, x, y - 2, 2, h, o.tab || C.yelD); fill(g, x, y + h - 3, w, 1, o.tab || C.yelD);
+      };
+      // ---- while a bar glides (0.08 s): the letters it passes over in ink, the picked line's that it has not reached yet in cream (cream on yellow, or ink on the glass, would vanish) ----
+      function clipDo(g, rects, fn) { var i; g.save(); g.beginPath(); for (i = 0; i < rects.length; i++) if (rects[i][2] > 0 && rects[i][3] > 0) g.rect(rects[i][0], rects[i][1], rects[i][2], rects[i][3]); g.clip(); try { fn(); } finally { g.restore(); } }
+      MK.glideInk = function (g, bx, bt, bw, bh, top, bottom, under, picked) { clipDo(g, [[bx, bt, bw, bh]], under); clipDo(g, [[bx, top, bw, bt - top], [bx, bt + bh, bw, bottom - bt - bh]], picked); };
+      // ---- a list of rows: { label, value, off, count, note, hot }; values right, '< FULL >' on the picked one ----
+      MK.list = function (g, x, y, w, rows, sel, key, o) {
+        o = o || {};
+        var i, r, ry, on, v, rh = o.row || MK.ROW, by, lx = x + (o.pad || 14), vx = x + w - (o.right || 9);
+        function valueOf(r, on) { return r.value ? (on && o.arrows !== false && !r.off ? '< ' + r.value + ' >' : r.value) : r.count || ''; }
+        function plain(i, col, on) { var r = rows[i], ry = y + i * rh, v = valueOf(r, on); if (on) U.text('>', lx - 9, ry, col); U.text(r.label, lx, ry, col); if (v) U.text(v, vx, ry, col, 1, 'right'); }
+        if (sel >= 0 && sel < rows.length && !o.noBar) { by = MK.barY(key, y + sel * rh); MK.bar(g, x + 3, by, w - 6, o.danger ? { col: C.red, tab: C.redD, h: rh } : { h: rh }); }
+        for (i = 0; i < rows.length; i++) {
+          r = rows[i]; ry = y + i * rh; on = i === sel && !o.noBar;
+          U.item(r.label, lx, ry, on, !!r.off && !on, null, 1, 'bar');
+          v = valueOf(r, on);
+          if (r.value) U.text(v, vx, ry, on ? C.ink : r.off ? C.dim : (r.vcol || C.muted), 1, 'right');
+          else if (r.count) U.text(v, vx, ry, on ? C.ink : C.muted, 1, 'right');
+          if (r.draw) r.draw(g, lx, ry, on);
+        }
+        if (by !== undefined && by !== y + sel * rh) MK.glideInk(g, x + 3, by - 2, w - 6, rh, y - 2, y + rows.length * rh,
+          function () { for (i = 0; i < rows.length; i++) if (i !== sel) plain(i, C.ink, false); }, function () { plain(sel, rows[sel].off ? C.dim : C.cream, true); });
+      };
+      MK.help = function (g, x, y, w, text, col) {   // the picked row's words, under the list, in at most two lines
+        var lines = Q.wrap(String(text || ''), Math.max(8, Math.floor((w - 16) / 6))), i;
+        fill(g, x + 6, y, w - 12, 1, C.hi);
+        for (i = 0; i < lines.length && i < 2; i++) U.text(lines[i], x + 8, y + 4 + i * 9, col || C.help);
+      };
+      MK.footRoom = function (right) { return 308 - (right ? U.width(right) + 8 : 0); };   // the room for the words at the left of the foot band, beside the buttons at the right
+      MK.foot = function (g, left, right) {   // the band at the foot of every menu screen: what the picked thing does at the left (cut to fit), the buttons at the right
+        var room = MK.footRoom(right), s = String(left || '');
+        fill(g, 0, 179, 320, 15, C.foot); fill(g, 0, 179, 320, 1, C.hi);
+        while (s && U.width(s) > room) s = s.lastIndexOf(' ') > 0 ? s.slice(0, s.lastIndexOf(' ')) : '';   // too long: whole words only
+        if (s) U.text(s, 6, 183, C.help);
+        if (right) U.text(right, 314, 183, C.teal, 1, 'right');
+      };
+      MK.tabs = function (g, x, y, w, names, cur, focus) {   // a tab bar: the open tab raised with a yellow edge; with the focus on the bar, the open tab is the yellow bar itself
+        var n = names.length, tw = Math.floor((w - (n - 1) * 4) / n), i, tx, on;
+        for (i = 0; i < n; i++) {
+          tx = x + i * (tw + 4); on = i === cur;
+          if (on && focus) { MK.bar(g, tx, y + 2, tw); U.item(names[i], tx + (tw >> 1), y + 2, true, false, 'center', 1, 'bar'); continue; }
+          fill(g, tx, y - 1, tw, 12, on ? C.hi : C.strip); if (on) fill(g, tx, y + 10, tw, 1, C.yel);
+          U.text(names[i], tx + (tw >> 1), y + 2, on ? C.yel : C.muted, 1, 'center');
+        }
+      };
+      // ---- a question: a small window in the middle, its words, and a row of choices (NO first, the default); danger: red brackets ----
+      MK.ask = function (g, key, title, lines, choices, sel, o) {
+        o = o || {};
+        var i, w = 0, cw, x, y, h, cx, acc = o.danger ? C.red : C.yel;
+        lines = lines || [];
+        for (i = 0; i < lines.length; i++) w = Math.max(w, U.width(lines[i]));
+        w = Q.clamp(Math.max(w, U.width(title) + 30, choices.length * 64) + 24, 150, 300); h = 30 + lines.length * 10 + 22; x = 160 - (w >> 1); y = o.y || Math.max(30, 100 - (h >> 1));
+        g.globalAlpha = 0.5; fill(g, 0, 0, 320, 200, '#05060a'); g.globalAlpha = 1;
+        MK.window(g, x, y, w, h, title, key, function () {
+          for (i = 0; i < lines.length; i++) U.text(lines[i], 160, y + 22 + i * 10, i ? C.help : C.cream, 1, 'center');
+          cw = Math.floor((w - 24) / choices.length);
+          for (i = 0; i < choices.length; i++) {
+            cx = x + 12 + i * cw;
+            if (i === sel) MK.bar(g, cx + 4, y + h - 15, cw - 8, o.danger && i > 0 ? { col: C.red, tab: C.redD } : null);
+            U.item(choices[i], cx + (cw >> 1), y + h - 15, i === sel, false, 'center', 1, 'bar');
+          }
+        }, { accent: acc, light: o.danger ? C.red : C.ora });
+      };
+      MK.line = function (g, s, x, y, col) { U.text(s, x, y, col || C.help); };
+    })();
     // ===== 71-ui-stars.js =====
     // ---------- 71-ui-stars.js: version 116's shared pieces for the UI (UI, builder 5; QUEST-API.md part 14) ----------
     // The gold stars as the UI reads them (ENGINE's rules in Q.STAR, STORY's words in Q.STARTEXT, the won ones in Q.SAVE.stars), the best times and par
@@ -5322,30 +5460,24 @@
       FE.ph.controls = {
         enter: function (sel) { FE.tab = typeof sel === 'number' ? Q.clamp(sel, 0, 2) : 0; },
         update: function () {
-          if (FE.press('b')) { Q.sfx('back'); FE.to('options', 'CONTROLS'); return; }
-          if (FE.press('left')) { FE.tab = (FE.tab + 2) % 3; Q.sfx('move'); }
-          else if (FE.press('right') || FE.press('a')) { FE.tab = (FE.tab + 1) % 3; Q.sfx('move'); }
+          if (FE.press('b')) { U.mk.snd('back'); FE.to('options', 'CONTROLS'); return; }
+          if (FE.press('left')) { FE.tab = (FE.tab + 2) % 3; U.mk.snd('tab'); }
+          else if (FE.press('right') || FE.press('a') || FE.press('c')) { FE.tab = (FE.tab + 1) % 3; U.mk.snd('tab'); }
         },
-        draw: function (g) {
-          var i, x = 120, name = TABS[FE.tab], rows = ROWS[name], y, w;
-          U.box(g, 6, 6, 308, 170, '#2ec4b6', '#12141c');
-          U.text('CONTROLS', 16, 13, '#ffffff', 2);
-          for (i = 0; i < 3; i++) {   // the tabs, the one showing framed in gold
-            w = U.width(TABS[i]) + 10;
-            if (i === FE.tab) U.box(g, x, 11, w, 15, '#ffd23f', '#262838'); else U.fill(g, x + 1, 12, w - 2, 13, '#14161f');
-            U.text(TABS[i], x + 5, 15, i === FE.tab ? '#ffd23f' : '#8a93a8');
-            x += w + 4;
-          }
-          U.fill(g, 12, 31, 296, 1, '#2a2c3a');
-          if (name === 'KEYS') keyboard(g, 12, 66); else if (name === 'TOUCH') pocket(g, 30, 48); else pad(g, 10, 64);
-          for (i = 0; i < rows.length; i++) {
-            y = 42 + i * 15;
-            U.fill(g, 112, y + 1, 3, 3, rows[i][2]);
-            U.text(rows[i][0], 120, y, rows[i][2] === CM ? '#c3c7d4' : rows[i][2]);
-            U.text(rows[i][1], 160, y, '#f6efe2');
-          }
-          U.text(name === 'TOUCH' ? 'ON A PHONE OR TABLET: THE 9F POCKET' : name === 'KEYS' ? 'ESC: BACK TO THE 9F DESKTOP' : 'BACK: TO THE 9F DESKTOP', 160, 164, '#5d6378', 1, 'center');
-          FE.foot('LEFT AND RIGHT: KEYS, TOUCH, CONTROLLER', 'B: BACK');
+        draw: function (g) {   // B20: in the menu kit's window, its tabs on the kit's tab bar (the open one with the focus: the yellow bar)
+          var i, name = TABS[FE.tab], rows = ROWS[name], y;
+          U.mk.window(g, 6, 3, 308, 174, 'CONTROLS', 'fe-controls', function () {
+            U.mk.tabs(g, 14, 22, 292, TABS, FE.tab, true);
+            if (name === 'KEYS') keyboard(g, 12, 66); else if (name === 'TOUCH') pocket(g, 30, 48); else pad(g, 10, 64);
+            for (i = 0; i < rows.length; i++) {
+              y = 42 + i * 15;
+              U.fill(g, 112, y + 1, 3, 3, rows[i][2]);
+              U.text(rows[i][0], 120, y, rows[i][2] === CM ? '#c3c7d4' : rows[i][2]);
+              U.text(rows[i][1], 160, y, '#f6efe2');
+            }
+            U.text(name === 'TOUCH' ? 'ON A PHONE OR TABLET: THE 9F POCKET' : name === 'KEYS' ? 'ESC: BACK TO THE 9F DESKTOP' : 'BACK: TO THE 9F DESKTOP', 160, 164, U.mk.C.dim, 1, 'center');
+          });
+          FE.foot('LEFT, RIGHT OR C: KEYS, TOUCH, CONTROLLER', 'B: BACK');
         }
       };
     })();
@@ -5358,26 +5490,19 @@
     // from here comes back here: its B and Start, only while it was opened from EXTRAS, return to the title (a hook on the codex scene, set once).
     // Up and down choose, left and right change a setting, A chooses, B goes back to the main menu.
     (function () {
-      var U = Q.ui, FE = U.fe || (U.fe = { ph: {} }), BX = 124, BW = 188, TOP = 106, ROW = 11;
+      var U = Q.ui, FE = U.fe || (U.fe = { ph: {} }), BX = 124, BW = 188, ROW = 11;
       var MUS = ['FULL', 'LOW', 'OFF'];
       FE.move = function (sel, n) {   // up and down, round and round: one press, one step (FE.press: never in a frame that changed the screen)
-        if (FE.press('up')) { sel = (sel + n - 1) % n; Q.sfx('move'); }
-        if (FE.press('down')) { sel = (sel + 1) % n; Q.sfx('move'); }
+        if (FE.press('up')) { sel = (sel + n - 1) % n; U.mk.snd('move'); }
+        if (FE.press('down')) { sel = (sel + 1) % n; U.mk.snd('move'); }
         return sel;
       };
-      FE.panel = function (g, title, list, sel, value, count) {   // the right-hand box of a menu screen: its name, then its rows (a value or a count at the right)
-        var n = list.length, i, y, on, v;
-        U.box(g, BX, TOP, BW, (n + 1) * ROW + 6, '#2ec4b6', '#12141c');
-        U.text(title, BX + 10, TOP + 5, '#2ec4b6'); U.fill(g, BX + 8, TOP + 14, BW - 16, 1, '#2a2c3a');
-        for (i = 0; i < n; i++) {
-          y = TOP + 5 + (i + 1) * ROW; on = i === sel;
-          if (on) U.fill(g, BX + 3, y - 2, BW - 6, ROW, '#262838');
-          U.item(list[i], BX + 16, y, on);
-          v = value ? value(list[i]) : '';
-          if (v) { U.text(v, BX + BW - 18, y, on ? '#ffd23f' : '#c3c7d4', 1, 'right'); if (on && Math.floor(U.now() * 2.5) % 3) { U.text('<', BX + BW - 26 - U.width(v), y, '#ffd23f'); U.text('>', BX + BW - 12, y, '#ffd23f'); } }
-          else if (count) { v = count(list[i]); if (v) U.text(v, BX + BW - 10, y, on ? '#ffd23f' : '#8a93a8', 1, 'right'); }
-        }
+      FE.panel = function (g, title, list, sel, value, count) {   // B20: the kit's window at the right, under the logo (its lowest row is y 100, measured), its foot on the band;
+        var K = U.mk, n = list.length, row = n <= 5 ? ROW : Math.max(8, Math.floor(56 / n)), h = 19 + n * row + 3, top = 178 - h, rows = [], i, v, key = 'fe-' + title;   // rows 11 apart; six: 9, seven: 8
+        for (i = 0; i < n; i++) { v = value ? value(list[i]) : ''; rows.push({ label: list[i], value: v, count: !v && count ? count(list[i]) : '' }); }
+        K.window(g, BX, top, BW, h, title, key, function () { K.list(g, BX, top + 19, BW, rows, sel, key, { row: row }); });
       };
+      function page() { return !!(U.host && U.host.has()); }   // the page offers its bridge (B20: 78-ui-host.js): its SYSTEM screen and the MANUAL are rows here
       // ---- OPTIONS ----
       function tie() { return !!(Q.SAVE && Q.SAVE.shop && Q.SAVE.shop.bowtie); }
       function optValue(it) {
@@ -5396,54 +5521,55 @@
         return true;
       }
       FE.ph.options = {
-        items: function () { var l = ['MUSIC', 'TEXT']; if (tie()) l.push('BOW TIE'); if (U.watchOn) l.push('STOPWATCH'); l.push('CONTROLS'); return l; },
+        items: function () { var l = ['MUSIC', 'TEXT']; if (tie()) l.push('BOW TIE'); if (U.watchOn) l.push('STOPWATCH'); l.push('CONTROLS'); if (page()) l.push('SYSTEM'); return l; },   // B20: SYSTEM last, only on a page
         enter: function (sel) { var l = FE.ph.options.items(), i = typeof sel === 'string' ? FE.find(l, sel) : sel; FE.osel = i >= 0 ? i : 0; },
         update: function () {
           var l = FE.ph.options.items(), it;
-          if (FE.press('b')) { Q.sfx('back'); FE.to('menu', FE.find(FE.items(), 'OPTIONS')); return; }
+          if (FE.press('b')) { U.mk.snd('back'); FE.to('menu', FE.find(FE.items(), 'OPTIONS')); return; }
           FE.osel = FE.move(Math.min(FE.osel, l.length - 1), l.length);
           it = l[FE.osel];
-          if (FE.press('left')) { if (change(it, -1)) Q.sfx('move'); }
-          else if (FE.press('right')) { if (change(it, 1)) Q.sfx('move'); }
+          if (FE.press('left')) { if (change(it, -1)) U.mk.snd('value'); }
+          else if (FE.press('right')) { if (change(it, 1)) U.mk.snd('value'); }
           if (FE.press('a') || FE.press('start')) {
-            if (it === 'CONTROLS') { Q.sfx('select'); FE.to('controls', 0); }
-            else if (change(it, 1)) Q.sfx('select');
+            if (it === 'CONTROLS') { U.mk.snd('pick'); FE.to('controls', 0); }
+            else if (it === 'SYSTEM') { U.mk.snd('pick'); U.host.open({ back: 'title', ph: 'options', item: 'SYSTEM' }); }   // the page's own settings, saves and manual (78-ui-system.js)
+            else if (change(it, 1)) U.mk.snd('value');
           }
         },
         draw: function (g) {
           var l = FE.ph.options.items(), it = l[Math.min(FE.osel, l.length - 1)];
           FE.panel(g, 'OPTIONS', l, FE.osel, optValue);
-          FE.foot(it === 'MUSIC' ? 'FULL, LOW OR OFF (THE PAUSE MENU TOO)' : it === 'TEXT' ? 'HOW FAST THE TEXT BOX TYPES' : it === 'BOW TIE' ? 'GOLD, OR THE WHITE IT WAS' : it === 'STOPWATCH' ? 'YOUR PLAY TIME, IN A CORNER' : 'THE KEYS, TOUCH AND A CONTROLLER', 'B: BACK');
+          FE.foot(it === 'MUSIC' ? 'FULL, LOW OR OFF (THE PAUSE MENU TOO)' : it === 'TEXT' ? 'HOW FAST THE TEXT BOX TYPES' : it === 'BOW TIE' ? 'GOLD, OR THE WHITE IT WAS' : it === 'STOPWATCH' ? 'YOUR PLAY TIME, IN A CORNER' : it === 'SYSTEM' ? 'SCREEN, SOUND, SAVES, MANUAL' : 'THE KEYS, TOUCH AND A CONTROLLER', 'B: BACK');
         }
       };
       // ---- EXTRAS ----
       function won() { return !!(Q.SAVE && Q.SAVE.won); }
       function hook() {   // the codex (75-ui-codex.js) goes back to the pause on B; opened from EXTRAS (its from: 'title'), its B and Start come back here instead (its own file is unchanged)
         var sc = Object.prototype.hasOwnProperty.call(Q.SCENE, 'codex') ? Q.SCENE.codex : null, up0, en0;
-        if (!sc || sc.feBack || !sc.update) return;
+        if (!sc || sc.feBack || !sc.update) return;   // (its own B and Start sounds stay the codex's)
         up0 = sc.update; en0 = sc.enter; sc.feBack = true;
         sc.enter = function (opts, Qx) { FE.inCodex = !!(opts && opts.from === 'title'); if (en0) return en0.call(sc, opts, Qx); };   // only a codex opened from the title comes back to it
         sc.update = function (dt, Qx) {
           var at;
           if (FE.inCodex && Q.scene === 'codex' && !Q.talking()) {
             at = U.codexAt ? U.codexAt() : null;
-            if (!(at && at.read) && (U.press('b') || U.press('start'))) { FE.inCodex = false; Q.sfx('back'); Q.go('title', { ph: 'extras', back: FE.codexItem || 'CODEX' }); return; }
+            if (!(at && at.read) && (U.press('b') || U.press('start'))) { FE.inCodex = false; U.mk.snd('back'); Q.go('title', { ph: 'extras', back: FE.codexItem || 'CODEX' }); return; }
           }
           return up0.call(sc, dt, Qx);
         };
       }
       function codex(sec, item) {
-        if (!Object.prototype.hasOwnProperty.call(Q.SCENE, 'codex')) { Q.sfx('nope'); return; }
-        hook(); FE.codexItem = item; Q.sfx('select');
+        if (!Object.prototype.hasOwnProperty.call(Q.SCENE, 'codex')) { U.mk.snd('no'); return; }
+        hook(); FE.codexItem = item; U.mk.snd('pick');
         Q.go('codex', { from: 'title' });
         if (sec !== 'memos' && U.codexGo) U.codexGo(sec, 0);   // straight to its page
       }
       FE.ph.extras = {
-        items: function () { var l = ['CODEX', 'STARS', 'CREDITS']; if (won()) l.push('THE ENDING', 'HOLD MUSIC'); return l; },
+        items: function () { var l = ['CODEX', 'STARS', 'CREDITS']; if (won()) l.push('THE ENDING', 'HOLD MUSIC'); if (page() && U.host.can('manual')) l.push('MANUAL'); return l; },
         enter: function (sel) { var l = FE.ph.extras.items(), i = typeof sel === 'string' ? FE.find(l, sel) : sel; FE.xsel = i >= 0 ? i : 0; },
         update: function () {
           var l = FE.ph.extras.items(), it;
-          if (FE.press('b')) { Q.sfx('back'); FE.to('menu', FE.find(FE.items(), 'EXTRAS')); return; }
+          if (FE.press('b')) { U.mk.snd('back'); FE.to('menu', FE.find(FE.items(), 'EXTRAS')); return; }
           FE.xsel = FE.move(Math.min(FE.xsel, l.length - 1), l.length);
           if (!(FE.press('a') || FE.press('start'))) return;
           it = l[FE.xsel];
@@ -5452,6 +5578,7 @@
           else if (it === 'HOLD MUSIC') codex('music', it);
           else if (it === 'CREDITS') FE.go('credits');
           else if (it === 'THE ENDING') FE.go('ending');
+          else if (it === 'MANUAL') { U.mk.snd('pick'); U.host.act('manual'); }   // the page opens the booklet in this tab (nothing to save on the title)
         },
         draw: function (g) {
           var l = FE.ph.extras.items(), it = l[Math.min(FE.xsel, l.length - 1)], c = U.starCount ? U.starCount() : { n: 0, all: 32 };
@@ -5460,7 +5587,7 @@
             if (x === 'STARS') return c.n + '/' + c.all;
             return '';
           });
-          FE.foot(it === 'CODEX' ? 'THE MEMOS, THE BESTIARY, THE TIMES' : it === 'STARS' ? 'THE ' + c.all + ' GOLD STARS' : it === 'CREDITS' ? 'WHO MADE IT, AND THE NUMBERS' : it === 'THE ENDING' ? 'SEE THE ENDING AGAIN' : 'EVERY SONG IN THE GAME', 'B: BACK');
+          FE.foot(it === 'CODEX' ? 'THE MEMOS, THE BESTIARY, THE TIMES' : it === 'STARS' ? 'THE ' + c.all + ' GOLD STARS' : it === 'CREDITS' ? 'WHO MADE IT, AND THE NUMBERS' : it === 'THE ENDING' ? 'SEE THE ENDING AGAIN' : it === 'MANUAL' ? 'THE BOOKLET OPENS IN THIS TAB' : 'EVERY SONG IN THE GAME', 'B: BACK');
         }
       };
     })();
@@ -5640,7 +5767,7 @@
           var k = (FE.drop - 0.5) % 1.1, tips = Q.story && Q.story.tips, tk;
           if (FE.drop >= 0.5 && k < 0.75) U.text('PRESS START', MX, 126, '#ffd23f', 2, 'center');   // a slow blink, small on the screen (XAG 118)
           if (tips && tips.length) { tk = (t % 5) / 5; U.text(String(tips[Math.floor(t / 5) % tips.length]), 160, 168, tk < 0.06 || tk > 0.94 ? '#3c4680' : '#7f8ab8', 1, 'center'); }   // STORY's tips (part 13, 13)
-          U.fill(g, 0, 179, 320, 15, '#10173a'); U.text('MADE ON THE NINTH FLOOR', 160, 183, '#8f9ac8', 1, 'center');
+          U.mk.foot(g, '', ''); U.text('MADE ON THE NINTH FLOOR', 160, 183, U.mk.C.muted, 1, 'center');
         }
       };
       // ---- MENU ----
@@ -5649,24 +5776,24 @@
         update: function () {
           var list = FE.items(), it;
           if (FE.ask) {   // NEW GAME over a save: ask first (NO is the default)
-            if (FE.press('left') || FE.press('right') || FE.press('up') || FE.press('down')) { FE.askSel = 1 - FE.askSel; Q.sfx('move'); }
-            if (FE.press('b')) { FE.ask = false; Q.sfx('back'); return; }
-            if (FE.press('a') || FE.press('start')) { FE.ask = false; if (FE.askSel) FE.go('start'); else Q.sfx('back'); }
+            if (FE.press('left') || FE.press('right') || FE.press('up') || FE.press('down')) { FE.askSel = 1 - FE.askSel; U.mk.snd('move'); }
+            if (FE.press('b')) { FE.ask = false; U.mk.snd('back'); return; }
+            if (FE.press('a') || FE.press('start')) { FE.ask = false; if (FE.askSel) FE.go('start'); else U.mk.snd('back'); }
             return;
           }
-          if (FE.press('b')) { Q.sfx('back'); FE.to('title'); return; }   // back to PRESS START (the logo already in place)
+          if (FE.press('b')) { U.mk.snd('back'); FE.to('title'); return; }   // back to PRESS START (the logo already in place)
           FE.sel = FE.move(Math.min(FE.sel, list.length - 1), list.length);
           if (!(FE.press('a') || FE.press('start'))) return;
           it = list[FE.sel];
           if (it === 'CONTINUE') FE.go('continue');
-          else if (it === 'NEW GAME') { if (FE.has) { FE.ask = true; FE.askSel = 0; Q.sfx('select'); } else FE.go('start'); }
+          else if (it === 'NEW GAME') { if (FE.has) { FE.ask = true; FE.askSel = 0; U.mk.snd('open'); } else FE.go('start'); }
           else if (it.indexOf('FILE ') === 0) FE.go('files');
           else if (it === 'GAME MODES') {
-            if (FE.modes()) { Q.sfx('select'); FE.back('menu', 'GAME MODES', FE.MODES); Q.go(FE.MODES); }   // BATTLE's own screen; its B comes back here
-            else { Q.sfx('nope'); FE.soon = 1.4; }   // COMING SOON: nothing starts
+            if (FE.modes()) { U.mk.snd('pick'); FE.back('menu', 'GAME MODES', FE.MODES); Q.go(FE.MODES); }   // BATTLE's own screen; its B comes back here
+            else { U.mk.snd('no'); FE.soon = 1.4; }   // COMING SOON: nothing starts
           }
-          else if (it === 'OPTIONS') { Q.sfx('select'); FE.to('options', 0); }
-          else if (it === 'EXTRAS') { Q.sfx('select'); FE.to('extras', 0); }
+          else if (it === 'OPTIONS') { U.mk.snd('pick'); FE.to('options', 0); }
+          else if (it === 'EXTRAS') { U.mk.snd('pick'); FE.to('extras', 0); }
         },
         draw: function (g, t) { FE.drawMenu(g, t); }
       };
@@ -5690,32 +5817,20 @@
         tx = x + ((r - 3 - x) >> 1) - (U.width(s) >> 1);
         U.text(s, tx + 1, yy + 3, '#a5383b'); U.text(s, tx, yy + 2, '#ffffff');
       };
-      FE.drawMenu = function (g) {
-        var list = FE.items(), n = list.length, i, y, it, on, soon, top = 106, row = 11, gx;
-        U.box(g, BX, top, BW, n * row + 6, '#2ec4b6', '#12141c');
-        for (i = 0; i < n; i++) {
-          it = list[i]; y = top + 5 + i * row; on = i === FE.sel && !FE.ask; soon = it === 'GAME MODES' && !FE.modes();
-          if (on) U.fill(g, BX + 3, y - 2, BW - 6, row, '#262838');
-          U.item(it, BX + 16, y, on, soon && !on);
-          if (it === 'CONTINUE' && FE.gold) {   // the save's GOLD STARS beside it (part 14.2)
-            gx = BX + BW - 10 - U.width(FE.gold.n + '/' + FE.gold.all);
-            U.starIcon(g, gx - 15, y - 3, FE.gold.n > 0); U.text(FE.gold.n + '/' + FE.gold.all, gx, y, FE.gold.n > 0 ? '#ffd23f' : '#7f8ab8');
-          }
-          if (soon) FE.ribbon(g, BX + 24 + U.width(it), y - 2, BX + BW, FE.soon > 0 ? (Math.floor(FE.t * 30) % 2 ? 1 : -1) : 0);
+      FE.drawMenu = function (g) {   // B20: in the menu kit's window (71-ui-menu.js), its foot on the screen's foot band
+        var list = FE.items(), n = list.length, i, rows = [], K = U.mk, h = 6 + n * K.ROW + 3, top = 178 - h, soon;
+        function stars(gx, y, on) { var s = FE.gold.n + '/' + FE.gold.all; U.starIcon(Q.g, gx - U.width(s) - 15, y - 3, FE.gold.n > 0); U.text(s, gx, y, on ? K.C.ink : FE.gold.n > 0 ? K.C.yel : K.C.muted, 1, 'right'); }
+        for (i = 0; i < n; i++) rows.push({ label: list[i], off: list[i] === 'GAME MODES' && !FE.modes(),
+          draw: list[i] === 'CONTINUE' && FE.gold ? function (g2, x, y, on) { stars(BX + BW - 9, y, on); } : null });   // the save's GOLD STARS beside CONTINUE (part 14.2)
+        K.window(g, BX, top, BW, h, '', 'fe-menu', function () { K.list(g, BX, top + 6, BW, rows, FE.ask ? -1 : FE.sel, 'fe-menu'); });
+        for (i = 0; i < n; i++) {   // COMING SOON folds round the window's edge, so it is drawn over it, outside its clip
+          soon = list[i] === 'GAME MODES' && !FE.modes();
+          if (soon && K.opening('fe-menu') >= 1) FE.ribbon(g, BX + 24 + U.width(list[i]), top + 4 + i * K.ROW, BX + BW, FE.soon > 0 ? (Math.floor(FE.t * 30) % 2 ? 1 : -1) : 0);
         }
-        FE.foot(FE.line(list[FE.sel]), 'A: CHOOSE   B: BACK');
-        if (FE.ask) {
-          U.box(g, 56, 70, 208, 62, '#ffd23f', '#1d1d24');
-          U.text('START A NEW GAME?', 160, 80, '#ffffff', 1, 'center');
-          U.text('FILE ' + (Q.fileNow ? Q.fileNow() : 1) + "'S SAVE WILL BE REPLACED.", 160, 93, '#c3c7d4', 1, 'center');
-          U.item('NO', 128, 113, FE.askSel === 0, false, 'center'); U.item('YES', 192, 113, FE.askSel === 1, false, 'center');
-        }
+        FE.foot(FE.line(list[FE.sel]), 'A: CHOOSE  B: BACK');
+        if (FE.ask) K.ask(g, 'fe-ask', 'NEW GAME', ['START A NEW GAME?', 'FILE ' + (Q.fileNow ? Q.fileNow() : 1) + "'S SAVE WILL BE REPLACED."], ['NO', 'YES'], FE.askSel, { danger: true });
       };
-      FE.foot = function (left, right) {   // the band at the foot of every menu screen: what the chosen thing does, and the buttons
-        U.fill(Q.g, 0, 179, 320, 15, '#10173a');
-        if (left) U.text(left, 6, 183, '#c3c7d4');
-        if (right) U.text(right, 314, 183, '#6f7bb0', 1, 'right');
-      };
+      FE.foot = function (left, right) { U.mk.foot(Q.g, left, right); };   // the band at the foot of every menu screen: what the chosen thing does, and the buttons (B20: the kit's)
       // ---- what every screen after the splash stands on: the night and its drift, the podium and the conductor keeping time, the logo ----
       function logo(g, t) {
         var x = LX, y = LY + Math.round(Math.sin(t * 1.6) * 1), p, i, sx, tip = U.logoTip ? U.logoTip() : null, K = U.logoKit;
@@ -5761,7 +5876,7 @@
           ret = opts.back ? { ph: opts.ph || 'menu', item: String(opts.back) } : FE.ret && FE.left === FE.ret.via && FE.leftAt === U.now() ? FE.ret : null;   // back from where we went (only straight back from it)
           FE.ret = null;
           if (FE.opened !== Q.api) { FE.opened = Q.api; if (FE.ph.boot) { FE.to('boot'); return; } FE.to('title', 'drop'); return; }   // the game has just been opened: the splash, then the title
-          if (ret && ret.ph === 'extras' && FE.ph.extras) { FE.to('extras', ret.item); return; }
+          if (ret && ret.ph !== 'menu' && ret.ph !== 'boot' && FE.ph[ret.ph]) { FE.to(ret.ph, ret.item); return; }   // back into EXTRAS, or OPTIONS (B20: from its SYSTEM screen), on that row
           list = FE.items(); i = ret ? FE.find(list, ret.item) : -1;
           FE.to('menu', i >= 0 ? i : 0);
         },
@@ -5795,7 +5910,7 @@
           g.save(); g.beginPath(); g.rect(0, 0, Q.W, 152); g.clip();
           for (i = 0; i < FE.drift.length; i++) { d = FE.drift[i]; for (k = -1; k <= 1; k++) Q.spr(g, d.k === 0 ? 'u5-env' : d.k === 1 ? 'u5-tix' : 'u5-note', 0, ox + Math.round(d.x) + k * 340, Math.round(d.y + Math.sin(t + d.ph) * 2)); }
           g.restore();
-          if (Q.scene === 'title') U.fill(g, 0, 179, Q.W, 15, '#10173a');   // (under the codex: no foot band)
+          if (Q.scene === 'title') { U.fill(g, 0, 179, Q.W, 15, U.mk.C.foot); U.fill(g, 0, 179, Q.W, 1, U.mk.C.hi); }   // (under the codex: no foot band) B20: the kit's band
           if (FE.leave) { g.globalAlpha = Q.clamp(FE.fade, 0, 1); U.fill(g, 0, 0, Q.W, 200, '#000000'); g.globalAlpha = 1; }
         },
         leave: function () { FE.notes = []; }
@@ -6687,6 +6802,7 @@
         var tie = !!(Q.SAVE && Q.SAVE.shop && Q.SAVE.shop.bowtie), l = ['RESUME', 'CODEX', 'MUSIC', 'TEXT'];
         if (tie) l.push('BOW TIE');
         l.push('CODES');   // the cheat codes (75-ui-codes.js, 14.10 item 11): after the settings, so MAP and TITLE stay last
+        if (U.host && U.host.has()) l.push('SYSTEM');   // B20: the page's own settings, saves and manual (78-ui-system.js), only where a page offers them
         if (PA.from !== 'map') l.push('MAP');
         l.push('TITLE');
         return l;
@@ -6707,6 +6823,8 @@
         f.opt[name] = v;
         try { engRaw.save(raw); } catch (e2) {}
       };
+      U.pauseFrom = function () { return PA.from; };   // B20: the scene under the pause (the SYSTEM screen draws it too)
+      U.AB_HOW = 188;   // B20: the room for an ability's how line in the pause menu's ABILITIES window, in pixels (U.width): 31 letters
       U.tieOpt = function () { return Q.SAVE && Q.SAVE.opt && Q.SAVE.opt.bowtie === 'white' ? 'WHITE' : 'GOLD'; };
       function tieSwap() { U.setOpt('bowtie', U.tieOpt() === 'GOLD' ? 'white' : 'gold'); }
       // ---- the MUSIC row: FULL, LOW or OFF, as 1, 0.5 and 0 times AUDIO's own level (Q.au.MUSIC as it was made); kept in Q.SAVE.opt.music, put back at
@@ -6721,7 +6839,7 @@
       U.setMusic = function (m) { if (MK[m] === undefined) return; U.setOpt('music', m); U.applyOpt(); };
       function textSwap() { U.setOpt('text', U.textFast() ? 'normal' : 'fast'); }   // TEXT: NORMAL or FAST (the box types about 2.5 times quicker)
       function label(it) { return it === 'MUSIC' ? 'MUSIC: ' + U.musicOpt() : it === 'BOW TIE' ? 'BOW TIE: ' + U.tieOpt() : it === 'TEXT' ? 'TEXT: ' + (U.textFast() ? 'FAST' : 'NORMAL') : it; }
-      function resume() { var from = PA.from; Q.sfx('back'); U.later(function () { Q.go(from, { resume: true }); }); }   // next frame: the level never sees this Start
+      function resume() { var from = PA.from; U.mk.snd('back'); U.later(function () { Q.go(from, { resume: true }); }); }   // next frame: the level never sees this Start
       U.clock = function (secs) {   // seconds as H:MM:SS, or M:SS under an hour
         var s = Math.max(0, Math.floor(secs || 0)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, r = s % 60;
         return (h ? h + ':' + (m < 10 ? '0' : '') : '') + m + ':' + (r < 10 ? '0' : '') + r;
@@ -6733,17 +6851,18 @@
       };
       function choose(what) {
         if (what === 'RESUME') { resume(); return; }
-        if (what === 'CODEX') { Q.sfx('select'); Q.go('codex', { from: PA.from }); return; }
-        if (what === 'CODES') { Q.sfx('select'); Q.go('codes', { from: PA.from }); return; }
-        if (what === 'MUSIC') { U.setMusic(MUS[(MUS.indexOf(U.musicOpt()) + 1) % 3]); Q.sfx('select'); return; }
-        if (what === 'BOW TIE') { tieSwap(); Q.sfx('select'); return; }
-        if (what === 'TEXT') { textSwap(); Q.sfx('select'); return; }
-        PA.ask = what; PA.askSel = 0; Q.sfx('select');
+        if (what === 'CODEX') { U.mk.snd('pick'); Q.go('codex', { from: PA.from }); return; }
+        if (what === 'CODES') { U.mk.snd('pick'); Q.go('codes', { from: PA.from }); return; }
+        if (what === 'SYSTEM') { U.mk.snd('pick'); U.host.open({ back: 'pause', under: PA.from }); return; }
+        if (what === 'MUSIC') { U.setMusic(MUS[(MUS.indexOf(U.musicOpt()) + 1) % 3]); U.mk.snd('value'); return; }
+        if (what === 'BOW TIE') { tieSwap(); U.mk.snd('value'); return; }
+        if (what === 'TEXT') { textSwap(); U.mk.snd('value'); return; }
+        PA.ask = what; PA.askSel = 0; U.mk.snd('open');
       }
       function askDone() {
         var what = PA.ask; PA.ask = '';
-        if (!PA.askSel) { Q.sfx('back'); return; }
-        Q.sfx('select'); Q.saveGame();
+        if (!PA.askSel) { U.mk.snd('back'); return; }
+        U.mk.snd('pick'); Q.saveGame();
         if (what === 'MAP') Q.go('map'); else Q.go('title');
       }
       Q.defScene('pause', {
@@ -6751,76 +6870,78 @@
         enter: function (opts) { U.entered();
           opts = opts || {};
           PA.from = opts.from || (opts.back ? PA.from : 'level'); PA.ask = ''; PA.t = 0;
-          PA.sel = opts.back === 'codex' ? 1 : opts.back === 'codes' ? Math.max(0, items().indexOf('CODES')) : 0;
-          if (!opts.back) { Q.sfx('select'); U.emit('pause', { from: PA.from }); }   // part 14.1: only when it opens, not back from the codex
+          PA.sel = opts.back === 'codex' ? 1 : opts.back === 'codes' || opts.back === 'system' ? Math.max(0, items().indexOf(opts.back.toUpperCase())) : 0;
+          if (!opts.back) { U.mk.snd('open'); U.emit('pause', { from: PA.from }); }   // part 14.1: only when it opens, not back from the codex (or the SYSTEM screen)
         },
         update: function (dt) {
           PA.t += dt;
           if (U.runLater()) return;
           if (PA.ask) {
-            if (U.press('left') || U.press('right') || U.press('up') || U.press('down')) { PA.askSel = 1 - PA.askSel; Q.sfx('move'); }
-            if (U.press('b')) { PA.ask = ''; Q.sfx('back'); return; }
+            if (U.press('left') || U.press('right') || U.press('up') || U.press('down')) { PA.askSel = 1 - PA.askSel; U.mk.snd('move'); }
+            if (U.press('b')) { PA.ask = ''; U.mk.snd('back'); return; }
             if (U.press('a') || U.press('start')) askDone();
             return;
           }
           if (U.press('start') || U.press('b')) { resume(); return; }
           PA.sel = U.menuMove(PA.sel, items().length);
-          if (items()[PA.sel] === 'BOW TIE' && (U.press('left') || U.press('right'))) { tieSwap(); Q.sfx('move'); }
-          if (items()[PA.sel] === 'TEXT' && (U.press('left') || U.press('right'))) { textSwap(); Q.sfx('move'); }
+          if (items()[PA.sel] === 'BOW TIE' && (U.press('left') || U.press('right'))) { tieSwap(); U.mk.snd('value'); }
+          if (items()[PA.sel] === 'TEXT' && (U.press('left') || U.press('right'))) { textSwap(); U.mk.snd('value'); }
           if (items()[PA.sel] === 'MUSIC') {
-            if (U.press('left')) { U.setMusic(MUS[(MUS.indexOf(U.musicOpt()) + 2) % 3]); Q.sfx('move'); }
-            else if (U.press('right')) { U.setMusic(MUS[(MUS.indexOf(U.musicOpt()) + 1) % 3]); Q.sfx('move'); }
+            if (U.press('left')) { U.setMusic(MUS[(MUS.indexOf(U.musicOpt()) + 2) % 3]); U.mk.snd('value'); }
+            else if (U.press('right')) { U.setMusic(MUS[(MUS.indexOf(U.musicOpt()) + 1) % 3]); U.mk.snd('value'); }
           }
           if (U.press('a')) choose(items()[PA.sel]);
         },
         draw: function (g) {
+          var C = U.mk.C;
           U.under(g, PA.from);
-          U.fill(g, 0, 0, Q.W, 27, '#0b0c10'); U.fill(g, 0, 27, Q.W, 1, '#2a2c3a');   // a header of its own, so the HUD under it never shows through
-          Q.col(g, pauseMenu);
+          U.fill(g, 0, 0, Q.W, 27, C.foot); U.fill(g, 0, 27, Q.W, 1, C.hi); U.fill(g, 0, 179, Q.W, 21, C.foot); U.fill(g, 0, 179, Q.W, 1, C.hi);   // the header and the foot bands span the screen, so the HUD under them never shows through
+          Q.col(g, pauseMenu);   // B20: the kit's windows in the centred 320 column
         }
       });
-      function pauseMenu(g) {   // the menu itself, in the centred 320 column (all of the screen on a 320 one)
-          var s = U.stat(), list = items(), i, x, y, n, ab = ['dash', 'hover', 'pound'], a, any = 0;
-          U.text('PAUSED', 160, 8, '#ffffff', 2, 'center');
+      var HELP = { RESUME: 'BACK TO PLAY', CODEX: 'THE MEMOS, BESTIARY AND TIMES', MUSIC: 'FULL, LOW OR OFF', TEXT: 'HOW FAST THE TEXT BOX TYPES',   // each fits beside A: CHOOSE  B: BACK
+        'BOW TIE': 'GOLD, OR THE WHITE IT WAS', CODES: 'TYPE A CODE: EIGHT PRESSES', SYSTEM: 'SCREEN, SOUND, SAVES, MANUAL', MAP: 'SAVE, AND OUT TO THE MAP', TITLE: 'SAVE, AND BACK TO THE TITLE' };
+      function value(it) { return it === 'MUSIC' ? U.musicOpt() : it === 'BOW TIE' ? U.tieOpt() : it === 'TEXT' ? (U.textFast() ? 'FAST' : 'NORMAL') : ''; }
+      function pauseMenu(g) {   // the menu at the left, LV and the numbers at the top right, the abilities under them
+          var K = U.mk, C = K.C, s = U.stat(), list = items(), i, x, y, n, ab = ['dash', 'hover', 'pound'], a, any = 0, rows = [], rh = list.length > 9 ? 11 : 12;
+          for (i = 0; i < list.length; i++) rows.push({ label: list[i], value: value(list[i]) });
+          U.text('PAUSED', 160, 7, C.cream, 2, 'center');
           n = U.starCount();   // GOLD STARS won (part 14.2), at the right of the header
           U.starIcon(g, 312 - U.width('STARS ' + n.n + '/' + n.all) - 15, 8, n.n > 0);
-          U.text('STARS ' + n.n + '/' + n.all, 312, 11, n.n > 0 ? '#ffd23f' : '#8a93a8', 1, 'right');
-          U.box(g, 2, 30, 106, 78, '#2ec4b6', '#12141c');
-          for (i = 0; i < list.length; i++) U.item(label(list[i]), 18, (list.length > 6 ? 36 : list.length > 5 ? 37 : 38) + i * (list.length > 6 ? 10 : list.length > 5 ? 12 : 14), i === PA.sel && !PA.ask);
-          U.box(g, 112, 30, 206, 78, '#2ec4b6', '#12141c');
-          U.text('LV ' + s.lv, 119, 36, '#ffd23f');
-          U.text(s.next ? 'NEXT LV: ' + s.next + ' XP' : 'TOP LV!', 310, 36, '#c3c7d4', 1, 'right');
-          U.fill(g, 119, 46, 191, 4, '#000000'); U.fill(g, 120, 47, 189, 2, '#2a2c3a'); if (s.part > 0) U.fill(g, 120, 47, Math.max(1, Math.round(189 * s.part)), 2, '#2ec4b6');
-          U.text('HEARTS', 119, 56, '#8a93a8');
-          n = Q.clamp(Math.round(s.maxHp), 1, 8);
-          for (i = 0; i < n; i++) Q.spr(g, 'ui-heart', i < Math.round(s.hp) ? 0 : 1, 164 + i * 9, 55);
-          U.text(Math.round(s.hp) + '/' + n, 310, 56, '#f6efe2', 1, 'right');
-          U.text('POWER ' + s.power, 119, 70, '#f6efe2');
-          U.text('RHYTHM', 196, 70, '#8a93a8');
-          for (i = 0; i < Q.clamp(Math.round(s.rhythmMax), 0, 6); i++) Q.spr(g, 'ui-note', i < Math.floor(s.rhythm + 0.001) ? 0 : 1, 240 + i * 8, 69);
-          U.text('TOKENS ' + Math.floor(s.tokens), 119, 84, '#ffd23f');
-          U.text('MEMOS ' + s.memos + '/24', 310, 84, '#f6efe2', 1, 'right');
-          if (U.watchCode && U.watchCode()) {   // the play time (B19, part 20), a file with codes: an orange star before it and CODES after it
-            U.text('TIME', 119, 96, '#8a93a8'); U.watchMark(149, 96); U.text(U.clock(s.time), 155, 96, '#8a93a8'); U.text('CODES', 161 + U.width(U.clock(s.time)), 96, '#ff8a1e');
-          } else U.text('TIME ' + U.clock(s.time), 119, 96, '#8a93a8');
-          U.text('FALLS ' + s.falls, 310, 96, '#8a93a8', 1, 'right');
-          U.box(g, 2, 112, 316, 84, '#2ec4b6', '#12141c');
-          U.text('ABILITIES', 10, 117, '#2ec4b6');
-          for (i = 0; i < ab.length; i++) {
-            a = Q.ABILITY[ab[i]]; if (!a || !U.learned(ab[i])) continue;
-            y = 129 + any * 14; any++;
-            Q.spr(g, 'ic-' + ab[i], 0, 8, y - 3);
-            U.text(a.name, 24, y, '#ffffff'); U.text(a.how, 118, y, '#c3c7d4');
-          }
-          if (!any) U.text('NONE YET. SAVE AN AGENT TO LEARN ONE.', 160, 143, '#5d6378', 1, 'center');
-          U.fill(g, 8, 171, 304, 1, '#2a2c3a');
-          U.text('A: JUMP   B: BATON   HOLD B, LET GO: NOTE', 160, 177, '#8a93a8', 1, 'center');
+          U.text('STARS ' + n.n + '/' + n.all, 312, 11, n.n > 0 ? C.yel : C.muted, 1, 'right');
+          K.window(g, 2, 30, 118, Math.min(146, 21 + list.length * rh + 2), 'MENU', 'pause-menu', function () { K.list(g, 2, 49, 118, rows, PA.ask ? -1 : PA.sel, 'pause-menu', { row: rh, pad: 12, right: 7 }); });
+          // the right column 195 wide (123 to 317): an ability's how line fits on one line from 128 when it is U.AB_HOW pixels or less, 31 letters (2 Nov: FIRM HAND's ran over at 190 wide)
+          K.window(g, 123, 30, 195, 68, 'LV ' + s.lv, 'pause-lv', function () {
+            U.text(s.next ? 'NEXT LV: ' + s.next + ' XP' : 'TOP LV!', 300, 35, C.help, 1, 'right');
+            U.fill(g, 129, 49, 183, 4, C.ink); U.fill(g, 130, 50, 181, 2, C.hi); if (s.part > 0) U.fill(g, 130, 50, Math.max(1, Math.round(181 * s.part)), 2, C.teal);
+            U.text('HEARTS', 131, 57, C.muted);
+            n = Q.clamp(Math.round(s.maxHp), 1, 8);
+            for (i = 0; i < n; i++) Q.spr(g, 'ui-heart', i < Math.round(s.hp) ? 0 : 1, 173 + i * 9, 56);
+            U.text(Math.round(s.hp) + '/' + n, 310, 57, C.cream, 1, 'right');
+            U.text('POWER ' + s.power, 131, 67, C.cream);
+            U.text('RHYTHM', 201, 67, C.muted);
+            for (i = 0; i < Q.clamp(Math.round(s.rhythmMax), 0, 6); i++) Q.spr(g, 'ui-note', i < Math.floor(s.rhythm + 0.001) ? 0 : 1, 243 + i * 8, 66);
+            U.text('TOKENS ' + Math.floor(s.tokens), 131, 77, C.yel);
+            U.text('MEMOS ' + s.memos + '/24', 310, 77, C.cream, 1, 'right');
+            if (U.watchCode && U.watchCode()) {   // the play time (B19, part 20), a file with codes: an orange star before it and CODES after it (B20: in the LV window)
+              U.text('TIME', 131, 87, C.muted); U.watchMark(161, 87); U.text(U.clock(s.time), 167, 87, C.muted); U.text('CODES', 173 + U.width(U.clock(s.time)), 87, '#ff8a1e');
+            } else U.text('TIME ' + U.clock(s.time), 131, 87, C.muted);
+            U.text('FALLS ' + s.falls, 310, 87, C.muted, 1, 'right');
+          }, { noLight: true });
+          K.window(g, 123, 102, 195, 74, 'ABILITIES', 'pause-ab', function () {
+            for (i = 0; i < ab.length; i++) {
+              a = Q.ABILITY[ab[i]]; if (!a || !U.learned(ab[i])) continue;
+              y = 121 + any * 18; any++;
+              Q.spr(g, 'ic-' + ab[i], 0, 128, y - 3);
+              U.text(a.name, 144, y - 1, C.cream); U.text(a.how, 128, y + 8, C.help);
+            }
+            if (!any) { U.text('NONE YET. SAVE AN AGENT', 220, 128, C.dim, 1, 'center'); U.text('TO LEARN ONE.', 220, 138, C.dim, 1, 'center'); }
+            if (any < 3) { U.fill(g, 129, 151, 183, 1, C.hi); U.text('A: JUMP  B: BATON', 220, 155, C.muted, 1, 'center'); U.text('HOLD B, LET GO: A NOTE', 220, 164, C.muted, 1, 'center'); }   // the play controls, while there is room
+          }, { noLight: true });
+          K.foot(g, PA.ask ? '' : HELP[list[PA.sel]] || '', PA.ask ? 'A: CHOOSE  B: NO' : 'A: CHOOSE  B: BACK');
           if (PA.ask) {
             x = 52; y = 70;
-            U.box(g, x, y, 216, 58, '#ffd23f', '#1d1d24');
-            U.text(PA.ask === 'MAP' ? 'LEAVE THIS LEVEL FOR THE MAP?' : 'QUIT TO THE TITLE?', 160, y + 9, '#ffffff', 1, 'center');
-            U.text('YOUR GAME IS SAVED FIRST.', 160, y + 21, '#c3c7d4', 1, 'center');
-            U.item('NO', 128, y + 40, PA.askSel === 0, false, 'center'); U.item('YES', 192, y + 40, PA.askSel === 1, false, 'center');
+            K.ask(g, 'pause-ask', PA.ask === 'MAP' ? 'TO THE MAP' : 'TO THE TITLE', [PA.ask === 'MAP' ? 'LEAVE THIS LEVEL FOR THE MAP?' : 'QUIT TO THE TITLE?', 'YOUR GAME IS SAVED FIRST.'], ['NO', 'YES'], PA.askSel);
           }
       }
     })();
@@ -7383,6 +7504,65 @@
         F.sparkle(g, TIP_S.x, TIP_S.y, 4, '#ffffff', '#ffe98a');
       } });
     })();
+    // ===== 78-ui-host.js =====
+    // ---------- 78-ui-host.js (B20 MENUS, 2 Nov): the game's half of the page bridge (QUEST-API.md part 22; the runtime's half is in the page's js/runtime.js) ----------
+    // The game never touches the page. A page that wants to, gives the runtime a host, and the runtime gives the game api.host: info() (a plain copy of what
+    // the page offers: its settings and its actions), send(msg) (a plain message to the page, handled after this frame) and read() (the page's messages since
+    // the last read). Without a host (the office, the test page, node) api.host is missing, U.host.has() is false and no page row shows anywhere.
+    // Messages from the page: open (its MENU button: show the SYSTEM screen), changed (read info again), reply / wait / note (an action's outcome, or the
+    // words to show while the page's own small dialog is up), restore (a backup was read: ask NO or YES). U.hostFrame(dt) reads them once a frame (99-main.js).
+    (function () {
+      var U = Q.ui, H = U.host = { cache: null, cacheAt: -9, inbox: [] };
+      function api() { return Q.api && Q.api.host && typeof Q.api.host.read === 'function' ? Q.api.host : null; }
+      H.has = function () { var i = H.info(); return !!(i && i.v >= 1); };
+      H.info = function (fresh) {   // the page's offer, read at most once a second unless asked fresh (a 'changed' message asks)
+        var a = api(), now = U.now();
+        if (!a) return null;
+        if (fresh || !H.cache || now - H.cacheAt > 1 || now < H.cacheAt) { try { H.cache = a.info() || null; } catch (e) { H.cache = null; } H.cacheAt = now; }
+        return H.cache;
+      };
+      H.can = function (id) { var i = H.info(), k; if (!i || !i.actions) return false; for (k = 0; k < i.actions.length; k++) if (i.actions[k].id === id) return true; return false; };
+      H.send = function (msg) { var a = api(); if (!a) return false; try { return a.send(msg) !== false; } catch (e) { return false; } };
+      H.set = function (id, v) {   // a setting changed in the game: the page applies it and keeps it; the copy here changes at once so the screen shows it
+        var i = H.info(), k;
+        if (i && i.settings) for (k = 0; k < i.settings.length; k++) if (i.settings[k].id === id) i.settings[k].now = v;
+        return H.send({ kind: 'set', id: id, v: v });
+      };
+      H.act = function (id) { return H.send({ kind: 'act', id: id }); };
+      H.open = function (o) {   // the SYSTEM screen, from a row (OPTIONS, the pause menu, the file screen) or from the page's MENU
+        if (!Object.prototype.hasOwnProperty.call(Q.SCENE, 'system') || !H.has()) return false;
+        Q.go('system', o || {}); return true;
+      };
+      function fromPage(tab) {   // the page's MENU button: the SYSTEM screen over wherever the game is, with the way back to it; or 'cannot' (the page shows its own menu)
+        var sc = Q.scene, FE = U.fe, ph, it = '', o = null, l;
+        if (sc === 'system') { H.send({ kind: 'opened' }); return; }
+        if (sc === 'title' && FE && !FE.leave) {
+          ph = FE.phase === 'boot' ? 'title' : FE.phase;
+          if (ph === 'menu') { l = FE.items(); it = l[FE.sel] || ''; }
+          else if (ph === 'options' && FE.ph.options) { l = FE.ph.options.items(); it = l[FE.osel] || ''; }
+          else if (ph === 'extras' && FE.ph.extras) { l = FE.ph.extras.items(); it = l[FE.xsel] || ''; }
+          o = { back: 'title', ph: ph, item: it };
+        }
+        else if ((sc === 'level' || sc === 'map') && !Q.talking()) { Q.go('pause', { from: sc }); if (Q.scene === 'pause') o = { back: 'pause', under: sc }; }
+        else if (sc === 'pause') o = { back: 'pause', under: U.pauseFrom ? U.pauseFrom() : 'level' };
+        else if (sc === 'files') o = { back: 'files' };
+        if (o) { o.tab = tab || ''; o.page = true; if (H.open(o)) return; }
+        H.send({ kind: 'cannot' });
+      }
+      U.hostFrame = function () {   // once a frame (99-main.js, after the steps): the page's messages
+        var a = api(), list, i, m;
+        if (!a) return;
+        try { list = a.read() || []; } catch (e) { list = []; }
+        for (i = 0; i < list.length; i++) {
+          m = list[i]; if (!m || typeof m !== 'object') continue;
+          if (m.kind === 'open') fromPage(m.tab);
+          else if (m.kind === 'restore' && Q.scene !== 'system') { fromPage('saves'); if (Q.scene === 'system' && U.sys && U.sys.news) U.sys.news(m); }   // a backup read while the screen was shut: open it to ask
+          else if (m.kind === 'changed') H.info(true);
+          else if (Q.scene === 'system' && U.sys && U.sys.news) U.sys.news(m);   // reply, wait, note, restore: for the SYSTEM screen
+          else if (m.text && (m.kind === 'reply' || m.kind === 'note')) Q.toast(String(m.text), 3);   // it finished after the screen was left: a toast
+        }
+      };
+    })();
     // ===== 78-ui-room.js =====
     // ---------- 78-ui-room.js: the Ninth Floor office, for the intro and the ending (UI, builder 5) ----------
     // 'u5-room' (320 by 128, built once): frame 0 at night, frame 1 in the morning: the wall, a long window on the city, the door with its cat flap, the clock,
@@ -7484,6 +7664,133 @@
         }
       };
     })();
+    // ===== 78-ui-system.js =====
+    // ---------- 78-ui-system.js (B20 MENUS, 2 Nov): the SYSTEM screen, the page's own settings, saves and manual inside the game (78-ui-host.js is the bridge) ----------
+    // Reached from OPTIONS, the pause menu and the file screen (only where a page offers its bridge), and opened by the page's MENU button. Its tabs are what
+    // the page offers: SETTINGS (left and right, or A, change one; the page applies it and keeps it where it always has), SAVES and MORE (A asks the page).
+    // Up and down move (the tab bar is the first stop; the list wraps round), C goes to the next tab, B goes back the way it came. Where a browser allows
+    // something only right after a real tap or key press, the page says so and finishes it in its own small dialog; the line under the list says so plainly.
+    // A backup read in is asked about here, NO first. THE MANUAL from a level asks first and saves the game before the page opens the booklet.
+    (function () {
+      var U = Q.ui, SY = U.sys = { o: {}, tab: 0, sel: 0, status: '', statusAt: -9, tone: 'plain', ask: null, askSel: 0 };
+      var NAMES = { settings: 'SETTINGS', saves: 'SAVES', more: 'MORE' }, FOOT = { settings: 'KEPT IN THIS BROWSER', saves: 'YOUR THREE FILES', more: '' };
+      function info() { return U.host ? U.host.info() : null; }
+      function tabs() {   // SETTINGS when the page has settings, then a tab per group of its actions (saves, more)
+        var i = info(), out = [], has = {}, k;
+        if (!i) return out;
+        if (i.settings && i.settings.length) out.push('settings');
+        for (k = 0; i.actions && k < i.actions.length; k++) has[i.actions[k].group || 'more'] = true;
+        if (has.saves) out.push('saves');
+        if (has.more) out.push('more');
+        return out;
+      }
+      SY.tabs = tabs;
+      function choiceName(s) { var c = s.choices || [], k; for (k = 0; k < c.length; k++) if (c[k][0] === s.now) return String(c[k][1]); return String(s.now || '').toUpperCase(); }
+      function rowsOf(t) {
+        var i = info(), out = [], k, s;
+        if (!i) return out;
+        if (t === 'settings') for (k = 0; k < i.settings.length; k++) { s = i.settings[k]; out.push({ label: String(s.name).toUpperCase(), value: choiceName(s), off: s.live === false, note: s.live === false && s.why ? s.why : s.note, set: s }); }
+        else for (k = 0; i.actions && k < i.actions.length; k++) { s = i.actions[k]; if ((s.group || 'more') === t) out.push({ label: String(s.name).toUpperCase(), note: s.note, act: s }); }
+        return out;
+      }
+      SY.rows = function () { var t = tabs(); return t.length ? rowsOf(t[Math.min(SY.tab, t.length - 1)]) : []; };
+      function step(s, d) {   // the next (d 1) or the one before (d -1) of a setting's choices, sent to the page
+        var c = s.choices || [], k, i = 0;
+        if (!c.length) return false;
+        for (k = 0; k < c.length; k++) if (c[k][0] === s.now) i = k;
+        i = (i + (d > 0 ? 1 : c.length - 1)) % c.length;
+        return U.host.set(s.id, c[i][0]);
+      }
+      function say(text, tone) { SY.status = String(text || ''); SY.statusAt = U.now(); SY.tone = tone || 'plain'; }
+      SY.news = function (m) {   // from the page, through 78-ui-host.js
+        if (m.kind === 'restore') { SY.ask = { id: 'restore', title: 'RESTORE', lines: [].concat(m.lines || [m.text || 'REPLACE THE SAVES IN THIS BROWSER?']) }; SY.askSel = 0; U.mk.snd('open'); say('', 'plain'); return; }
+        if (m.kind === 'wait') { say(m.text || 'FINISH IT IN THE BOX ON THE PAGE.', 'wait'); return; }
+        if (m.kind === 'reply') { say(m.text || (m.ok ? 'DONE.' : 'THAT DID NOT WORK.'), m.ok ? 'ok' : 'bad'); U.mk.snd(m.ok ? 'pick' : 'no'); return; }
+        if (m.kind === 'note' && m.text) say(m.text, 'plain');
+      };
+      SY.at = function () { var t = tabs(); return { tab: t[SY.tab] || '', tabs: t, sel: SY.sel, rows: SY.rows().map(function (r) { return r.label + (r.value ? '=' + r.value : ''); }), status: SY.status, ask: SY.ask ? SY.ask.id : '', o: SY.o }; };   // for checks
+      function goBack() {   // the way it came: the pause menu (on SYSTEM), the title (on that screen and row), the file screen
+        var o = SY.o;
+        U.mk.snd('back');
+        if (o.back === 'pause') Q.go('pause', { from: o.under || 'level', back: 'system' });
+        else if (o.back === 'files') Q.go('files', { back: o.item || '' });
+        else Q.go('title', { ph: o.ph || 'options', back: o.item || 'SYSTEM' });
+      }
+      function act(r) {
+        var a = r.act;
+        if (a.id === 'manual' && Q.level && SY.o.back === 'pause') { SY.ask = { id: 'manual', title: 'THE MANUAL', lines: ['THE BOOKLET OPENS IN THIS TAB.', 'YOUR GAME IS SAVED FIRST.'] }; SY.askSel = 0; U.mk.snd('open'); return; }
+        U.mk.snd('pick'); say(a.asking || 'ASKING THE PAGE...', 'wait'); U.host.act(a.id);
+      }
+      function answer(yes) {
+        var k = SY.ask; SY.ask = null;
+        if (k.id === 'manual') { if (yes) { Q.saveGame(); U.mk.snd('pick'); say('OPENING THE BOOKLET...', 'wait'); U.host.act('manual'); } else U.mk.snd('back'); return; }
+        U.mk.snd(yes ? 'pick' : 'back'); U.host.act(yes ? 'restoreYes' : 'restoreNo'); say(yes ? 'RESTORING: THE GAME STARTS AGAIN FROM IT.' : 'NOTHING CHANGED.', yes ? 'wait' : 'plain');
+      }
+      Q.defScene('system', {
+        wide: true,   // the scene it came from at the screen's width under a veil, the window in the centred 320 column
+        enter: function (o) {
+          var t, k;
+          U.entered();
+          SY.o = o || {}; SY.ask = null; SY.status = ''; SY.sel = 0;
+          if (U.host) U.host.info(true);
+          t = tabs(); k = t.indexOf(SY.o.tab); SY.tab = k >= 0 ? k : 0;
+          if (U.host) U.host.send({ kind: 'opened' });
+        },
+        update: function () {
+          var t = tabs(), rows, r, n, d;
+          if (U.runLater()) return;
+          if (!t.length) { goBack(); return; }   // the page offers nothing (any more)
+          if (SY.tab >= t.length) SY.tab = 0;
+          rows = rowsOf(t[SY.tab]); n = rows.length;
+          if (SY.ask) {   // NO is the default; any arrow switches
+            if (U.press('left') || U.press('right') || U.press('up') || U.press('down')) { SY.askSel = 1 - SY.askSel; U.mk.snd('move'); }
+            if (U.press('b')) { answer(false); return; }
+            if (U.press('a') || U.press('start')) answer(SY.askSel === 1);
+            return;
+          }
+          if (U.press('b')) { goBack(); return; }
+          if (U.press('c')) { SY.tab = (SY.tab + 1) % t.length; SY.sel = 0; U.mk.snd('tab'); return; }
+          if (U.press('up')) { SY.sel = SY.sel <= -1 ? n - 1 : SY.sel - 1; U.mk.snd('move'); }
+          else if (U.press('down')) { SY.sel = SY.sel >= n - 1 ? -1 : SY.sel + 1; U.mk.snd('move'); }
+          if (SY.sel >= n) SY.sel = n - 1;
+          if (SY.sel < 0) {   // on the tab bar: left and right change the tab, A goes into its list
+            if (U.press('left')) { SY.tab = (SY.tab + t.length - 1) % t.length; U.mk.snd('tab'); }
+            else if (U.press('right')) { SY.tab = (SY.tab + 1) % t.length; U.mk.snd('tab'); }
+            if (U.press('a') || U.press('start')) { SY.sel = 0; U.mk.snd('move'); }
+            return;
+          }
+          r = rows[SY.sel]; if (!r) return;
+          d = U.press('left') ? -1 : U.press('right') ? 1 : 0;
+          if (r.set && d) { if (r.off) U.mk.snd('no'); else if (step(r.set, d)) U.mk.snd('value'); }
+          if (U.press('a') || U.press('start')) {
+            if (r.set) { if (r.off) U.mk.snd('no'); else if (step(r.set, 1)) U.mk.snd('value'); }
+            else if (r.act) act(r);
+          }
+        },
+        draw: function (g) {
+          var C = U.mk.C;
+          U.under(g, SY.o.back === 'title' ? 'title' : SY.o.back === 'files' ? 'files' : (SY.o.under || 'level'));
+          U.fill(g, 0, 179, Q.W, 21, C.foot); U.fill(g, 0, 179, Q.W, 1, C.hi);
+          Q.col(g, systemDraw);
+          U.drawTalk(g);
+        },
+        leave: function () { if (U.host) U.host.send({ kind: 'shut' }); }
+      });
+      function systemDraw(g) {
+        var K = U.mk, C = K.C, t = tabs(), names = [], i, rows = SY.rows(), cur, fresh = SY.status && U.now() - SY.statusAt < 9, help, col;
+        for (i = 0; i < t.length; i++) names.push(NAMES[t[i]] || String(t[i]).toUpperCase());
+        K.window(g, 4, 4, 312, 172, 'SYSTEM', 'sys', function () {
+          K.tabs(g, 12, 22, 296, names, SY.tab, SY.sel < 0 && !SY.ask);
+          K.list(g, 4, 39, 312, rows, SY.ask || SY.sel < 0 ? -1 : SY.sel, 'sys-' + (t[SY.tab] || ''), { pad: 16, right: 12 });
+          cur = SY.sel >= 0 ? rows[SY.sel] : null;
+          help = fresh ? SY.status : cur ? cur.note : 'LEFT AND RIGHT: THE TABS. DOWN OR A: INTO THE LIST.';
+          col = fresh ? (SY.tone === 'bad' ? '#ff9a9a' : SY.tone === 'ok' ? C.teal : SY.tone === 'wait' ? C.yel : C.help) : C.help;
+          K.help(g, 4, 140, 312, help, col);
+        });
+        K.foot(g, (info() && info().where) || FOOT[t[SY.tab]] || '', 'C: TAB  A: OK  B: BACK');
+        if (SY.ask) K.ask(g, 'sys-ask', SY.ask.title, SY.ask.lines, ['NO', 'YES'], SY.askSel, { danger: SY.ask.id !== 'manual' });
+      }
+    })();
     // ===== 79-ui-card.js =====
     // ---------- 79-ui-card.js: the level cards (UI, builder 5) ----------
     // When a level starts (the HUD sees Q.level's id change), a band slides in across the top third for about 2 s: the world and level number and its name
@@ -7567,10 +7874,12 @@
     (function () {
       var U = Q.ui, FS = { sel: 0, erase: false, ask: false, askSel: 0, leave: '', fade: 0, t: 0, opt: null };
       var SKY = U.grad('#090d26', '#1d2858', 19), CX = 24, CW = 272, CH = 40;
-      function cardY(i) { return 30 + i * 44; }
+      function cardY(i) { return 25 + i * 44; }
+      function backup() { return !FS.erase && !!(U.host && U.host.has() && U.host.can('saveFile')); }   // B20: BACK UP OR MOVE THEM, only where the page offers its saves (78-ui-system.js)
+      function rows() { return FS.erase ? 4 : backup() ? 5 : 4; }
       U.anySave = function () { var f = Q.files ? Q.files() : [], i; for (i = 0; i < f.length; i++) if (!f[i].empty) return true; return false; };
       U.filesAt = function () { return { sel: FS.sel, erase: FS.erase, ask: FS.ask, files: Q.files ? Q.files() : [] }; };   // for checks
-      function leave(what) { FS.leave = what; FS.fade = 0; Q.sfx('select'); }
+      function leave(what) { FS.leave = what; FS.fade = 0; U.mk.snd('pick'); }
       function go() {
         var what = FS.leave; FS.leave = '';
         if (what === 'start') {   // a new game in this file: the player's settings come along from the file before
@@ -7578,27 +7887,29 @@
           if (Q.scene === 'files') Q.go('intro');
         } else { U.applyOpt(); Q.continueGame(); if (Q.scene === 'files') Q.go('map'); }   // a used file carries on with its own settings (its MUSIC level at once: B17)
       }
-      function card(g, f, i) {
-        var y = cardY(i), on = i === FS.sel && !FS.ask, k, x = CX + 64;
-        U.box(g, CX, y, CW, CH, on ? (FS.erase ? '#ff5a5a' : '#ffd23f') : '#3c4680', on ? '#1d1d24' : '#141a3a');
-        U.text('FILE ' + f.n, CX + 8, y + 7, on ? '#ffd23f' : '#c3c7d4');
-        U.sprite(g, U.hero(), on && !f.empty && Math.floor(FS.t * 2) % 2 ? 9 : 8, CX + 14, y + 16, 1);
-        if (f.empty) { U.text('NEW GAME', x, y + 14, on ? '#f6efe2' : '#7f8ab8', 2); return; }
+      function card(g, f, i) {   // B20: a kit window; its FILE label is the picked bar (red while erasing), its brackets yellow (or red) when picked
+        var y = cardY(i), on = i === FS.sel && !FS.ask, k, x = CX + 64, K = U.mk, C = K.C, red = FS.erase;
+        K.frame(g, CX, y, CW, CH, on ? { accent: red ? C.red : C.yel } : { accent: C.hi, fill: '#0e1324' });
+        if (on) K.bar(g, CX + 3, y + 6, 54, red ? { col: C.red, tab: C.redD } : null);
+        U.item('FILE ' + f.n, CX + 16, y + 6, on, false, null, 1, 'bar');
+        U.sprite(g, U.hero(), on && !f.empty && Math.floor(FS.t * 2) % 2 ? 9 : 8, CX + 22, y + 17, 1);
+        if (f.empty) { U.text('NEW GAME', x, y + 14, on ? C.cream : C.dim, 2); return; }
         for (k = 0; k < f.hearts; k++) U.text('~', x + k * 8, y + 8, '#ff5a7a');
-        U.text('LV ' + f.lv, x + 76, y + 8, '#f6efe2');
-        if (f.won) U.text('ALL DONE', CX + CW - 8, y + 8, '#ffd23f', 1, 'right');
-        U.text('WORLDS ' + f.worlds + '/4', x, y + 24, '#c3c7d4');
-        U.starIcon(g, x + 84, y + 21, f.stars > 0); U.text(f.stars + '/' + U.starIds().length, x + 99, y + 24, f.stars > 0 ? '#ffd23f' : '#7f8ab8');
-        U.text(U.clock(f.time), CX + CW - 8, y + 24, '#8f9ac8', 1, 'right');   // its play time (B19, part 20)
-        if (f.code) {   // a file where a cheat code was typed: an orange star before its time and a CODES stamp on the top row (like an old cartridge's sticker)
-          if (U.watchMark) U.watchMark(CX + CW - 15 - U.width(U.clock(f.time)), y + 24);
-          U.text('CODES', f.won ? CX + CW - 16 - U.width('ALL DONE') : CX + CW - 8, y + 8, '#ff8a1e', 1, 'right');
+        U.text('LV ' + f.lv, x + 76, y + 8, C.cream);
+        if (f.won) U.text('ALL DONE', CX + CW - 9, y + 8, C.yel, 1, 'right');
+        U.text('WORLDS ' + f.worlds + '/4', x, y + 24, C.help);
+        U.starIcon(g, x + 84, y + 21, f.stars > 0); U.text(f.stars + '/' + U.starIds().length, x + 99, y + 24, f.stars > 0 ? C.yel : C.muted);
+        U.text(U.clock(f.time), CX + CW - 9, y + 24, C.muted, 1, 'right');   // its play time (B19, part 20)
+        if (f.code) {   // a file where a cheat code was typed: an orange star before its time and a CODES stamp on the top row (B19's, like an old cartridge's sticker)
+          if (U.watchMark) U.watchMark(CX + CW - 16 - U.width(U.clock(f.time)), y + 24);
+          U.text('CODES', f.won ? CX + CW - 17 - U.width('ALL DONE') : CX + CW - 9, y + 8, '#ff8a1e', 1, 'right');
         }
       }
       Q.defScene('files', {
-        enter: function () {
+        enter: function (opts) {
           U.entered(); U.cancel(); U.clearToasts();
-          FS.sel = Q.fileNow ? Q.fileNow() - 1 : 0; FS.erase = false; FS.ask = false; FS.leave = ''; FS.fade = 0; FS.t = 0;
+          FS.erase = false; FS.ask = false; FS.leave = ''; FS.fade = 0; FS.t = 0;
+          FS.sel = opts && opts.back === 'backup' && backup() ? 4 : Q.fileNow ? Q.fileNow() - 1 : 0;   // back from the SYSTEM screen's saves: on BACK UP
           FS.opt = Q.SAVE && Q.SAVE.opt ? Q.SAVE.opt : null;
           Q.music('title');
         },
@@ -7608,37 +7919,42 @@
           if (FS.leave) { FS.fade += dt / 0.45; if (FS.fade >= 1) go(); return; }
           if (Q.talking()) return;
           if (FS.ask) {   // ERASE FILE n? NO is the default
-            if (U.press('left') || U.press('right') || U.press('up') || U.press('down')) { FS.askSel = 1 - FS.askSel; Q.sfx('move'); }
-            if (U.press('b')) { FS.ask = false; Q.sfx('back'); return; }
+            if (U.press('left') || U.press('right') || U.press('up') || U.press('down')) { FS.askSel = 1 - FS.askSel; U.mk.snd('move'); }
+            if (U.press('b')) { FS.ask = false; U.mk.snd('back'); return; }
             if (U.press('a') || U.press('start')) {
               FS.ask = false;
-              if (FS.askSel) { Q.eraseFile(FS.sel + 1); FS.erase = false; Q.sfx('hit'); } else Q.sfx('back');
+              if (FS.askSel) { Q.eraseFile(FS.sel + 1); FS.erase = false; Q.sfx('hit'); } else U.mk.snd('back');
             }
             return;
           }
-          FS.sel = U.menuMove(FS.sel, 4);
-          if (U.press('b')) { if (FS.erase) { FS.erase = false; Q.sfx('back'); } else { Q.sfx('back'); Q.go('title', { back: 'FILE' }); } return; }   // back to the title's menu, on FILE (B17)
+          FS.sel = U.menuMove(Math.min(FS.sel, rows() - 1), rows());
+          if (U.press('b')) { if (FS.erase) { FS.erase = false; U.mk.snd('back'); } else { U.mk.snd('back'); Q.go('title', { back: 'FILE' }); } return; }   // back to the title's menu, on FILE (B17)
           if (U.press('a') || U.press('start')) {
-            if (FS.sel === 3) { FS.erase = !FS.erase; FS.sel = FS.erase ? 0 : 3; Q.sfx('select'); return; }
+            if (FS.sel === 3) { FS.erase = !FS.erase; FS.sel = FS.erase ? 0 : 3; U.mk.snd('pick'); return; }
+            if (FS.sel === 4) { U.mk.snd('pick'); U.host.open({ back: 'files', tab: 'saves', item: 'backup' }); return; }   // B20: the page's backups, on the SYSTEM screen's SAVES tab
             list = Q.files(); f = list[FS.sel];
-            if (FS.erase) { if (f.empty) Q.sfx('nope'); else { FS.ask = true; FS.askSel = 0; Q.sfx('select'); } return; }
+            if (FS.erase) { if (f.empty) U.mk.snd('no'); else { FS.ask = true; FS.askSel = 0; U.mk.snd('open'); } return; }
             if (Q.SAVE && Q.SAVE.opt) FS.opt = Q.SAVE.opt;
             Q.useFile(f.n); leave(f.empty ? 'start' : 'continue');
           }
         },
         draw: function (g) {
           var list = Q.files ? Q.files() : [], i;
+          var K = U.mk, C = K.C, low = FS.erase ? ['CANCEL'] : backup() ? ['ERASE A FILE', 'BACK UP OR MOVE THEM'] : ['ERASE A FILE'], j, y, on, by, f0 = list[FS.sel];
           U.bands(g, SKY, 0, 11);
-          U.text(FS.erase ? 'ERASE WHICH FILE?' : 'CHOOSE A FILE', 160, 9, FS.erase ? '#ff8a8a' : '#f6efe2', 2, 'center');
+          U.text(FS.erase ? 'ERASE WHICH FILE?' : 'CHOOSE A FILE', 160, 6, FS.erase ? '#ff8a8a' : C.cream, 2, 'center');
           for (i = 0; i < list.length; i++) card(g, list[i], i);
-          U.item(FS.erase ? 'CANCEL' : 'ERASE A FILE', 160, 167, FS.sel === 3 && !FS.ask, false, 'center');
-          U.text(FS.erase ? 'A: ERASE THAT FILE   B: CANCEL' : 'A: PLAY   B: BACK', 160, 186, '#8f9ac8', 1, 'center');
-          if (FS.ask) {
-            U.box(g, 56, 70, 208, 62, '#ff5a5a', '#1d1d24');
-            U.text('ERASE FILE ' + (FS.sel + 1) + '?', 160, 80, '#ffffff', 1, 'center');
-            U.text('IT CANNOT BE UNDONE.', 160, 93, '#c3c7d4', 1, 'center');
-            U.item('NO', 128, 113, FS.askSel === 0, false, 'center'); U.item('YES', 192, 113, FS.askSel === 1, false, 'center');
+          for (j = 0; j < low.length; j++) {   // ERASE A FILE (CANCEL while erasing), then BACK UP OR MOVE THEM on a page
+            y = 158 + j * 10; on = FS.sel === 3 + j && !FS.ask;
+            if (on) { by = K.barY('files-low', y); K.bar(g, 160 - 66, by, 132); }
+            U.item(low[j], 160, y, on, false, 'center', 1, 'bar');
           }
+          if (by !== undefined && by !== 158 + (FS.sel - 3) * 10) K.glideInk(g, 160 - 66, by - 2, 132, K.ROW, 156, 158 + low.length * 10,   // gliding: as the menu kit's lists
+            function () { for (j = 0; j < low.length; j++) if (3 + j !== FS.sel) U.text(low[j], 160, 158 + j * 10, C.ink, 1, 'center'); },
+            function () { U.text(low[FS.sel - 3], 160, 158 + (FS.sel - 3) * 10, C.cream, 1, 'center'); });
+          K.foot(g, FS.ask ? '' : FS.sel < 3 ? (FS.erase ? 'WHICH ONE?' : f0 && f0.empty ? 'A NEW GAME IN THIS FILE' : 'ON FROM ITS LAST SAVE') : FS.sel === 3 ? (FS.erase ? 'NOTHING IS ERASED' : 'EMPTY ONE OF THE FILES') : 'TO A FILE OR A CODE',
+            FS.erase ? 'A: ERASE IT  B: CANCEL' : 'A: PLAY  B: BACK');
+          if (FS.ask) K.ask(g, 'files-ask', 'ERASE', ['ERASE FILE ' + (FS.sel + 1) + '?', 'IT CANNOT BE UNDONE.'], ['NO', 'YES'], FS.askSel, { danger: true });
           if (FS.leave) { g.globalAlpha = Q.clamp(FS.fade, 0, 1); U.fill(g, 0, 0, 320, 200, '#000000'); g.globalAlpha = 1; }
           U.drawTalk(g);
         },
@@ -15107,6 +15423,7 @@
         if (Q.scene !== sc0 || !!Q.talking() !== tk0) engTakeAll();
       }
       if (engAcc > Q.DT || engAcc < 0) engAcc = 0;   // behind by more than four steps: let it go
+      if (Q.ui && Q.ui.hostFrame) { try { Q.ui.hostFrame(dt); } catch (er0) { engErr('hostFrame', 'the page bridge', er0); } }   // B20: the page's messages, once a frame (78-ui-host.js; nothing without a page)
       try { Q.audioFrame(dt); } catch (er) { engErr('audioFrame', 'audio', er); }
       sc = engOwn(Q.SCENE, Q.scene) ? Q.SCENE[Q.scene] : null;
       if (sc && sc.draw) { try { engDrawScene(Q.g, Q.scene); } catch (er2) { engErr('draw', 'scene ' + Q.scene, er2); } if (engCheatOn('green')) engGreen(Q.g); }   // GREEN SCREEN over everything

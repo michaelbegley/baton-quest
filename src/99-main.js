@@ -75,6 +75,7 @@
         if (Q.scene !== sc0 || !!Q.talking() !== tk0) engTakeAll();
       }
       if (engAcc > Q.DT || engAcc < 0) engAcc = 0;   // behind by more than four steps: let it go
+      if (Q.ui && Q.ui.hostFrame) { try { Q.ui.hostFrame(dt); } catch (er0) { engErr('hostFrame', 'the page bridge', er0); } }   // B20: the page's messages, once a frame (78-ui-host.js; nothing without a page)
       try { Q.audioFrame(dt); } catch (er) { engErr('audioFrame', 'audio', er); }
       sc = engOwn(Q.SCENE, Q.scene) ? Q.SCENE[Q.scene] : null;
       if (sc && sc.draw) { try { engDrawScene(Q.g, Q.scene); } catch (er2) { engErr('draw', 'scene ' + Q.scene, er2); } if (engCheatOn('green')) engGreen(Q.g); }   // GREEN SCREEN over everything

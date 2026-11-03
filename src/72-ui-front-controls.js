@@ -50,30 +50,24 @@
       FE.ph.controls = {
         enter: function (sel) { FE.tab = typeof sel === 'number' ? Q.clamp(sel, 0, 2) : 0; },
         update: function () {
-          if (FE.press('b')) { Q.sfx('back'); FE.to('options', 'CONTROLS'); return; }
-          if (FE.press('left')) { FE.tab = (FE.tab + 2) % 3; Q.sfx('move'); }
-          else if (FE.press('right') || FE.press('a')) { FE.tab = (FE.tab + 1) % 3; Q.sfx('move'); }
+          if (FE.press('b')) { U.mk.snd('back'); FE.to('options', 'CONTROLS'); return; }
+          if (FE.press('left')) { FE.tab = (FE.tab + 2) % 3; U.mk.snd('tab'); }
+          else if (FE.press('right') || FE.press('a') || FE.press('c')) { FE.tab = (FE.tab + 1) % 3; U.mk.snd('tab'); }
         },
-        draw: function (g) {
-          var i, x = 120, name = TABS[FE.tab], rows = ROWS[name], y, w;
-          U.box(g, 6, 6, 308, 170, '#2ec4b6', '#12141c');
-          U.text('CONTROLS', 16, 13, '#ffffff', 2);
-          for (i = 0; i < 3; i++) {   // the tabs, the one showing framed in gold
-            w = U.width(TABS[i]) + 10;
-            if (i === FE.tab) U.box(g, x, 11, w, 15, '#ffd23f', '#262838'); else U.fill(g, x + 1, 12, w - 2, 13, '#14161f');
-            U.text(TABS[i], x + 5, 15, i === FE.tab ? '#ffd23f' : '#8a93a8');
-            x += w + 4;
-          }
-          U.fill(g, 12, 31, 296, 1, '#2a2c3a');
-          if (name === 'KEYS') keyboard(g, 12, 66); else if (name === 'TOUCH') pocket(g, 30, 48); else pad(g, 10, 64);
-          for (i = 0; i < rows.length; i++) {
-            y = 42 + i * 15;
-            U.fill(g, 112, y + 1, 3, 3, rows[i][2]);
-            U.text(rows[i][0], 120, y, rows[i][2] === CM ? '#c3c7d4' : rows[i][2]);
-            U.text(rows[i][1], 160, y, '#f6efe2');
-          }
-          U.text(name === 'TOUCH' ? 'ON A PHONE OR TABLET: THE 9F POCKET' : name === 'KEYS' ? 'ESC: BACK TO THE 9F DESKTOP' : 'BACK: TO THE 9F DESKTOP', 160, 164, '#5d6378', 1, 'center');
-          FE.foot('LEFT AND RIGHT: KEYS, TOUCH, CONTROLLER', 'B: BACK');
+        draw: function (g) {   // B20: in the menu kit's window, its tabs on the kit's tab bar (the open one with the focus: the yellow bar)
+          var i, name = TABS[FE.tab], rows = ROWS[name], y;
+          U.mk.window(g, 6, 3, 308, 174, 'CONTROLS', 'fe-controls', function () {
+            U.mk.tabs(g, 14, 22, 292, TABS, FE.tab, true);
+            if (name === 'KEYS') keyboard(g, 12, 66); else if (name === 'TOUCH') pocket(g, 30, 48); else pad(g, 10, 64);
+            for (i = 0; i < rows.length; i++) {
+              y = 42 + i * 15;
+              U.fill(g, 112, y + 1, 3, 3, rows[i][2]);
+              U.text(rows[i][0], 120, y, rows[i][2] === CM ? '#c3c7d4' : rows[i][2]);
+              U.text(rows[i][1], 160, y, '#f6efe2');
+            }
+            U.text(name === 'TOUCH' ? 'ON A PHONE OR TABLET: THE 9F POCKET' : name === 'KEYS' ? 'ESC: BACK TO THE 9F DESKTOP' : 'BACK: TO THE 9F DESKTOP', 160, 164, U.mk.C.dim, 1, 'center');
+          });
+          FE.foot('LEFT, RIGHT OR C: KEYS, TOUCH, CONTROLLER', 'B: BACK');
         }
       };
     })();

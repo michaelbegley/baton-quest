@@ -74,7 +74,7 @@
           var k = (FE.drop - 0.5) % 1.1, tips = Q.story && Q.story.tips, tk;
           if (FE.drop >= 0.5 && k < 0.75) U.text('PRESS START', MX, 126, '#ffd23f', 2, 'center');   // a slow blink, small on the screen (XAG 118)
           if (tips && tips.length) { tk = (t % 5) / 5; U.text(String(tips[Math.floor(t / 5) % tips.length]), 160, 168, tk < 0.06 || tk > 0.94 ? '#3c4680' : '#7f8ab8', 1, 'center'); }   // STORY's tips (part 13, 13)
-          U.fill(g, 0, 179, 320, 15, '#10173a'); U.text('MADE ON THE NINTH FLOOR', 160, 183, '#8f9ac8', 1, 'center');
+          U.mk.foot(g, '', ''); U.text('MADE ON THE NINTH FLOOR', 160, 183, U.mk.C.muted, 1, 'center');
         }
       };
       // ---- MENU ----
@@ -83,24 +83,24 @@
         update: function () {
           var list = FE.items(), it;
           if (FE.ask) {   // NEW GAME over a save: ask first (NO is the default)
-            if (FE.press('left') || FE.press('right') || FE.press('up') || FE.press('down')) { FE.askSel = 1 - FE.askSel; Q.sfx('move'); }
-            if (FE.press('b')) { FE.ask = false; Q.sfx('back'); return; }
-            if (FE.press('a') || FE.press('start')) { FE.ask = false; if (FE.askSel) FE.go('start'); else Q.sfx('back'); }
+            if (FE.press('left') || FE.press('right') || FE.press('up') || FE.press('down')) { FE.askSel = 1 - FE.askSel; U.mk.snd('move'); }
+            if (FE.press('b')) { FE.ask = false; U.mk.snd('back'); return; }
+            if (FE.press('a') || FE.press('start')) { FE.ask = false; if (FE.askSel) FE.go('start'); else U.mk.snd('back'); }
             return;
           }
-          if (FE.press('b')) { Q.sfx('back'); FE.to('title'); return; }   // back to PRESS START (the logo already in place)
+          if (FE.press('b')) { U.mk.snd('back'); FE.to('title'); return; }   // back to PRESS START (the logo already in place)
           FE.sel = FE.move(Math.min(FE.sel, list.length - 1), list.length);
           if (!(FE.press('a') || FE.press('start'))) return;
           it = list[FE.sel];
           if (it === 'CONTINUE') FE.go('continue');
-          else if (it === 'NEW GAME') { if (FE.has) { FE.ask = true; FE.askSel = 0; Q.sfx('select'); } else FE.go('start'); }
+          else if (it === 'NEW GAME') { if (FE.has) { FE.ask = true; FE.askSel = 0; U.mk.snd('open'); } else FE.go('start'); }
           else if (it.indexOf('FILE ') === 0) FE.go('files');
           else if (it === 'GAME MODES') {
-            if (FE.modes()) { Q.sfx('select'); FE.back('menu', 'GAME MODES', FE.MODES); Q.go(FE.MODES); }   // BATTLE's own screen; its B comes back here
-            else { Q.sfx('nope'); FE.soon = 1.4; }   // COMING SOON: nothing starts
+            if (FE.modes()) { U.mk.snd('pick'); FE.back('menu', 'GAME MODES', FE.MODES); Q.go(FE.MODES); }   // BATTLE's own screen; its B comes back here
+            else { U.mk.snd('no'); FE.soon = 1.4; }   // COMING SOON: nothing starts
           }
-          else if (it === 'OPTIONS') { Q.sfx('select'); FE.to('options', 0); }
-          else if (it === 'EXTRAS') { Q.sfx('select'); FE.to('extras', 0); }
+          else if (it === 'OPTIONS') { U.mk.snd('pick'); FE.to('options', 0); }
+          else if (it === 'EXTRAS') { U.mk.snd('pick'); FE.to('extras', 0); }
         },
         draw: function (g, t) { FE.drawMenu(g, t); }
       };
@@ -124,32 +124,20 @@
         tx = x + ((r - 3 - x) >> 1) - (U.width(s) >> 1);
         U.text(s, tx + 1, yy + 3, '#a5383b'); U.text(s, tx, yy + 2, '#ffffff');
       };
-      FE.drawMenu = function (g) {
-        var list = FE.items(), n = list.length, i, y, it, on, soon, top = 106, row = 11, gx;
-        U.box(g, BX, top, BW, n * row + 6, '#2ec4b6', '#12141c');
-        for (i = 0; i < n; i++) {
-          it = list[i]; y = top + 5 + i * row; on = i === FE.sel && !FE.ask; soon = it === 'GAME MODES' && !FE.modes();
-          if (on) U.fill(g, BX + 3, y - 2, BW - 6, row, '#262838');
-          U.item(it, BX + 16, y, on, soon && !on);
-          if (it === 'CONTINUE' && FE.gold) {   // the save's GOLD STARS beside it (part 14.2)
-            gx = BX + BW - 10 - U.width(FE.gold.n + '/' + FE.gold.all);
-            U.starIcon(g, gx - 15, y - 3, FE.gold.n > 0); U.text(FE.gold.n + '/' + FE.gold.all, gx, y, FE.gold.n > 0 ? '#ffd23f' : '#7f8ab8');
-          }
-          if (soon) FE.ribbon(g, BX + 24 + U.width(it), y - 2, BX + BW, FE.soon > 0 ? (Math.floor(FE.t * 30) % 2 ? 1 : -1) : 0);
+      FE.drawMenu = function (g) {   // B20: in the menu kit's window (71-ui-menu.js), its foot on the screen's foot band
+        var list = FE.items(), n = list.length, i, rows = [], K = U.mk, h = 6 + n * K.ROW + 3, top = 178 - h, soon;
+        function stars(gx, y, on) { var s = FE.gold.n + '/' + FE.gold.all; U.starIcon(Q.g, gx - U.width(s) - 15, y - 3, FE.gold.n > 0); U.text(s, gx, y, on ? K.C.ink : FE.gold.n > 0 ? K.C.yel : K.C.muted, 1, 'right'); }
+        for (i = 0; i < n; i++) rows.push({ label: list[i], off: list[i] === 'GAME MODES' && !FE.modes(),
+          draw: list[i] === 'CONTINUE' && FE.gold ? function (g2, x, y, on) { stars(BX + BW - 9, y, on); } : null });   // the save's GOLD STARS beside CONTINUE (part 14.2)
+        K.window(g, BX, top, BW, h, '', 'fe-menu', function () { K.list(g, BX, top + 6, BW, rows, FE.ask ? -1 : FE.sel, 'fe-menu'); });
+        for (i = 0; i < n; i++) {   // COMING SOON folds round the window's edge, so it is drawn over it, outside its clip
+          soon = list[i] === 'GAME MODES' && !FE.modes();
+          if (soon && K.opening('fe-menu') >= 1) FE.ribbon(g, BX + 24 + U.width(list[i]), top + 4 + i * K.ROW, BX + BW, FE.soon > 0 ? (Math.floor(FE.t * 30) % 2 ? 1 : -1) : 0);
         }
-        FE.foot(FE.line(list[FE.sel]), 'A: CHOOSE   B: BACK');
-        if (FE.ask) {
-          U.box(g, 56, 70, 208, 62, '#ffd23f', '#1d1d24');
-          U.text('START A NEW GAME?', 160, 80, '#ffffff', 1, 'center');
-          U.text('FILE ' + (Q.fileNow ? Q.fileNow() : 1) + "'S SAVE WILL BE REPLACED.", 160, 93, '#c3c7d4', 1, 'center');
-          U.item('NO', 128, 113, FE.askSel === 0, false, 'center'); U.item('YES', 192, 113, FE.askSel === 1, false, 'center');
-        }
+        FE.foot(FE.line(list[FE.sel]), 'A: CHOOSE  B: BACK');
+        if (FE.ask) K.ask(g, 'fe-ask', 'NEW GAME', ['START A NEW GAME?', 'FILE ' + (Q.fileNow ? Q.fileNow() : 1) + "'S SAVE WILL BE REPLACED."], ['NO', 'YES'], FE.askSel, { danger: true });
       };
-      FE.foot = function (left, right) {   // the band at the foot of every menu screen: what the chosen thing does, and the buttons
-        U.fill(Q.g, 0, 179, 320, 15, '#10173a');
-        if (left) U.text(left, 6, 183, '#c3c7d4');
-        if (right) U.text(right, 314, 183, '#6f7bb0', 1, 'right');
-      };
+      FE.foot = function (left, right) { U.mk.foot(Q.g, left, right); };   // the band at the foot of every menu screen: what the chosen thing does, and the buttons (B20: the kit's)
       // ---- what every screen after the splash stands on: the night and its drift, the podium and the conductor keeping time, the logo ----
       function logo(g, t) {
         var x = LX, y = LY + Math.round(Math.sin(t * 1.6) * 1), p, i, sx, tip = U.logoTip ? U.logoTip() : null, K = U.logoKit;
@@ -195,7 +183,7 @@
           ret = opts.back ? { ph: opts.ph || 'menu', item: String(opts.back) } : FE.ret && FE.left === FE.ret.via && FE.leftAt === U.now() ? FE.ret : null;   // back from where we went (only straight back from it)
           FE.ret = null;
           if (FE.opened !== Q.api) { FE.opened = Q.api; if (FE.ph.boot) { FE.to('boot'); return; } FE.to('title', 'drop'); return; }   // the game has just been opened: the splash, then the title
-          if (ret && ret.ph === 'extras' && FE.ph.extras) { FE.to('extras', ret.item); return; }
+          if (ret && ret.ph !== 'menu' && ret.ph !== 'boot' && FE.ph[ret.ph]) { FE.to(ret.ph, ret.item); return; }   // back into EXTRAS, or OPTIONS (B20: from its SYSTEM screen), on that row
           list = FE.items(); i = ret ? FE.find(list, ret.item) : -1;
           FE.to('menu', i >= 0 ? i : 0);
         },
@@ -229,7 +217,7 @@
           g.save(); g.beginPath(); g.rect(0, 0, Q.W, 152); g.clip();
           for (i = 0; i < FE.drift.length; i++) { d = FE.drift[i]; for (k = -1; k <= 1; k++) Q.spr(g, d.k === 0 ? 'u5-env' : d.k === 1 ? 'u5-tix' : 'u5-note', 0, ox + Math.round(d.x) + k * 340, Math.round(d.y + Math.sin(t + d.ph) * 2)); }
           g.restore();
-          if (Q.scene === 'title') U.fill(g, 0, 179, Q.W, 15, '#10173a');   // (under the codex: no foot band)
+          if (Q.scene === 'title') { U.fill(g, 0, 179, Q.W, 15, U.mk.C.foot); U.fill(g, 0, 179, Q.W, 1, U.mk.C.hi); }   // (under the codex: no foot band) B20: the kit's band
           if (FE.leave) { g.globalAlpha = Q.clamp(FE.fade, 0, 1); U.fill(g, 0, 0, Q.W, 200, '#000000'); g.globalAlpha = 1; }
         },
         leave: function () { FE.notes = []; }

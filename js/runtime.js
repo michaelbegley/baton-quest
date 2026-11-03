@@ -24,6 +24,20 @@
     // Online play: the page gives setNet(its net, js/net.js). A game reads api.net: plain JSON both ways (sent as text, parsed here, 16000 characters at most), every
     // call caught, nothing of the page's handed over. Without a net, api.net.ok() is false and every call does nothing.
     function setNet(n) { net = n && typeof n === 'object' ? n : null; }
+    // ---------- the page bridge (B20, 2 Nov; QUEST-API.md part 22): the page gives setHost({ info: function () }), and its game may ask it things in plain messages ----------
+    // The game never touches the page. api.host.info() is a plain copy of what the page offers now (null without a host); api.host.send(msg) queues a plain
+    // message the page reads with arcade.hostRead() after the frame; the page's arcade.hostSend(msg) queues one the game reads with api.host.read().
+    // JSON copies both ways, every call caught, at most 32 waiting each way, both emptied when a game opens (and the page's to the game when it closes).
+    var host = null, toGame = [], toPage = [];
+    function plain(x) { try { return x === undefined ? null : JSON.parse(JSON.stringify(x)); } catch (e) { return null; } }
+    function setHost(h) { host = h && typeof h === 'object' ? h : null; }
+    function hostApi() {
+      return { info: function () { if (!host || typeof host.info !== 'function') return null; try { return plain(host.info()); } catch (e) { return null; } },
+        send: function (msg) { var m = plain(msg); if (!host || !m || typeof m !== 'object' || toPage.length >= 32) return false; toPage.push(m); return true; },
+        read: function () { var out = toGame; toGame = []; return out; } };
+    }
+    function hostSend(msg) { var m = plain(msg); if (!m || typeof m !== 'object' || !cur || toGame.length >= 32) return false; toGame.push(m); return true; }
+    function hostRead() { var out = toPage; toPage = []; return out; }
     function netCall(name, a, b, def) { if (!net || typeof net[name] !== 'function') return def; try { var r = net[name](a, b); return r === undefined ? def : r; } catch (e) { return def; } }
     function netApi() {
       return {
@@ -103,14 +117,16 @@
       var pad1 = { n: 1, on: true, held: me.held, pressed: me.pressed };   // version 118: controller 1 is the main buttons
       me.pad = function (n) { n = n | 0; return n === 1 ? pad1 : PADV[n] || null; };
       me.net = netApi();
+      me.host = hostApi();   // B20
       return me;
     }
     function open(id) {   // start a game by its id; no id: the desktop
       stop(); if (!id) return true;
+      toGame = []; toPage = [];   // B20: the bridge's messages belong to one opening of a game
       for (var i = 0; i < games.length; i++) if (games[i].id === id) { curGame = games[i]; var a = api(curGame); cur = { game: curGame, api: a, run: curGame.start(a) || {} }; if (o.jot) o.jot('opened ' + curGame.name + ' on the 9F computer'); return true; }
       return false;
     }
-    function stop() { if (cur) { try { if (cur.run.stop) cur.run.stop(); } catch (e) { setTimeout(function () { throw e; }); } } cur = null; curGame = null; release(); }
+    function stop() { if (cur) { try { if (cur.run.stop) cur.run.stop(); } catch (e) { setTimeout(function () { throw e; }); } } cur = null; curGame = null; release(); toGame = []; }
     // ---------- the desktop: 9F OS, our own ----------
     function desktop(dt) {
       g.fillStyle = '#123b3f'; g.fillRect(0, 0, W, H);
@@ -146,6 +162,7 @@
     }
     var arc = { add: add, open: open, stop: stop, back: back, frame: frame, setKey: setKey, release: release, games: games, current: function () { return cur ? cur.game.id : ''; },
              run: function () { return cur ? cur.run : null; }, text: text, width: width, W: W, H: H, g: g, canvas: cv, held: held, pick: function (i) { if (i !== undefined) pick = i; return pick; }, resize: resize,
-             setPadKey: setPadKey, setPadOn: setPadOn, setNet: setNet, pads: function () { return { 2: PADV[2].on, 3: PADV[3].on, 4: PADV[4].on }; } };   // version 118
+             setPadKey: setPadKey, setPadOn: setPadOn, setNet: setNet, pads: function () { return { 2: PADV[2].on, 3: PADV[3].on, 4: PADV[4].on }; },   // version 118
+             setHost: setHost, hostSend: hostSend, hostRead: hostRead };   // B20: the page bridge
     return arc;
   }
