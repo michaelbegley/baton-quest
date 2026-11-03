@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>Baton Quest</title>
+<title>Baton Quest (Beta)</title>
 <meta name="description" content="Baton Quest: a small platforming RPG about a conductor, three agents and a tangle called SCOPE CREEP. Plays on a phone, a computer or a controller.">
 <meta name="theme-color" content="#0b1416">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Baton Quest">
-<meta property="og:title" content="Baton Quest">
+<meta property="og:title" content="Baton Quest (Beta)">
 <meta property="og:description" content="A small platforming RPG about a conductor, three agents and a tangle called SCOPE CREEP. Plays on a phone, a computer or a controller.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://michaelbegley.github.io/baton-quest/og.png">
@@ -26,7 +26,8 @@
      on top and the D-pad and A, B, C under it; sideways, the D-pad left of the screen and the buttons right of it. */
   :root {
     --night: #0b1416; --text: #e6efec; --muted: #93aaa6;
-    --shell: #efe6d2; --shell-lt: #fbf6ea; --shell-dk: #d3c6ac; --ink: #1d1d24; --bezel: #2a2622;
+    --shell: #f4eee1; --shell-lt: #fffcf6; --shell-dk: #dcd0b8; --ink: #1d1d24; --bezel: #2e2a27;
+    --btn: #ffae5e; --btn-lt: #ffd4a3; --btn-dk: #ec8f3d; --btn-ink: #4a2a10; --beta: #ff7a45;   /* the handheld's light orange buttons; the BETA tag */
     --teal: #2ec4b6; --orange: #ff8a1e; --walnut: #7a4a2a;
     --f-pix: "Silkscreen", "Courier New", monospace;
     --vh: 100vh; --pw: min(100vw, 620px);
@@ -66,46 +67,50 @@
   /* ---------- a phone or tablet: the 9F POCKET, filling the screen ---------- */
   body.pocket .pocket { position: fixed; inset: 0; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto 1fr auto; grid-template-areas: "screen screen" "brand brand" "dpad btns" "mstart mtools";
     gap: 6px 8px; padding: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
-    background: linear-gradient(180deg, var(--shell-lt), var(--shell) 40%); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-  body.pocket .screen-wrap { grid-area: screen; background: var(--bezel); border-radius: 12px 12px 34px 12px; padding: 10px 14px 14px; justify-self: center; width: 100%; max-width: calc((var(--vh) * 0.5) * 1.6 + 28px); }
-  body.pocket canvas#screen { width: 100%; height: auto; border-radius: 3px; }
+    background: linear-gradient(180deg, var(--shell-lt) 0%, var(--shell) 42%, #eee6d6 100%); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7), inset 0 -24px 48px rgba(130, 100, 50, 0.08); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  body.pocket .screen-wrap { grid-area: screen; background: linear-gradient(180deg, #3b3632, var(--bezel) 60%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 2px 0 rgba(90, 70, 40, 0.18), 0 8px 16px rgba(90, 70, 40, 0.16); border-radius: 12px 12px 34px 12px; padding: 10px 14px 14px; justify-self: center; width: 100%; max-width: calc((var(--vh) * 0.5) * 1.6 + 28px); }
+  body.pocket canvas#screen { width: 100%; height: auto; border-radius: 3px; box-shadow: 0 0 0 2px #191715; }
   .bezel-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-family: var(--f-pix); font-size: 10px; color: #8d867b; letter-spacing: 0.08em; }
+  .beta { display: inline-block; font-family: var(--f-pix); font-size: 9px; letter-spacing: 0.12em; line-height: 1; color: #fff; background: var(--beta); border-radius: 4px; padding: 3px 5px 2px; box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25); }
+  body.desk .pill.betatag { background: rgba(14, 20, 22, 0.8); color: #ffb98a; border: 1px solid rgba(255, 122, 69, 0.55); cursor: default; }
+  body.pocket .pill.betatag { display: none; }
   .led { width: 7px; height: 7px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 7px var(--teal); }
   .led.off { background: #3a4442; box-shadow: none; }
-  .brand { grid-area: brand; font-family: var(--f-pix); font-size: 11px; color: #8a7d66; letter-spacing: 0.1em; display: flex; align-items: center; gap: 6px; pointer-events: none; padding-left: 4px; }
+  .brand { grid-area: brand; font-family: var(--f-pix); font-size: 11px; color: #9a8b70; letter-spacing: 0.1em; display: flex; align-items: center; gap: 6px; pointer-events: none; padding-left: 4px; }
   .badge { display: inline-block; width: 1.9em; height: 1.9em; border-radius: 50%; background: var(--orange); color: #fff; text-align: center; line-height: 1.9em; font-size: 0.85em; }
   /* the D-pad: one pad, so a thumb can slide round it (diagonals too) */
   .dpad { grid-area: dpad; position: relative; justify-self: center; align-self: center; width: calc(min(40vw, calc(var(--vh) * 0.27), 230px) * var(--btnk, 1)); aspect-ratio: 1; touch-action: none; cursor: pointer; }
-  .dpad .bar { position: absolute; background: var(--ink); border-radius: 8px; box-shadow: inset 0 -4px 0 #0e0e12, 0 3px 0 rgba(0, 0, 0, 0.18); }
+  .dpad .bar { position: absolute; background: linear-gradient(180deg, #3c3835, #2a2725); border-radius: 8px; box-shadow: inset 0 -4px 0 #1a1817, inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 3px 0 rgba(110, 80, 40, 0.22); }
   .dpad .h { left: 0; right: 0; top: 33.5%; height: 33%; }
   .dpad .v { top: 0; bottom: 0; left: 33.5%; width: 33%; }
-  .dpad .hub { position: absolute; left: 41%; top: 41%; width: 18%; height: 18%; border-radius: 50%; background: #2b2b35; }
+  .dpad .hub { position: absolute; left: 41%; top: 41%; width: 18%; height: 18%; border-radius: 50%; background: #34302d; box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.35); }
   .dpad i { position: absolute; width: 0; height: 0; border: 7px solid transparent; opacity: 0.55; }
   .dpad i.u { left: 50%; top: 7%; transform: translateX(-50%); border-bottom-color: #9aa0b4; border-top-width: 0; }
   .dpad i.d { left: 50%; bottom: 7%; transform: translateX(-50%); border-top-color: #9aa0b4; border-bottom-width: 0; }
   .dpad i.l { top: 50%; left: 7%; transform: translateY(-50%); border-right-color: #9aa0b4; border-left-width: 0; }
   .dpad i.r { top: 50%; right: 7%; transform: translateY(-50%); border-left-color: #9aa0b4; border-right-width: 0; }
-  .dpad.on-up i.u { border-bottom-color: var(--teal); opacity: 1; } .dpad.on-down i.d { border-top-color: var(--teal); opacity: 1; }
-  .dpad.on-left i.l { border-right-color: var(--teal); opacity: 1; } .dpad.on-right i.r { border-left-color: var(--teal); opacity: 1; }
+  .dpad.on-up i.u { border-bottom-color: var(--btn); opacity: 1; } .dpad.on-down i.d { border-top-color: var(--btn); opacity: 1; }
+  .dpad.on-left i.l { border-right-color: var(--btn); opacity: 1; } .dpad.on-right i.r { border-left-color: var(--btn); opacity: 1; }
   /* the face buttons: B and A on a slant, C (the dash) under A */
   .btns { grid-area: btns; position: relative; justify-self: center; align-self: center; width: calc(min(46vw, calc(var(--vh) * 0.3), 260px) * var(--btnk, 1)); aspect-ratio: 1.05; }
-  .face { position: absolute; width: 38%; aspect-ratio: 1; border-radius: 50%; border: 0; color: var(--ink); font-size: clamp(14px, 4.2vw, 22px);
-    box-shadow: inset 0 -5px 0 rgba(0, 0, 0, 0.25), 0 3px 0 rgba(0, 0, 0, 0.2); touch-action: none; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
+  .face { position: absolute; width: 38%; aspect-ratio: 1; border-radius: 50%; border: 0; color: var(--btn-ink); font-size: clamp(14px, 4.2vw, 22px); text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+    background: radial-gradient(circle at 34% 28%, var(--btn-lt) 0%, var(--btn) 52%, var(--btn-dk) 100%);
+    box-shadow: inset 0 -5px 0 rgba(150, 66, 0, 0.22), inset 0 2px 0 rgba(255, 255, 255, 0.4), 0 3px 0 rgba(130, 75, 20, 0.3), 0 7px 12px rgba(100, 70, 25, 0.16); touch-action: none; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
   .face small { font-size: 0.42em; margin-top: 2px; letter-spacing: 0.06em; }
-  .face.b { left: 2%; top: 40%; background: var(--teal); }
-  .face.a { left: 58%; top: 10%; background: var(--orange); }
-  .face.c { left: 66%; top: 63%; width: 30%; background: var(--walnut); color: var(--shell-lt); }
-  .face.on, .pill.on { transform: translateY(2px); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.25); filter: brightness(1.12); }
+  .face.b { left: 2%; top: 40%; }
+  .face.a { left: 58%; top: 10%; }
+  .face.c { left: 66%; top: 63%; width: 30%; background: radial-gradient(circle at 34% 28%, #ffe6c9 0%, #ffc993 55%, #f0a862 100%); }
+  .face.on, .pill.on { transform: translateY(2px); box-shadow: inset 0 -2px 0 rgba(140, 62, 0, 0.25), inset 0 2px 4px rgba(120, 60, 10, 0.28); filter: brightness(0.96); }
   body.pocket .menu { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   body.pocket .mstart { grid-area: mstart; justify-content: flex-end; } body.pocket .mtools { grid-area: mtools; justify-content: flex-start; }
-  body.pocket .pill { background: #4a4640; color: var(--shell-lt); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.3); font-size: 10px; }
-  body.pocket .pill.start { background: var(--ink); padding: 8px 16px; }
-  body.pocket .pill.tool { background: #cfc3aa; color: var(--ink); }
+  body.pocket .pill { background: #5a534a; color: var(--shell-lt); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.3); font-size: 10px; }
+  body.pocket .pill.start { background: #46403a; padding: 8px 16px; }
+  body.pocket .pill.tool { background: #e8dcc5; color: var(--ink); box-shadow: inset 0 -3px 0 rgba(120, 95, 50, 0.22); }
   .pill.tool#snd[aria-pressed="true"] { background: var(--teal); color: var(--ink); }
   body.pocket .pill.tool#snd[aria-pressed="false"] { text-decoration: line-through; }
   body.desk .pill.tool#snd[aria-pressed="false"] { text-decoration: line-through; opacity: 0.8; }
   .grille { grid-area: brand; justify-self: end; align-self: center; display: flex; gap: 5px; margin-right: 10px; pointer-events: none; }   /* the speaker, beside the 9F POCKET label (it sat over the buttons) */
-  .grille span { width: 4px; height: 18px; border-radius: 3px; background: var(--shell-dk); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.2); transform: skewX(-24deg); }
+  .grille span { width: 4px; height: 18px; border-radius: 3px; background: #d6cab2; box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.2); transform: skewX(-24deg); }
   body.desk .grille { display: none; }
   /* sideways: the D-pad left, the screen in the middle, the buttons right */
   @media (orientation: landscape) {
@@ -143,7 +148,7 @@
 <canvas id="amb" width="96" height="54" aria-hidden="true"></canvas>
 <div class="pocket" id="pocket">
   <div class="screen-wrap">
-    <div class="bezel-top"><span class="led" id="led"></span><span>BATON QUEST</span></div>
+    <div class="bezel-top"><span class="led" id="led"></span><span>BATON QUEST</span><span class="beta">BETA</span></div>
     <canvas id="screen" width="320" height="200" tabindex="0" aria-label="Baton Quest's screen"></canvas>
   </div>
   <div class="brand" aria-hidden="true"><span class="badge">9F</span>POCKET</div>
@@ -157,6 +162,7 @@
     <button class="pill start" type="button" data-k="start">START</button>
   </div>
   <div class="menu mtools">
+    <span class="pill betatag" title="Baton Quest is in beta: things may change, and your saves carry over">BETA</span>
     <button class="pill tool" type="button" id="snd" aria-pressed="false" aria-label="Sound">SOUND</button>
     <button class="pill tool" type="button" id="shot">PHOTO</button>
     <button class="pill tool" type="button" id="share">SHARE</button>
@@ -178,7 +184,7 @@
 <div class="note" id="note" role="status" aria-live="polite"></div>
 <div class="help" id="help" role="dialog" aria-modal="true" aria-labelledby="helpTitle" hidden>
   <div class="card">
-    <h2 id="helpTitle">SETTINGS</h2>
+    <h2 id="helpTitle">SETTINGS <span class="beta" style="vertical-align: 2px; margin-left: 6px">BETA</span></h2>
     <div class="set" id="settings">
       <div class="row"><span>VIEW</span><div class="seg" data-set="view"><button type="button" data-v="auto">AUTO</button><button type="button" data-v="desk">FULL WINDOW</button><button type="button" data-v="pocket">HANDHELD</button></div></div>
       <div class="row"><span>PIXELS</span><div class="seg" data-set="pixels"><button type="button" data-v="auto">AUTO</button><button type="button" data-v="sharp">SHARP</button><button type="button" data-v="fill">FILL</button></div></div>

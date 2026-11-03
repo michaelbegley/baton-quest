@@ -1,8 +1,10 @@
-# Baton Quest
+# Baton Quest (beta)
 
 A small platforming RPG. SCOPE CREEP, a tangle of just one more thing, has wrapped the three agents C1, C2 and C3 in sticky notes and pulled them into the 9F computer. The conductor jumps in after them with a baton: four worlds (the Inbox, the Server Room, the Cloud and the Backlog), three levels and a boss in each, and more after the credits.
 
 **Play it:** https://michaelbegley.github.io/baton-quest/
+
+It is in beta: things will keep changing, and your saves carry over every update.
 
 **The manual:** https://michaelbegley.github.io/baton-quest/manual.html, an instruction booklet of our own that opens and turns like a real one: the story, the cast, the controls, the four floors and a secret or two.
 
