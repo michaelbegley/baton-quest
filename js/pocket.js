@@ -196,6 +196,7 @@
   function releasePads() { if (A.setPadKey) [2, 3, 4].forEach(function (n) { NAMES.forEach(function (k) { A.setPadKey(n, k, false); }); }); }
   window.addEventListener('gamepadconnected', function () { pollPad(); });
   document.addEventListener('pointerdown', function (e) {   // a touch on the game while a controller has it full screen: the handheld again (the next press on the controller: full screen again)
+    if (e.pointerType === 'touch' && !padView && !padOn && touchy.matches && mode() === 'desk' && !(e.target.closest && e.target.closest('button, a, .help'))) { note('NO BUTTONS IN FULL WINDOW: TAP MENU, THEN VIEW: AUTO', 4200); return; }   // 123.1: FULL WINDOW on a touch screen has no buttons
     if (!padView || e.pointerType !== 'touch' || (e.target.closest && e.target.closest('button, a, .help'))) return;
     padFull(false);
   }, true);
@@ -278,7 +279,7 @@
   window.BQ_PAGE = {   // B20: for js/bridge.js only: the page's own settings (kept in bq-settings, as always), its look, its sound and its menu
     settings: function () { var o = {}; Object.keys(DEF).forEach(function (k) { o[k] = SET[k]; }); return o; },
     set: function (k, v) { if (!OK[k] || OK[k].indexOf(v) < 0) return false; SET[k] = v; saveSet(); apply(); return true; },
-    look: function () { return { mode: mode(), touch: touchy.matches, pad: padView, vibrate: !!navigator.vibrate }; },
+    look: function () { return { mode: mode(), touch: touchy.matches, pad: padView, ctl: padOn, vibrate: !!navigator.vibrate }; },   // 123.1: ctl, a controller in use
     sound: function (on) {   // no argument: is it on; true or false: turn it so (a browser starts it only after a tap, a click or a key: the answer says if it runs)
       if (on !== undefined) { if (on && !actx) wake(); else if (actx) { soundOn = !!on; try { if (soundOn) actx.resume(); else actx.suspend(); } catch (e) {} showSound(); } }
       return soundOn && !!actx;

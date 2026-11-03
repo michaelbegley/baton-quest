@@ -17,11 +17,16 @@
   function reply(id, ok, t) { say({ kind: 'reply', id: id, ok: !!ok, text: words(t) }); }
   // ---------- what the page offers ----------
   function C(list) { return list.map(function (p) { return [p[0], p[1]]; }); }
+  // 123.1: a touch screen with no controller in use moves the SYSTEM screen only with the handheld's buttons, so FULL WINDOW (no buttons) is not offered
+  // there (the page's own menu, made of taps, still has it), and is refused if asked; with FULL WINDOW already on, MENU opens the page's own menu at once.
+  function noWin(L, s) { return !!(L.touch && !L.ctl && !L.pad && (!s || s.view !== 'desk')); }
+  function stuck() { var L = P.look(); return !!(L.touch && !L.ctl && !L.pad && L.mode === 'desk'); }
   function info() {
     var s = P.settings(), L = P.look(), desk = L.mode === 'desk', touch = L.touch;
     return { v: 1, where: L.pad ? 'WITH A CONTROLLER' : desk ? (touch ? 'THE WHOLE SCREEN' : 'ON A COMPUTER') : 'ON THE HANDHELD',
       settings: [
-        { id: 'view', name: 'VIEW', now: s.view, choices: C([['auto', 'AUTO'], ['desk', 'FULL WINDOW'], ['pocket', 'HANDHELD']]), note: 'AUTO: THE HANDHELD ON A PHONE OR TABLET, THE WHOLE WINDOW WITH A MOUSE.' },
+        noWin(L, s) ? { id: 'view', name: 'VIEW', now: s.view, choices: C([['auto', 'AUTO'], ['pocket', 'HANDHELD']]), note: "FULL WINDOW HIDES THE BUTTONS: ON A TOUCH SCREEN IT IS ON THE PAGE'S MENU." }
+          : { id: 'view', name: 'VIEW', now: s.view, choices: C([['auto', 'AUTO'], ['desk', 'FULL WINDOW'], ['pocket', 'HANDHELD']]), note: 'AUTO: THE HANDHELD ON A PHONE OR TABLET, THE WHOLE WINDOW WITH A MOUSE.' },
         { id: 'side', name: 'SIDEWAYS', now: s.side, choices: C([['plain', 'PLAIN'], ['shell', 'HANDHELD']]), note: 'A PHONE ON ITS SIDE: JUST THE SCREEN AND THE BUTTONS, OR THE HANDHELD.', live: touch, why: 'ONLY ON A PHONE OR TABLET, TURNED ON ITS SIDE.' },
         { id: 'pixels', name: 'PIXELS', now: s.pixels, choices: C([['auto', 'AUTO'], ['sharp', 'SHARP'], ['fill', 'FILL']]), note: 'SHARP: WHOLE-NUMBER PIXEL STEPS, CRISP. FILL: AS BIG AS THE WINDOW ALLOWS.', live: desk, why: 'ONLY IN THE WHOLE-WINDOW LOOK (SEE VIEW).' },
         { id: 'wide', name: 'WIDESCREEN', now: s.wide, choices: C([['auto', 'AUTO'], ['off', 'OFF']]), note: 'AUTO: A WIDE WINDOW SHOWS MORE OF EACH LEVEL, UP TO 32:9. OFF: THE CLASSIC 320 BY 200.', live: desk, why: 'THE HANDHELD IS ALWAYS THE CLASSIC 320 BY 200.' },
@@ -147,6 +152,7 @@
   }
   function setting(id, v) {
     if (id === 'sound') { P.sound(v === 'on'); if (v === 'on' && !P.running()) say({ kind: 'note', text: 'A BROWSER STARTS SOUND ONLY AFTER A TAP, A CLICK OR A KEY.' }); }
+    else if (id === 'view' && v === 'desk' && noWin(P.look(), P.settings())) say({ kind: 'note', text: "FULL WINDOW HIDES THE BUTTONS: ON A TOUCH SCREEN IT IS ON THE PAGE'S MENU." });
     else P.set(id, v);
     dirty = true;   // the game reads the page's settings again (its copy may differ from what the page could do)
   }
@@ -168,6 +174,7 @@
     changed: function () { dirty = true; },
     menu: function () {   // the MENU button: the game's SYSTEM screen, or (while it is up) the page's own menu; true when it was handled here
       if (sys) { closeAsk(true); P.openHelp(); return true; }   // the small dialog, if it is up, steps aside for the page's menu
+      if (stuck()) { P.openHelp(); return true; }   // 123.1: FULL WINDOW on a touch screen, no controller: nothing could move on the SYSTEM screen
       if (A.current() !== 'quest' || menuWait) return !!menuWait;
       say({ kind: 'open' }); try { P.canvas.focus(); } catch (e) {}
       menuWait = setTimeout(function () { menuWait = null; P.openHelp(); }, 400);   // a game that does not answer (one without the bridge): the page's own menu
