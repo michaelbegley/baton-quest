@@ -14,17 +14,18 @@
   var A = window.NFX.arcade = makeArcade({ canvas: cv, audio: audio, keep: keep, jot: function () {}, close: function () { A.open('quest'); } });
 
   // ---------- settings (kept in this browser) ----------
-  var DEF = { view: 'auto', pixels: 'auto', glow: 'on', buttons: 'm', buzz: 'on', wide: 'auto' }, SET = {};
+  var DEF = { view: 'auto', pixels: 'auto', glow: 'on', buttons: 'm', buzz: 'on', wide: 'auto', side: 'plain' }, SET = {};
   try { SET = JSON.parse(localStorage.getItem('bq-settings') || '{}') || {}; } catch (e) { SET = {}; }
   Object.keys(DEF).forEach(function (k) { if (typeof SET[k] !== 'string') SET[k] = DEF[k]; });
   var askView = location.search.match(/[?&]view=(desk|pocket)/); if (askView) SET.view = askView[1];   // a link can ask for one look (handy to show the handheld on a computer)
   function saveSet() { try { localStorage.setItem('bq-settings', JSON.stringify(SET)); } catch (e) {} }
-  var touchy = matchMedia('(hover: none) and (pointer: coarse)');
-  function mode() { return SET.view === 'desk' || SET.view === 'pocket' ? SET.view : (touchy.matches ? 'pocket' : 'desk'); }
+  var touchy = matchMedia('(hover: none) and (pointer: coarse)'), padView = false;   // padView: on a phone or tablet in VIEW AUTO, a controller in use puts the game full screen
+  function mode() { return SET.view === 'desk' || SET.view === 'pocket' ? SET.view : (touchy.matches && !padView ? 'pocket' : 'desk'); }
   function apply() {
     var m = mode();
-    body.classList.toggle('desk', m === 'desk'); body.classList.toggle('pocket', m === 'pocket');
-    body.classList.toggle('noglow', SET.glow === 'off');
+    body.classList.toggle('desk', m === 'desk'); body.classList.toggle('pocket', m === 'pocket'); body.classList.toggle('padview', m === 'desk' && padView);
+    body.classList.toggle('noglow', SET.glow === 'off'); body.classList.toggle('sideplain', SET.side !== 'shell');   // sideways: PLAIN (just the screen and the buttons) or HANDHELD
+    document.querySelectorAll('#looksw button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-side') === (SET.side === 'shell' ? 'shell' : 'plain'))); });
     document.documentElement.style.setProperty('--btnk', SET.buttons === 's' ? '0.85' : SET.buttons === 'l' ? '1.18' : '1');
     document.querySelectorAll('#settings .seg').forEach(function (g) {
       var k = g.getAttribute('data-set');
@@ -47,6 +48,7 @@
     amb.style.display = gw > 320 && sw >= 0.9 * w && sh >= 0.9 * h ? 'none' : '';   // a wide game that fills the window leaves only thin borders: no glow behind it (measured headless at 5120 by 1440: 21 frames a second with it, 48 without)
   }
   if (touchy.addEventListener) touchy.addEventListener('change', apply);
+  $('looksw').addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; SET.side = b.getAttribute('data-side'); saveSet(); apply(); });   // the switch at the top right, sideways
   window.addEventListener('resize', size);
   document.querySelectorAll('#settings .seg').forEach(function (g) {
     var k = g.getAttribute('data-set');
@@ -124,24 +126,37 @@
   document.addEventListener('dblclick', function (e) { if (e.target.closest && e.target.closest('#pocket')) e.preventDefault(); });
 
   // ---------- a controller: bottom A (jump), right B (baton), left, top, bumpers or triggers C (dash), Start, Back (to the 9F desktop) ----------
-  var padOn = false, backWas = false;
+  var padOn = false, backWas = false, padWas = false;
+  function padFull(on) {   // a phone or tablet: a controller takes the game full screen (the handheld steps aside); a touch on the screen brings the handheld back
+    if (padView === on || !touchy.matches) return;
+    padView = on; releaseEverything(); apply();
+    if (on && SET.view === 'auto') note('CONTROLLER READY. TOUCH THE SCREEN FOR THE BUTTONS', 3200);
+  }
   function pollPad() {
     var ps = null, p = null, i;
     try { ps = navigator.getGamepads ? navigator.getGamepads() : null; } catch (e) { ps = null; }
     for (i = 0; ps && i < ps.length; i++) if (ps[i] && ps[i].connected) { p = ps[i]; break; }
-    if (!p) { if (padOn) { padOn = false; releaseAll('pad'); note('CONTROLLER GONE'); } return; }
-    if (!padOn) { padOn = true; note('CONTROLLER READY'); }
+    if (!p) { if (padOn) { padOn = false; padWas = false; releaseAll('pad'); note('CONTROLLER GONE'); padFull(false); } return; }
+    var first = !padOn;
+    if (first) { padOn = true; if (!touchy.matches || SET.view !== 'auto') note('CONTROLLER READY'); }
     var b = function (n) { var x = p.buttons[n]; return !!(x && (x.pressed || x.value > 0.5)); }, ax = p.axes || [];
     var now = { left: b(14) || ax[0] < -0.5, right: b(15) || ax[0] > 0.5, up: b(12) || ax[1] < -0.5, down: b(13) || ax[1] > 0.5,
       a: b(0), b: b(1), c: b(2) || b(3) || b(4) || b(5) || b(6) || b(7), start: b(9) };
+    var back = b(8), any = back || NAMES.some(function (k) { return now[k]; });
+    if (first || (any && !padWas)) padFull(true);   // browsers show a controller only once it is pressed, so its first sight is a press too
+    padWas = any;
     NAMES.forEach(function (k) { set('pad', k, now[k]); });
-    var back = b(8); if (back && !backWas) A.back(); backWas = back;
+    if (back && !backWas) A.back(); backWas = back;
   }
   window.addEventListener('gamepadconnected', function () { pollPad(); });
+  document.addEventListener('pointerdown', function (e) {   // a touch on the game while a controller has it full screen: the handheld again (the next press on the controller: full screen again)
+    if (!padView || e.pointerType !== 'touch' || (e.target.closest && e.target.closest('button, a, .help'))) return;
+    padFull(false);
+  }, true);
 
   // ---------- a short note ----------
   var noteT = null;
-  function note(t) { var n = $('note'); n.textContent = t; n.classList.add('show'); clearTimeout(noteT); noteT = setTimeout(function () { n.classList.remove('show'); }, 1800); }
+  function note(t, ms) { var n = $('note'); n.textContent = t; n.classList.add('show'); clearTimeout(noteT); noteT = setTimeout(function () { n.classList.remove('show'); }, ms || 1800); }
 
   // ---------- a computer: the toolbar and the key hints fade while the mouse is still ----------
   var idleT = null;
@@ -158,7 +173,7 @@
       if (!blob) { note('NO PHOTO'); return; }
       var name = 'baton-quest-' + stamp() + '.png';
       try {
-        if (body.classList.contains('pocket') && navigator.canShare && navigator.share && window.File && navigator.canShare({ files: [new File([blob], name, { type: 'image/png' })] })) {
+        if (touchy.matches && navigator.canShare && navigator.share && window.File && navigator.canShare({ files: [new File([blob], name, { type: 'image/png' })] })) {
           navigator.share({ files: [new File([blob], name, { type: 'image/png' })], title: 'Baton Quest' }).catch(function () {}); return;   // a phone: its own share sheet (save to photos from there)
         }
       } catch (e) {}
@@ -170,7 +185,7 @@
   // ---------- SHARE: the link, through the phone's share sheet, or copied ----------
   $('share').addEventListener('click', function () {
     var url = location.href.split('#')[0].split('?')[0], data = { title: 'Baton Quest', text: 'Play Baton Quest', url: url };
-    if (navigator.share && body.classList.contains('pocket')) { navigator.share(data).catch(function () {}); return; }
+    if (navigator.share && touchy.matches) { navigator.share(data).catch(function () {}); return; }   // a phone or tablet, whichever look: its own share sheet
     try { navigator.clipboard.writeText(url).then(function () { note('LINK COPIED'); }, function () { note(url); }); } catch (e) { note(url); }
   });
 
