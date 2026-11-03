@@ -5107,6 +5107,259 @@
         ['..kyyk..', '..kkkk..', '.kwwwwk.', 'kwwwkwxk', 'kwwwkwxk', 'kwwkkwxk', '.kxxxxk.', '..kkkk..']
       ] });
     })();
+    // ===== 72-ui-front-boot.js =====
+    // ---------- 72-ui-front-boot.js (B17 FRONT END, 2 Nov): BOOT, the 9F POCKET splash, the first screen of the title scene (72-ui-title.js) ----------
+    // Only when the game has just been opened. A screen warming up (a line of light that opens out), the office's round 9F badge, POCKET typed beside it,
+    // then the title. Any button skips it at once; by itself it ends at 1.8 s. The title song starts with it (its first bars are the conductor's two baton
+    // taps); on a page, the first press is the one a browser waits for before any sound (MDN's autoplay guide), and the song then starts from its top.
+    (function () {
+      var U = Q.ui, FE = U.fe || (U.fe = { ph: {} }), END = 1.8, WORD = 'POCKET';
+      function bg(g, w, cx) {   // the dark of a screen just switched on, its faint scan lines, and the line of light opening (w wide; the line's middle at cx, as long as the whole screen)
+        var t = FE.pt, p, h, y, L = FE.realW || 320;
+        U.fill(g, 0, 0, w, 200, '#000000');
+        if (t < 0.16) { p = t / 0.16; h = Math.max(1, Math.round(L * p)); U.fill(g, cx - (h >> 2), 97, h >> 1, 6, '#2a3060'); U.fill(g, cx - (h >> 1), 99, h, 2, '#f6efe2'); return false; }
+        h = t < 0.3 ? Math.max(2, Math.round(200 * (t - 0.16) / 0.14)) : 200;
+        y = 100 - (h >> 1);
+        U.fill(g, 0, y, w, h, '#0b0c10');
+        for (p = y + 1; p < y + h; p += 3) U.fill(g, 0, p, w, 1, '#0e1016');   // scan lines, barely there
+        if (h < 200) { U.fill(g, 0, y, w, 1, '#f6efe2'); U.fill(g, 0, y + h - 1, w, 1, '#f6efe2'); return false; }
+        return true;
+      }
+      function badge(g, cx, cy, r, lit) {   // the round orange 9F badge, big: an ink rim, bands of orange lit from the top left, the 9F with its shadow (lit: all of it pale, for the shine)
+        var dy, hw, i, c;
+        for (dy = -r - 2; dy <= r + 2; dy++) { hw = Math.floor(Math.sqrt(Math.max(0, (r + 2) * (r + 2) - dy * dy)) + 0.5); U.fill(g, cx - hw, cy + dy, hw * 2, 1, '#1d1d24'); }
+        for (dy = -r; dy <= r; dy++) {
+          hw = Math.floor(Math.sqrt(Math.max(0, r * r - dy * dy)) + 0.5);
+          c = lit ? '#ffe2bd' : dy < -r * 0.45 ? '#ffa64d' : dy < r * 0.35 ? '#ff8a1e' : '#e0701a';
+          U.fill(g, cx - hw, cy + dy, hw * 2, 1, c);
+        }
+        for (i = 0; i < 5 && r > 8; i++) U.fill(g, cx - r + 5 + i, cy - r + 6 - i, 1, 1, '#ffd9a8');   // a glint on its rim
+        if (r >= 16) { if (!lit) U.text('9F', cx + 1, cy - 9, '#9a4710', 3, 'center'); U.text('9F', cx, cy - 10, '#ffffff', 3, 'center'); }
+      }
+      FE.ph.boot = {
+        enter: function () { Q.music('title'); },
+        update: function () {
+          FE.realW = Q.W;   // the screen's own width (inside the column Q.W reads 320)
+          if (FE.anyPress() || FE.pt >= END) FE.to('title', 'drop');
+        },
+        draw: function (g) {
+          var t = FE.pt, r, n, x0 = 80, cy = 92, bx = x0 + 22, px = x0 + 56, k, sx, i;
+          if (!bg(g, 320, 160)) return;
+          r = t < 0.3 ? 0 : Math.min(20, Math.round((t - 0.3) / 0.12 * 20));   // the badge pops out to its size
+          if (r > 0) badge(g, bx, cy, r);
+          n = Q.clamp(Math.floor((t - 0.42) / 0.06) + 1, 0, WORD.length);   // POCKET typed, a letter at a time
+          if (n > 0) { U.text(WORD.slice(0, n), px + 2, cy - 8, '#3c4680', 3); U.text(WORD.slice(0, n), px, cy - 10, '#e2d6bf', 3); }   // a deeper cream, so the shine's white shows on it
+          if (n > 0 && n < WORD.length && Math.floor(t * 12) % 2) U.fill(g, px + n * 18, cy - 10, 15, 21, '#2ec4b6');   // its cursor
+          if (t >= 0.85 && t < 1.25 && n >= WORD.length) {   // a shine across badge and word: both drawn again in light, seen through a slanted band
+            sx = x0 - 30 + Math.round((t - 0.85) / 0.4 * 200);
+            g.save(); g.beginPath(); for (i = 0; i < 46; i += 2) g.rect(sx + ((46 - i) >> 1), cy - 23 + i, 7, 2); g.clip();
+            badge(g, bx, cy, 20, true); U.text(WORD, px, cy - 10, '#ffffff', 3);
+            g.restore();
+          }
+          if (t >= 0.6) U.text('ANY BUTTON: SKIP', 314, 188, '#3c4268', 1, 'right');
+          k = t > END - 0.3 ? Q.clamp((t - (END - 0.3)) / 0.3, 0, 1) : 0;   // the last 0.3 s fade to black
+          if (k > 0) { g.globalAlpha = k; U.fill(g, 0, 0, 320, 200, '#000000'); g.globalAlpha = 1; }
+        },
+        sides: function (g) {   // a wide screen: the same dark and its scan lines, and the line of light, across the whole width
+          var t = FE.pt, k;
+          bg(g, Q.W, Q.W >> 1);
+          k = t > END - 0.3 ? Q.clamp((t - (END - 0.3)) / 0.3, 0, 1) : 0;
+          if (k > 0) { g.globalAlpha = k; U.fill(g, 0, 0, Q.W, 200, '#000000'); g.globalAlpha = 1; }
+        }
+      };
+    })();
+    // ===== 72-ui-front-controls.js =====
+    // ---------- 72-ui-front-controls.js (B17 FRONT END, 2 Nov): OPTIONS' CONTROLS page, in the title scene (72-ui-title.js) ----------
+    // Three tabs, KEYS, TOUCH and CONTROLLER (left and right, or A, walk them; B back to OPTIONS), each with a small drawing of our own (a keyboard,
+    // the 9F POCKET handheld, a controller) whose buttons wear the colours of what they do, and the list beside it. The keys are the page's and the
+    // office's (Space, Z or K jump; X or J the baton; C or L dash; Enter or P pause); a controller's are the page's (bottom: jump; right: baton; left, top
+    // or a bumper: dash; Start). Esc and a controller's Back are the runtime's: back to the 9F desktop.
+    (function () {
+      var U = Q.ui, FE = U.fe || (U.fe = { ph: {} });
+      var TABS = ['KEYS', 'TOUCH', 'CONTROLLER'], CA = '#ffd23f', CB = '#ff8a1e', CC = '#2ec4b6', CS = '#6fa8ec', CM = '#f6efe2';   // A, B, C, Start, move
+      var ROWS = {
+        KEYS: [['MOVE', 'ARROWS OR W A S D', CM], ['JUMP', 'SPACE, Z OR K', CA], ['BATON', 'X OR J', CB], ['NOTE', 'HOLD X, THEN LET GO', CB], ['DASH', 'C OR L', CC],
+          ['DROP', 'DOWN, ON A THIN SHELF', CM], ['DOOR', 'UP, AT A DOOR', CM], ['PAUSE', 'ENTER OR P', CS]],
+        TOUCH: [['MOVE', 'THE D-PAD: SLIDE A THUMB', CM], ['JUMP', 'A', CA], ['BATON', 'B', CB], ['NOTE', 'HOLD B, THEN LET GO', CB], ['DASH', 'C', CC], ['PAUSE', 'START', CS]],
+        CONTROLLER: [['MOVE', 'D-PAD OR LEFT STICK', CM], ['JUMP', 'THE BOTTOM BUTTON', CA], ['BATON', 'THE RIGHT BUTTON', CB], ['NOTE', 'HOLD IT, THEN LET GO', CB],
+          ['DASH', 'LEFT OR TOP, A BUMPER', CC], ['PAUSE', 'START', CS]]
+      };
+      function f(g, x, y, w, h, c) { g.fillStyle = c; g.fillRect(x, y, w, h); }
+      function key(g, x, y, w, c) { f(g, x, y, w, 7, '#0b0c10'); f(g, x + 1, y, w - 2, 6, c || '#5d6378'); f(g, x + 1, y, w - 2, 1, c ? '#ffffff' : '#7f8ab8'); }
+      function keyboard(g, x, y) {   // 90 by 44: four rows of keys, the ones the game uses lit
+        var i, lit = { Q0: 0, W: CM, A: CM, S: CM, D: CM, Z: CA, K: CA, X: CB, J: CB, C: CC, L: CC, P: CS }, r1 = 'QWERTYUIOP', r2 = 'ASDFGHJKL', r3 = 'ZXCVBNM';
+        f(g, x, y, 90, 44, '#1d1d24'); f(g, x + 1, y + 1, 88, 42, '#3a3d52'); f(g, x + 1, y + 1, 88, 1, '#4e5270');
+        for (i = 0; i < 10; i++) key(g, x + 4 + i * 8, y + 4, 7, lit[r1.charAt(i)] || '');
+        for (i = 0; i < 9; i++) key(g, x + 6 + i * 8, y + 12, 7, lit[r2.charAt(i)] || '');
+        key(g, x + 78, y + 12, 9, CS);   // ENTER
+        for (i = 0; i < 7; i++) key(g, x + 9 + i * 8, y + 20, 7, lit[r3.charAt(i)] || '');
+        key(g, x + 22, y + 28, 40, CA);   // SPACE
+        key(g, x + 74, y + 20, 7, CM); key(g, x + 66, y + 28, 7, CM); key(g, x + 74, y + 28, 7, CM); key(g, x + 82, y + 28, 7, CM);   // the arrows
+      }
+      function disc(g, cx, cy, r, c, hi) { var dy, hw; for (dy = -r; dy <= r; dy++) { hw = Math.floor(Math.sqrt(r * r - dy * dy) + 0.5); f(g, cx - hw, cy + dy, hw * 2 + 1, 1, dy < 0 && hi ? hi : c); } }
+      function cross(g, x, y, c) { f(g, x + 4, y, 5, 13, '#0b0c10'); f(g, x, y + 4, 13, 5, '#0b0c10'); f(g, x + 5, y + 1, 3, 11, c); f(g, x + 1, y + 5, 11, 3, c); }
+      function pocket(g, x, y) {   // the 9F POCKET, upright, 52 by 80: the screen, the badge, the D-pad, A, B, C and START
+        f(g, x + 1, y, 50, 80, '#1d1d24'); f(g, x, y + 1, 52, 78, '#1d1d24');
+        f(g, x + 2, y + 1, 48, 77, '#f6efe2'); f(g, x + 1, y + 2, 50, 75, '#f6efe2'); f(g, x + 2, y + 70, 48, 7, '#e2d6bf');
+        f(g, x + 6, y + 5, 40, 30, '#2a2d3a'); f(g, x + 9, y + 8, 34, 22, '#0f2a33');
+        f(g, x + 12, y + 12, 12, 3, '#ffd23f'); f(g, x + 12, y + 17, 18, 3, '#2ec4b6'); f(g, x + 12, y + 23, 6, 4, '#f6efe2');   // a tiny title on its screen
+        disc(g, x + 9, y + 40, 2, '#ff8a1e');
+        cross(g, x + 5, y + 46, CM);
+        disc(g, x + 42, y + 49, 4, CA, '#fff0b0'); disc(g, x + 33, y + 55, 4, CB, '#ffb36a'); disc(g, x + 42, y + 60, 3, CC, '#8ff0e6');
+        f(g, x + 19, y + 66, 14, 4, '#0b0c10'); f(g, x + 20, y + 66, 12, 3, CS);   // START
+      }
+      function pad(g, x, y) {   // a controller, 92 by 46: its grips, the D-pad, the left stick, four face buttons, the bumpers and Start
+        f(g, x + 6, y, 22, 5, '#0b0c10'); f(g, x + 7, y + 1, 20, 3, CC); f(g, x + 64, y, 22, 5, '#0b0c10'); f(g, x + 65, y + 1, 20, 3, CC);   // the bumpers (dash)
+        f(g, x + 2, y + 4, 88, 26, '#1d1d24'); f(g, x, y + 8, 92, 22, '#1d1d24'); f(g, x + 2, y + 28, 24, 16, '#1d1d24'); f(g, x + 66, y + 28, 24, 16, '#1d1d24');
+        f(g, x + 3, y + 5, 86, 24, '#5d6378'); f(g, x + 1, y + 9, 90, 20, '#5d6378'); f(g, x + 3, y + 28, 22, 15, '#5d6378'); f(g, x + 67, y + 28, 22, 15, '#5d6378');
+        f(g, x + 3, y + 5, 86, 2, '#7f8ab8');
+        cross(g, x + 8, y + 10, CM);
+        disc(g, x + 30, y + 26, 5, '#0b0c10'); disc(g, x + 30, y + 26, 3, '#3a3d52', '#4e5270');   // the left stick
+        disc(g, x + 72, y + 25, 3, CA, '#fff0b0'); disc(g, x + 79, y + 18, 3, CB, '#ffb36a'); disc(g, x + 65, y + 18, 3, CC, '#8ff0e6'); disc(g, x + 72, y + 11, 3, CC, '#8ff0e6');
+        f(g, x + 43, y + 14, 8, 3, '#0b0c10'); f(g, x + 44, y + 14, 6, 2, CS);   // START
+      }
+      FE.ph.controls = {
+        enter: function (sel) { FE.tab = typeof sel === 'number' ? Q.clamp(sel, 0, 2) : 0; },
+        update: function () {
+          if (FE.press('b')) { Q.sfx('back'); FE.to('options', 'CONTROLS'); return; }
+          if (FE.press('left')) { FE.tab = (FE.tab + 2) % 3; Q.sfx('move'); }
+          else if (FE.press('right') || FE.press('a')) { FE.tab = (FE.tab + 1) % 3; Q.sfx('move'); }
+        },
+        draw: function (g) {
+          var i, x = 120, name = TABS[FE.tab], rows = ROWS[name], y, w;
+          U.box(g, 6, 6, 308, 170, '#2ec4b6', '#12141c');
+          U.text('CONTROLS', 16, 13, '#ffffff', 2);
+          for (i = 0; i < 3; i++) {   // the tabs, the one showing framed in gold
+            w = U.width(TABS[i]) + 10;
+            if (i === FE.tab) U.box(g, x, 11, w, 15, '#ffd23f', '#262838'); else U.fill(g, x + 1, 12, w - 2, 13, '#14161f');
+            U.text(TABS[i], x + 5, 15, i === FE.tab ? '#ffd23f' : '#8a93a8');
+            x += w + 4;
+          }
+          U.fill(g, 12, 31, 296, 1, '#2a2c3a');
+          if (name === 'KEYS') keyboard(g, 12, 66); else if (name === 'TOUCH') pocket(g, 30, 48); else pad(g, 10, 64);
+          for (i = 0; i < rows.length; i++) {
+            y = 42 + i * 15;
+            U.fill(g, 112, y + 1, 3, 3, rows[i][2]);
+            U.text(rows[i][0], 120, y, rows[i][2] === CM ? '#c3c7d4' : rows[i][2]);
+            U.text(rows[i][1], 160, y, '#f6efe2');
+          }
+          U.text(name === 'TOUCH' ? 'ON A PHONE OR TABLET: THE 9F POCKET' : name === 'KEYS' ? 'ESC: BACK TO THE 9F DESKTOP' : 'BACK: TO THE 9F DESKTOP', 160, 164, '#5d6378', 1, 'center');
+          FE.foot('LEFT AND RIGHT: KEYS, TOUCH, CONTROLLER', 'B: BACK');
+        }
+      };
+    })();
+    // ===== 72-ui-front-menus.js =====
+    // ---------- 72-ui-front-menus.js (B17 FRONT END, 2 Nov): the title scene's OPTIONS and EXTRAS screens (72-ui-title.js has the scene) ----------
+    // OPTIONS: MUSIC (FULL, LOW, OFF: the pause menu's own setting, U.setMusic), TEXT (NORMAL, FAST), BOW TIE (once bought), CONTROLS (the keys, the
+    // touch buttons and a controller: 72-ui-front-controls.js). Each setting goes into the current file's save at once (U.setOpt), like the pause menu's.
+    // EXTRAS: CODEX, STARS (the codex's GOLD STARS page), CREDITS, then once the game is won THE ENDING and HOLD MUSIC (the codex's jukebox). The codex opened
+    // from here comes back here: its B and Start, only while it was opened from EXTRAS, return to the title (a hook on the codex scene, set once).
+    // Up and down choose, left and right change a setting, A chooses, B goes back to the main menu.
+    (function () {
+      var U = Q.ui, FE = U.fe || (U.fe = { ph: {} }), BX = 124, BW = 188, TOP = 106, ROW = 11;
+      var MUS = ['FULL', 'LOW', 'OFF'];
+      FE.move = function (sel, n) {   // up and down, round and round: one press, one step (FE.press: never in a frame that changed the screen)
+        if (FE.press('up')) { sel = (sel + n - 1) % n; Q.sfx('move'); }
+        if (FE.press('down')) { sel = (sel + 1) % n; Q.sfx('move'); }
+        return sel;
+      };
+      FE.panel = function (g, title, list, sel, value, count) {   // the right-hand box of a menu screen: its name, then its rows (a value or a count at the right)
+        var n = list.length, i, y, on, v;
+        U.box(g, BX, TOP, BW, (n + 1) * ROW + 6, '#2ec4b6', '#12141c');
+        U.text(title, BX + 10, TOP + 5, '#2ec4b6'); U.fill(g, BX + 8, TOP + 14, BW - 16, 1, '#2a2c3a');
+        for (i = 0; i < n; i++) {
+          y = TOP + 5 + (i + 1) * ROW; on = i === sel;
+          if (on) U.fill(g, BX + 3, y - 2, BW - 6, ROW, '#262838');
+          U.item(list[i], BX + 16, y, on);
+          v = value ? value(list[i]) : '';
+          if (v) { U.text(v, BX + BW - 18, y, on ? '#ffd23f' : '#c3c7d4', 1, 'right'); if (on && Math.floor(U.now() * 2.5) % 3) { U.text('<', BX + BW - 26 - U.width(v), y, '#ffd23f'); U.text('>', BX + BW - 12, y, '#ffd23f'); } }
+          else if (count) { v = count(list[i]); if (v) U.text(v, BX + BW - 10, y, on ? '#ffd23f' : '#8a93a8', 1, 'right'); }
+        }
+      };
+      // ---- OPTIONS ----
+      function tie() { return !!(Q.SAVE && Q.SAVE.shop && Q.SAVE.shop.bowtie); }
+      function optValue(it) {
+        if (it === 'MUSIC') return U.musicOpt ? U.musicOpt() : 'FULL';
+        if (it === 'TEXT') return U.textFast && U.textFast() ? 'FAST' : 'NORMAL';
+        if (it === 'BOW TIE') return U.tieOpt ? U.tieOpt() : 'GOLD';
+        return '';
+      }
+      function change(it, d) {   // one setting one step (d: 1 on, -1 back); into the save at once
+        if (it === 'MUSIC' && U.setMusic && U.musicOpt) U.setMusic(MUS[(MUS.indexOf(U.musicOpt()) + (d > 0 ? 1 : 2)) % 3]);
+        else if (it === 'TEXT' && U.setOpt) U.setOpt('text', U.textFast() ? 'normal' : 'fast');
+        else if (it === 'BOW TIE' && U.setOpt) U.setOpt('bowtie', U.tieOpt() === 'GOLD' ? 'white' : 'gold');
+        else return false;
+        return true;
+      }
+      FE.ph.options = {
+        items: function () { var l = ['MUSIC', 'TEXT']; if (tie()) l.push('BOW TIE'); l.push('CONTROLS'); return l; },
+        enter: function (sel) { var l = FE.ph.options.items(), i = typeof sel === 'string' ? FE.find(l, sel) : sel; FE.osel = i >= 0 ? i : 0; },
+        update: function () {
+          var l = FE.ph.options.items(), it;
+          if (FE.press('b')) { Q.sfx('back'); FE.to('menu', FE.find(FE.items(), 'OPTIONS')); return; }
+          FE.osel = FE.move(Math.min(FE.osel, l.length - 1), l.length);
+          it = l[FE.osel];
+          if (FE.press('left')) { if (change(it, -1)) Q.sfx('move'); }
+          else if (FE.press('right')) { if (change(it, 1)) Q.sfx('move'); }
+          if (FE.press('a') || FE.press('start')) {
+            if (it === 'CONTROLS') { Q.sfx('select'); FE.to('controls', 0); }
+            else if (change(it, 1)) Q.sfx('select');
+          }
+        },
+        draw: function (g) {
+          var l = FE.ph.options.items(), it = l[Math.min(FE.osel, l.length - 1)];
+          FE.panel(g, 'OPTIONS', l, FE.osel, optValue);
+          FE.foot(it === 'MUSIC' ? 'FULL, LOW OR OFF (THE PAUSE MENU TOO)' : it === 'TEXT' ? 'HOW FAST THE TEXT BOX TYPES' : it === 'BOW TIE' ? 'GOLD, OR THE WHITE IT WAS' : 'THE KEYS, TOUCH AND A CONTROLLER', 'B: BACK');
+        }
+      };
+      // ---- EXTRAS ----
+      function won() { return !!(Q.SAVE && Q.SAVE.won); }
+      function hook() {   // the codex (75-ui-codex.js) goes back to the pause on B; opened from EXTRAS (its from: 'title'), its B and Start come back here instead (its own file is unchanged)
+        var sc = Object.prototype.hasOwnProperty.call(Q.SCENE, 'codex') ? Q.SCENE.codex : null, up0, en0;
+        if (!sc || sc.feBack || !sc.update) return;
+        up0 = sc.update; en0 = sc.enter; sc.feBack = true;
+        sc.enter = function (opts, Qx) { FE.inCodex = !!(opts && opts.from === 'title'); if (en0) return en0.call(sc, opts, Qx); };   // only a codex opened from the title comes back to it
+        sc.update = function (dt, Qx) {
+          var at;
+          if (FE.inCodex && Q.scene === 'codex' && !Q.talking()) {
+            at = U.codexAt ? U.codexAt() : null;
+            if (!(at && at.read) && (U.press('b') || U.press('start'))) { FE.inCodex = false; Q.sfx('back'); Q.go('title', { ph: 'extras', back: FE.codexItem || 'CODEX' }); return; }
+          }
+          return up0.call(sc, dt, Qx);
+        };
+      }
+      function codex(sec, item) {
+        if (!Object.prototype.hasOwnProperty.call(Q.SCENE, 'codex')) { Q.sfx('nope'); return; }
+        hook(); FE.codexItem = item; Q.sfx('select');
+        Q.go('codex', { from: 'title' });
+        if (sec !== 'memos' && U.codexGo) U.codexGo(sec, 0);   // straight to its page
+      }
+      FE.ph.extras = {
+        items: function () { var l = ['CODEX', 'STARS', 'CREDITS']; if (won()) l.push('THE ENDING', 'HOLD MUSIC'); return l; },
+        enter: function (sel) { var l = FE.ph.extras.items(), i = typeof sel === 'string' ? FE.find(l, sel) : sel; FE.xsel = i >= 0 ? i : 0; },
+        update: function () {
+          var l = FE.ph.extras.items(), it;
+          if (FE.press('b')) { Q.sfx('back'); FE.to('menu', FE.find(FE.items(), 'EXTRAS')); return; }
+          FE.xsel = FE.move(Math.min(FE.xsel, l.length - 1), l.length);
+          if (!(FE.press('a') || FE.press('start'))) return;
+          it = l[FE.xsel];
+          if (it === 'CODEX') codex('memos', it);
+          else if (it === 'STARS') codex('stars', it);
+          else if (it === 'HOLD MUSIC') codex('music', it);
+          else if (it === 'CREDITS') FE.go('credits');
+          else if (it === 'THE ENDING') FE.go('ending');
+        },
+        draw: function (g) {
+          var l = FE.ph.extras.items(), it = l[Math.min(FE.xsel, l.length - 1)], c = U.starCount ? U.starCount() : { n: 0, all: 32 };
+          FE.panel(g, 'EXTRAS', l, FE.xsel, null, function (x) {
+            if (x === 'CODEX') return 'MEMOS ' + (U.memoCount ? U.memoCount(Q.SAVE) : 0) + '/24';
+            if (x === 'STARS') return c.n + '/' + c.all;
+            return '';
+          });
+          FE.foot(it === 'CODEX' ? 'THE MEMOS, THE BESTIARY, THE TIMES' : it === 'STARS' ? 'THE ' + c.all + ' GOLD STARS' : it === 'CREDITS' ? 'WHO MADE IT, AND THE NUMBERS' : it === 'THE ENDING' ? 'SEE THE ENDING AGAIN' : 'EVERY SONG IN THE GAME', 'B: BACK');
+        }
+      };
+    })();
     // ===== 72-ui-intro.js =====
     // ---------- 72-ui-intro.js: the intro (UI, builder 5) ----------
     // The Ninth Floor at night: C1, C2 and C3 typing at their desks, the conductor keeping time. Driven by the 'intro' script and its cues (QUEST-API.md
@@ -5207,127 +5460,241 @@
       });
     })();
     // ===== 72-ui-title.js =====
-    // ---------- 72-ui-title.js: the title (UI, builder 5) ----------
-    // BATON QUEST in big letters of our own, the conductor keeping time on its podium (notes rise from the baton on the beat), a slow drift of envelopes,
-    // tickets and notes behind; START, and CONTINUE when there is a save (START over a save asks first; the save's GOLD STARS n/32 beside CONTINUE,
-    // part 14.2); a line of controls; the 'title' song.
-    // START calls Q.newGame() then goes to 'intro' if the scene did not change; CONTINUE calls Q.continueGame(), else 'map' (QUEST-API.md part 13, 3).
+    // ---------- 72-ui-title.js (B17 FRONT END, 2 Nov; builder 5's title before): the front of the game, one scene and its screens ----------
+    // The scene 'title' shows, in turn: BOOT, the 9F POCKET splash, only when the game has just opened (72-ui-front-boot.js; any button skips it);
+    // TITLE: the logo drops in and a shine runs across it, the conductor keeps time on his podium, PRESS START blinks; MENU: CONTINUE when a save
+    // exists (its GOLD STARS n/32 beside it), NEW GAME, FILE n once any file has a save, GAME MODES, OPTIONS, EXTRAS; OPTIONS, CONTROLS and EXTRAS
+    // are in 72-ui-front-menus.js. B goes back one screen. Q.go('title') from anywhere in the game opens the MENU (on CONTINUE, or the item it left by).
+    // NEW GAME calls Q.newGame() then goes to 'intro' if the scene did not change; CONTINUE calls Q.continueGame(), else 'map' (QUEST-API.md part 13, 3).
     (function () {
-      var U = Q.ui, TI = { t: 0, sel: 0, has: false, ask: false, askSel: 0, leave: '', fade: 0, drift: [], stars: [], notes: [], beatN: -1 };
-      var CX = 34, CY = 58, LX = 120, LY = 14, MX = 209;   // the conductor (3 times its size), the lettering, the middle of the menu
+      var U = Q.ui, FE = U.fe || (U.fe = { ph: {} });
+      var CX = 34, CY = 58, LX = 118, LY = 4, MX = 216, BX = 124, BW = 188;   // the conductor (3 times his size), the logo, the middle under it, the menu's box
       U.stored = function () { var s = null; try { s = Q.api && Q.api.load ? Q.api.load() : null; } catch (e) { s = null; } return s && typeof s === 'object' ? s : null; };   // the stored save, as it is
       U.hasSave = function () { var s = U.stored(); return !!(s && (s.v || s.at || s.cleared)); };
       U.beat = function (song) { var s = Q.SONG[song]; return 60 / (s && s.bpm > 0 ? s.bpm : 100); };
-      var SKY = U.grad('#090d26', '#1d2858', 19);
+      FE.SKY = U.grad('#090d26', '#1d2858', 19);
+      FE.t = 0; FE.pt = 0; FE.phase = 'menu'; FE.sel = 0; FE.lock = -1; FE.drift = []; FE.stars = []; FE.notes = []; FE.beatN = -1; FE.ret = null; FE.soon = 0;
       function seed() {
-        var r = Q.api && Q.api.rand ? Q.api.rand(9) : Math.random, i;
-        TI.drift = []; TI.stars = []; TI.notes = [];
-        for (i = 0; i < 18; i++) TI.drift.push({ x: r() * 340 - 10, y: r() * 200, vx: -(3 + r() * 6), vy: 2 + r() * 5, k: i % 3, ph: r() * 6.28 });
-        for (i = 0; i < 44; i++) TI.stars.push({ x: Math.floor(r() * 320), y: Math.floor(r() * 160), ph: r() * 6.28 });
-        var r2 = Q.api && Q.api.rand ? Q.api.rand(29) : Math.random; TI.sstars = [];   // a wide screen's side stars: their own seed, so the middle's stay as they were
-        for (i = 0; i < 98; i++) TI.sstars.push({ x: Math.floor(r2() * Q.WMAX), y: Math.floor(r2() * 160), ph: r2() * 6.28 });
+        var r = Q.api && Q.api.rand ? Q.api.rand(9) : Math.random, i, r2;
+        FE.drift = []; FE.stars = []; FE.notes = [];
+        for (i = 0; i < 18; i++) FE.drift.push({ x: r() * 340 - 10, y: r() * 200, vx: -(3 + r() * 6), vy: 2 + r() * 5, k: i % 3, ph: r() * 6.28 });
+        for (i = 0; i < 44; i++) FE.stars.push({ x: Math.floor(r() * 320), y: Math.floor(r() * 160), ph: r() * 6.28 });
+        r2 = Q.api && Q.api.rand ? Q.api.rand(29) : Math.random; FE.sstars = [];   // a wide screen's side stars: their own seed, so the middle's stay as they were
+        for (i = 0; i < 98; i++) FE.sstars.push({ x: Math.floor(r2() * Q.WMAX), y: Math.floor(r2() * 160), ph: r2() * 6.28 });
       }
-      function items() {   // THE ENDING once won: see it again; FILE n (the file screen, 79) once any of the three files has a save
-        var l = TI.has ? (TI.won ? ['START', 'CONTINUE', 'THE ENDING'] : ['START', 'CONTINUE']) : ['START'];
-        if (TI.any) l.push('FILE ' + (Q.fileNow ? Q.fileNow() : 1));
+      FE.MODES = 'modes';   // GAME MODES is BATTLE's scene (lab/battle, B16): COMING SOON until it is in (a name, so the lint does not take it for a missing scene: every Q.go of it waits for FE.modes)
+      FE.modes = function () { return Object.prototype.hasOwnProperty.call(Q.SCENE, FE.MODES); };
+      FE.items = function () {   // the main menu
+        var l = FE.has ? ['CONTINUE', 'NEW GAME'] : ['NEW GAME'];
+        if (FE.any) l.push('FILE ' + (Q.fileNow ? Q.fileNow() : 1));   // the file screen, once any of the three files has a save (QUEST-API 14.10 item 10)
+        l.push('GAME MODES', 'OPTIONS', 'EXTRAS');
         return l;
-      }
-      function leave(what) { TI.leave = what; TI.fade = 0; Q.sfx('select'); }
-      U.titleAt = function () { return { sel: TI.sel, items: items(), gold: TI.gold }; };   // for checks
-      function go() {
-        var what = TI.leave; TI.leave = '';
+      };
+      FE.find = function (list, want) { var i; for (i = 0; i < list.length; i++) if (String(list[i]).indexOf(want) === 0) return i; return -1; };
+      FE.press = function (n) { return FE.lock !== U.now() && U.press(n); };   // a press, unless this frame already changed the screen (one press, one step: part 13, 28)
+      FE.anyPress = function () { var k = ['a', 'b', 'start', 'c', 'up', 'down', 'left', 'right'], i, hit = false; for (i = 0; i < k.length; i++) if (FE.press(k[i])) hit = true; return hit; };
+      FE.to = function (phase, sel) {   // to one of the scene's screens
+        FE.phase = phase; FE.pt = 0; FE.lock = U.now();
+        var p = FE.ph[phase]; if (p && p.enter) p.enter(sel);
+      };
+      FE.go = function (what) {   // leaving the front: a short fade (the game, the ending, the credits, a file) or at once (another menu scene)
+        FE.leave = what; FE.fade = 0; FE.lock = U.now(); Q.sfx('select');
+      };
+      FE.mark = function (id) {   // a scene that comes back here by itself (the credits, BATTLE's GAME MODES): its leave notes when it left, so a way back set for it is used only on that return
+        var sc = Object.prototype.hasOwnProperty.call(Q.SCENE, id) ? Q.SCENE[id] : null, l0;
+        if (!sc || sc.feMark) return;
+        l0 = sc.leave; sc.feMark = true;
+        sc.leave = function (Qx) { FE.left = id; FE.leftAt = U.now(); if (l0) return l0.call(sc, Qx); };
+      };
+      FE.back = function (ph, item, via) { FE.ret = { ph: ph, item: item, via: via }; FE.mark(via); };   // the way back to this screen and item, once 'via' has come back
+      function gone() {
+        var what = FE.leave, opt; FE.leave = '';
         if (what === 'start') {
-          var opt = Q.SAVE && Q.SAVE.opt;   // the player's own settings stay with a new game
-          Q.newGame(); if (opt && Q.SAVE) Q.SAVE.opt = opt;
+          opt = Q.SAVE && Q.SAVE.opt;   // the player's own settings stay with a new game
+          FE.ret = null; Q.newGame(); if (opt && Q.SAVE) Q.SAVE.opt = opt;
           if (Q.scene === 'title') Q.go('intro');
-        }
-        else if (what === 'files') Q.go('files');   // the three files (79-ui-files.js)
-        else if (what === 'ending') Q.go('end');   // the ending again, then the credits and what comes after them, then back here (the save is not touched)
-        else { Q.continueGame(); if (Q.scene === 'title') Q.go('map'); }
+        } else if (what === 'continue') { FE.ret = null; Q.continueGame(); if (Q.scene === 'title') Q.go('map'); }
+        else if (what === 'files') Q.go('files');   // the three files (79-ui-files.js); its B comes back here, on FILE
+        else if (what === 'ending') { FE.back('extras', 'THE ENDING', 'credits'); Q.go('end'); }   // the ending again, then the credits, then back to EXTRAS (the save is not touched)
+        else if (what === 'credits') { FE.back('extras', 'CREDITS', 'credits'); Q.go('credits'); }
       }
-      Q.defScene('title', {
-        enter: function () { U.entered();
-          U.cancel(); U.clearToasts(); U.mapKeep = false; U.lastWorld = 0; U.lastStop = '';
-          TI.t = 0; TI.has = U.hasSave(); TI.any = U.anySave ? U.anySave() : false; TI.won = !!(Q.SAVE && Q.SAVE.won); TI.sel = TI.has ? 1 : 0; TI.ask = false; TI.leave = ''; TI.fade = 0; TI.beatN = -1;
-          TI.gold = TI.has ? U.starCount(Q.SAVE && Q.SAVE.stars ? Q.SAVE : U.stored()) : null;   // the save's gold stars, for CONTINUE
-          seed(); U.applyOpt(); Q.music('title');   // the MUSIC setting from the save, put back at the start
-        },
+      FE.gone = gone;
+      U.titleAt = function () {   // for checks: the main menu (sel, items, gold) and where the front is
+        var x = FE.ph.extras && FE.ph.extras.items ? FE.ph.extras.items() : [], o = FE.ph.options && FE.ph.options.items ? FE.ph.options.items() : [];
+        return { sel: FE.sel, items: FE.items(), gold: FE.gold, phase: FE.phase, ask: !!FE.ask, extras: x, options: o, xsel: FE.xsel, osel: FE.osel, tab: FE.tab, soon: !FE.modes(), leaving: FE.leave || '' };
+      };
+      // ---- TITLE: the logo drops in, a shine runs across it every few seconds, PRESS START ----
+      FE.ph.title = {
+        enter: function (how) { if (how === 'drop') { FE.drop = 0; FE.shine = -1; } else FE.drop = Math.max(FE.drop, 0.5); Q.music('title'); },   // 'drop': in from the splash, the logo falls in
         update: function (dt) {
-          var i, d, b = U.beat('title'), n;
-          TI.t += dt;
-          for (i = 0; i < TI.drift.length; i++) { d = TI.drift[i]; d.x += d.vx * dt; d.y += d.vy * dt; if (d.x < -14) d.x += 340; if (d.y > 204) d.y -= 214; }
-          n = Math.floor(TI.t / b);
-          if (n !== TI.beatN) { TI.beatN = n; if (n % 2 === 0) TI.notes.push({ x: CX + 42, y: CY + 4, t: 0, k: TI.notes.length % 2 }); }
-          for (i = TI.notes.length - 1; i >= 0; i--) { d = TI.notes[i]; d.t += dt; d.y -= 16 * dt; d.x += (5 + 6 * Math.sin(d.t * 4)) * dt; if (d.t > 1.8) TI.notes.splice(i, 1); }
-          if (TI.leave) { TI.fade += dt / 0.45; if (TI.fade >= 1) go(); return; }
-          if (Q.talking()) return;
-          if (TI.ask) {   // START over a save: ask first (NO is the default)
-            if (U.press('left') || U.press('right') || U.press('up') || U.press('down')) { TI.askSel = 1 - TI.askSel; Q.sfx('move'); }
-            if (U.press('b')) { TI.ask = false; Q.sfx('back'); return; }
-            if (U.press('a') || U.press('start')) { TI.ask = false; if (TI.askSel) leave('start'); else Q.sfx('back'); }
+          var was = FE.drop;
+          FE.drop += dt;
+          if (was < 0.5 && FE.drop >= 0.5) { Q.sfx('land'); FE.shine = 0; FE.quake = 0.18; }
+          if (FE.press('start') || FE.press('a')) { Q.sfx('select'); FE.drop = Math.max(FE.drop, 0.5); FE.to('menu', 0); }
+        },
+        draw: function (g, t) {
+          var k = (FE.drop - 0.5) % 1.1, tips = Q.story && Q.story.tips, tk;
+          if (FE.drop >= 0.5 && k < 0.75) U.text('PRESS START', MX, 126, '#ffd23f', 2, 'center');   // a slow blink, small on the screen (XAG 118)
+          if (tips && tips.length) { tk = (t % 5) / 5; U.text(String(tips[Math.floor(t / 5) % tips.length]), 160, 168, tk < 0.06 || tk > 0.94 ? '#3c4680' : '#7f8ab8', 1, 'center'); }   // STORY's tips (part 13, 13)
+          U.fill(g, 0, 179, 320, 15, '#10173a'); U.text('MADE ON THE NINTH FLOOR', 160, 183, '#8f9ac8', 1, 'center');
+        }
+      };
+      // ---- MENU ----
+      FE.ph.menu = {
+        enter: function (sel) { var n = FE.items().length; FE.sel = typeof sel === 'number' ? Q.clamp(sel, 0, n - 1) : 0; FE.ask = false; Q.music('title'); },
+        update: function () {
+          var list = FE.items(), it;
+          if (FE.ask) {   // NEW GAME over a save: ask first (NO is the default)
+            if (FE.press('left') || FE.press('right') || FE.press('up') || FE.press('down')) { FE.askSel = 1 - FE.askSel; Q.sfx('move'); }
+            if (FE.press('b')) { FE.ask = false; Q.sfx('back'); return; }
+            if (FE.press('a') || FE.press('start')) { FE.ask = false; if (FE.askSel) FE.go('start'); else Q.sfx('back'); }
             return;
           }
-          TI.sel = U.menuMove(TI.sel, items().length);
-          if (U.press('a') || U.press('start')) {
-            if (items()[TI.sel] === 'CONTINUE') leave('continue');
-            else if (String(items()[TI.sel]).indexOf('FILE ') === 0) leave('files');
-            else if (items()[TI.sel] === 'THE ENDING') leave('ending');
-            else if (TI.has) { TI.ask = true; TI.askSel = 0; Q.sfx('select'); }
-            else leave('start');
+          if (FE.press('b')) { Q.sfx('back'); FE.to('title'); return; }   // back to PRESS START (the logo already in place)
+          FE.sel = FE.move(Math.min(FE.sel, list.length - 1), list.length);
+          if (!(FE.press('a') || FE.press('start'))) return;
+          it = list[FE.sel];
+          if (it === 'CONTINUE') FE.go('continue');
+          else if (it === 'NEW GAME') { if (FE.has) { FE.ask = true; FE.askSel = 0; Q.sfx('select'); } else FE.go('start'); }
+          else if (it.indexOf('FILE ') === 0) FE.go('files');
+          else if (it === 'GAME MODES') {
+            if (FE.modes()) { Q.sfx('select'); FE.back('menu', 'GAME MODES', FE.MODES); Q.go(FE.MODES); }   // BATTLE's own screen; its B comes back here
+            else { Q.sfx('nope'); FE.soon = 1.4; }   // COMING SOON: nothing starts
           }
+          else if (it === 'OPTIONS') { Q.sfx('select'); FE.to('options', 0); }
+          else if (it === 'EXTRAS') { Q.sfx('select'); FE.to('extras', 0); }
+        },
+        draw: function (g, t) { FE.drawMenu(g, t); }
+      };
+      FE.line = function (it) {   // what a menu item does, on the line under the menu
+        var n = Q.fileNow ? Q.fileNow() : 1;
+        if (it === 'CONTINUE') return 'CARRY ON IN FILE ' + n;
+        if (it === 'NEW GAME') return FE.has ? 'START OVER IN FILE ' + n : 'START FILE ' + n + ' FROM THE TOP';
+        if (String(it).indexOf('FILE ') === 0) return 'THREE FILES, LIKE OLD CARTRIDGES';
+        if (it === 'GAME MODES') return FE.modes() ? 'BATTLE, AND MORE ON THE WAY' : 'COMING SOON';
+        if (it === 'OPTIONS') return 'MUSIC, TEXT SPEED, THE CONTROLS';
+        if (it === 'EXTRAS') return 'THE CODEX, GOLD STARS, CREDITS';
+        return '';
+      };
+      FE.ribbon = function (g, x, y, r, wig) {   // COMING SOON: a light red band with white letters, from x across the row, folded round the box's right edge (r) with a tail behind
+        var s = 'COMING SOON', tx, yy = y + (wig || 0), i;
+        g.fillStyle = '#a5383b'; for (i = 0; i < 9; i++) g.fillRect(r + 1, yy + 1 + i, i === 3 || i === 4 || i === 5 ? 4 : 6, 1);   // the tail behind the box, cut like a swallowtail
+        g.fillStyle = '#7d2629'; g.fillRect(r - 3, yy, 4, 11);   // where it folds round the edge: darker
+        g.fillStyle = '#f27f7f'; g.fillRect(x, yy, r - 3 - x, 11);
+        g.fillStyle = '#ffb3b0'; g.fillRect(x, yy, r - 3 - x, 1);
+        g.fillStyle = '#d65c5e'; g.fillRect(x, yy + 10, r - 3 - x, 1);
+        tx = x + ((r - 3 - x) >> 1) - (U.width(s) >> 1);
+        U.text(s, tx + 1, yy + 3, '#a5383b'); U.text(s, tx, yy + 2, '#ffffff');
+      };
+      FE.drawMenu = function (g) {
+        var list = FE.items(), n = list.length, i, y, it, on, soon, top = 106, row = 11, gx;
+        U.box(g, BX, top, BW, n * row + 6, '#2ec4b6', '#12141c');
+        for (i = 0; i < n; i++) {
+          it = list[i]; y = top + 5 + i * row; on = i === FE.sel && !FE.ask; soon = it === 'GAME MODES' && !FE.modes();
+          if (on) U.fill(g, BX + 3, y - 2, BW - 6, row, '#262838');
+          U.item(it, BX + 16, y, on, soon && !on);
+          if (it === 'CONTINUE' && FE.gold) {   // the save's GOLD STARS beside it (part 14.2)
+            gx = BX + BW - 10 - U.width(FE.gold.n + '/' + FE.gold.all);
+            U.starIcon(g, gx - 15, y - 3, FE.gold.n > 0); U.text(FE.gold.n + '/' + FE.gold.all, gx, y, FE.gold.n > 0 ? '#ffd23f' : '#7f8ab8');
+          }
+          if (soon) FE.ribbon(g, BX + 24 + U.width(it), y - 2, BX + BW, FE.soon > 0 ? (Math.floor(FE.t * 30) % 2 ? 1 : -1) : 0);
+        }
+        FE.foot(FE.line(list[FE.sel]), 'A: CHOOSE   B: BACK');
+        if (FE.ask) {
+          U.box(g, 56, 70, 208, 62, '#ffd23f', '#1d1d24');
+          U.text('START A NEW GAME?', 160, 80, '#ffffff', 1, 'center');
+          U.text('FILE ' + (Q.fileNow ? Q.fileNow() : 1) + "'S SAVE WILL BE REPLACED.", 160, 93, '#c3c7d4', 1, 'center');
+          U.item('NO', 128, 113, FE.askSel === 0, false, 'center'); U.item('YES', 192, 113, FE.askSel === 1, false, 'center');
+        }
+      };
+      FE.foot = function (left, right) {   // the band at the foot of every menu screen: what the chosen thing does, and the buttons
+        U.fill(Q.g, 0, 179, 320, 15, '#10173a');
+        if (left) U.text(left, 6, 183, '#c3c7d4');
+        if (right) U.text(right, 314, 183, '#6f7bb0', 1, 'right');
+      };
+      // ---- what every screen after the splash stands on: the night and its drift, the podium and the conductor keeping time, the logo ----
+      function logo(g, t) {
+        var x = LX, y = LY + Math.round(Math.sin(t * 1.6) * 1), p, i, sx, tip = U.logoTip ? U.logoTip() : null, K = U.logoKit;
+        if (FE.drop < 0.5) { p = FE.drop / 0.5; y = LY - Math.round((1 - p * p) * 112); }   // it falls into place, faster as it comes
+        if (FE.quake > 0) y += Math.floor(FE.quake * 40) % 2 ? 1 : -1;
+        Q.spr(g, 'u5-logo', 0, x, y);
+        if (FE.shine >= 0 && FE.shine < 0.6 && FE.drop >= 0.5) {   // the shine: the logo's faces (frame 1) seen through a slanted band, left to right in 0.6 s
+          sx = Math.round(-60 + FE.shine / 0.6 * 300);
+          g.save(); g.beginPath();
+          for (i = 0; i < 98; i += 2) g.rect(x + sx + ((98 - i) >> 1), y + i, 9, 2);
+          g.clip(); g.globalAlpha = 0.8; Q.spr(g, 'u5-logo', 1, x, y); g.restore();
+        }
+        if (tip && K && FE.drop >= 0.5 && Math.floor(t * 2.5) % 5 === 0) K.sparkle(g, x + tip.x, y + tip.y, 9, '#ffffff', '#fff6c0');   // the baton's spark twinkles
+      }
+      function back(g, t) {
+        var i, d, noteSpr = U.frames('note') ? 'note' : 'u5-note', b = U.beat('title');
+        U.bands(g, FE.SKY, 0, 8);
+        U.fill(g, 0, 152, 320, 48, '#1a2350'); U.fill(g, 0, 152, 320, 1, '#2a3878');
+        for (i = 0; i < FE.stars.length; i++) { d = FE.stars[i]; g.fillStyle = Math.sin(t * 2 + d.ph) > 0.6 ? '#ffffff' : '#5d6a9e'; g.fillRect(d.x, d.y, 1, 1); }
+        g.save(); g.beginPath(); g.rect(0, 0, 320, 152); g.clip();   // the drift sinks behind the horizon
+        for (i = 0; i < FE.drift.length; i++) { d = FE.drift[i]; Q.spr(g, d.k === 0 ? 'u5-env' : d.k === 1 ? 'u5-tix' : 'u5-note', 0, Math.round(d.x), Math.round(d.y + Math.sin(t + d.ph) * 2)); }
+        g.restore();
+        U.fill(g, CX - 10, CY + 60, 68, 16, '#1d1d24'); U.fill(g, CX - 9, CY + 61, 66, 14, '#7a4a2a'); U.fill(g, CX - 9, CY + 61, 66, 2, '#a86f43'); U.fill(g, CX - 9, CY + 70, 66, 1, '#5e3a22');
+        U.sprite(g, U.hero(), FE.leave === 'start' ? 6 : (Math.floor(t / b) % 2 ? 9 : 8), CX, CY, 3);   // one stroke a beat of the title song
+        for (i = 0; i < FE.notes.length; i++) { d = FE.notes[i]; g.globalAlpha = Q.clamp(1.8 - d.t, 0, 1); Q.spr(g, noteSpr, d.k, Math.round(d.x), Math.round(d.y)); }
+        g.globalAlpha = 1;
+        logo(g, t);
+        U.badge(g, 15, 13, FE.won);
+        if (FE.won) {   // the game was finished: our own small mark of it
+          if (Math.floor(t * 1.5) % 4 === 0) { U.fill(g, 26, 4, 1, 3, '#fff1a8'); U.fill(g, 25, 5, 3, 1, '#fff1a8'); }
+          U.text('THE BACKLOG', 6, 27, '#ffd23f'); U.text('IS TRIMMED', 6, 36, '#ffd23f');
+        }
+      }
+      Q.defScene('title', {
+        enter: function (opts) { U.entered();
+          var ret, list, i;
+          opts = opts || {};
+          U.cancel(); U.clearToasts(); U.mapKeep = false; U.lastWorld = 0; U.lastStop = '';
+          FE.t = 0; FE.has = U.hasSave(); FE.any = U.anySave ? U.anySave() : false; FE.won = !!(Q.SAVE && Q.SAVE.won);
+          FE.gold = FE.has ? U.starCount(Q.SAVE && Q.SAVE.stars ? Q.SAVE : U.stored()) : null;   // the save's gold stars, for CONTINUE
+          FE.leave = ''; FE.fade = 0; FE.ask = false; FE.beatN = -1; FE.soon = 0; FE.quake = 0; FE.drop = 0.5; FE.shine = 0; FE.inCodex = false;
+          seed(); U.applyOpt();   // the MUSIC setting from the save, put back at the start
+          ret = opts.back ? { ph: opts.ph || 'menu', item: String(opts.back) } : FE.ret && FE.left === FE.ret.via && FE.leftAt === U.now() ? FE.ret : null;   // back from where we went (only straight back from it)
+          FE.ret = null;
+          if (FE.opened !== Q.api) { FE.opened = Q.api; if (FE.ph.boot) { FE.to('boot'); return; } FE.to('title', 'drop'); return; }   // the game has just been opened: the splash, then the title
+          if (ret && ret.ph === 'extras' && FE.ph.extras) { FE.to('extras', ret.item); return; }
+          list = FE.items(); i = ret ? FE.find(list, ret.item) : -1;
+          FE.to('menu', i >= 0 ? i : 0);
+        },
+        update: function (dt) {
+          var i, d, b = U.beat('title'), n, p = FE.ph[FE.phase];
+          FE.t += dt; FE.pt += dt;
+          if (FE.soon > 0) FE.soon -= dt; if (FE.quake > 0) FE.quake -= dt;
+          if (FE.shine >= 0 && FE.drop >= 0.5) { FE.shine += dt; if (FE.shine > 4.5) FE.shine = 0; }
+          for (i = 0; i < FE.drift.length; i++) { d = FE.drift[i]; d.x += d.vx * dt; d.y += d.vy * dt; if (d.x < -14) d.x += 340; if (d.y > 204) d.y -= 214; }
+          n = Math.floor(FE.t / b);
+          if (n !== FE.beatN) { FE.beatN = n; if (n % 2 === 0 && FE.phase !== 'boot') FE.notes.push({ x: CX + 42, y: CY + 4, t: 0, k: FE.notes.length % 2 }); }
+          for (i = FE.notes.length - 1; i >= 0; i--) { d = FE.notes[i]; d.t += dt; d.y -= 16 * dt; d.x += (5 + 6 * Math.sin(d.t * 4)) * dt; if (d.t > 1.8) FE.notes.splice(i, 1); }
+          if (FE.leave) { FE.fade += dt / 0.45; if (FE.fade >= 1) gone(); return; }
+          if (Q.talking()) return;
+          if (p && p.update) p.update(dt);
         },
         draw: function (g) {
-          var i, d, y, t = TI.t, list = items(), noteSpr = U.frames('note') ? 'note' : 'u5-note', b = U.beat('title');
-          U.bands(g, SKY, 0, 8);
-          U.fill(g, 0, 152, 320, 48, '#1a2350'); U.fill(g, 0, 152, 320, 1, '#2a3878');
-          for (i = 0; i < TI.stars.length; i++) { d = TI.stars[i]; g.fillStyle = Math.sin(t * 2 + d.ph) > 0.6 ? '#ffffff' : '#5d6a9e'; g.fillRect(d.x, d.y, 1, 1); }
-          g.save(); g.beginPath(); g.rect(0, 0, 320, 152); g.clip();   // the drift sinks behind the horizon, clear of the tips and the controls
-          for (i = 0; i < TI.drift.length; i++) { d = TI.drift[i]; Q.spr(g, d.k === 0 ? 'u5-env' : d.k === 1 ? 'u5-tix' : 'u5-note', 0, Math.round(d.x), Math.round(d.y + Math.sin(t + d.ph) * 2)); }
-          g.restore();
-          // the podium and the conductor, keeping time: one stroke a beat
-          U.fill(g, CX - 10, CY + 60, 68, 16, '#1d1d24'); U.fill(g, CX - 9, CY + 61, 66, 14, '#7a4a2a'); U.fill(g, CX - 9, CY + 61, 66, 2, '#a86f43'); U.fill(g, CX - 9, CY + 70, 66, 1, '#5e3a22');
-          U.sprite(g, U.hero(), TI.leave === 'start' ? 6 : (Math.floor(t / b) % 2 ? 9 : 8), CX, CY, 3);
-          for (i = 0; i < TI.notes.length; i++) { d = TI.notes[i]; g.globalAlpha = Q.clamp(1.8 - d.t, 0, 1); Q.spr(g, noteSpr, d.k, Math.round(d.x), Math.round(d.y)); }
-          g.globalAlpha = 1;
-          Q.spr(g, 'u5-logo', 0, LX, LY + Math.round(Math.sin(t * 1.6) * 1.5));
-          for (i = 0; i < list.length; i++) {
-            y = list.length > 3 ? 102 + i * 16 : (list.length > 2 ? 112 : 120) + i * (list.length > 2 ? 18 : 20);   // four items (with FILE n) sit higher, clear of the tips
-            U.item(list[i], MX, y, i === TI.sel && !TI.ask, false, 'center', 2);
-            if (list[i] === 'CONTINUE' && TI.gold) {   // the save's GOLD STARS beside it (part 14.2)
-              U.starIcon(g, MX + (U.width('CONTINUE', 2) >> 1) + 6, y + 1, TI.gold.n > 0);
-              U.text(TI.gold.n + '/' + TI.gold.all, MX + (U.width('CONTINUE', 2) >> 1) + 20, y + 4, TI.gold.n > 0 ? '#ffd23f' : '#7f8ab8');
-            }
-          }
-          var tips = Q.story && Q.story.tips, tk;   // STORY's tips, one every few seconds (QUEST-API.md part 13, 13)
-          if (tips && tips.length && !TI.ask) { tk = (t % 5) / 5; U.text(String(tips[Math.floor(t / 5) % tips.length]), 160, 168, tk < 0.06 || tk > 0.94 ? '#3c4680' : '#7f8ab8', 1, 'center'); }
-          U.fill(g, 0, 179, 320, 15, '#10173a');
-          U.text('A: JUMP   B: BATON   HOLD B: NOTE   START: PAUSE', 160, 183, '#8f9ac8', 1, 'center');
-          U.badge(g, 15, 13, TI.won);
-          if (TI.won) {   // the game was finished: our own small mark of it
-            if (Math.floor(t * 1.5) % 4 === 0) { U.fill(g, 26, 4, 1, 3, '#fff1a8'); U.fill(g, 25, 5, 3, 1, '#fff1a8'); }
-            U.text('THE BACKLOG', 6, 27, '#ffd23f'); U.text('IS TRIMMED', 6, 36, '#ffd23f');
-          }
-          if (TI.ask) {
-            U.box(g, 56, 70, 208, 62, '#ffd23f', '#1d1d24');
-            U.text('START A NEW GAME?', 160, 80, '#ffffff', 1, 'center');
-            U.text('FILE ' + (Q.fileNow ? Q.fileNow() : 1) + "'S SAVE WILL BE REPLACED.", 160, 93, '#c3c7d4', 1, 'center');
-            U.item('NO', 128, 113, TI.askSel === 0, false, 'center'); U.item('YES', 192, 113, TI.askSel === 1, false, 'center');
-          }
-          if (TI.leave) { g.globalAlpha = Q.clamp(TI.fade, 0, 1); U.fill(g, 0, 0, 320, 200, '#000000'); g.globalAlpha = 1; }
+          var p = FE.ph[FE.phase], t = FE.t;
+          if (Q.scene !== 'title') { back(g, t); return; }   // drawn under the codex opened from EXTRAS (its backdrop): the night, the conductor and the logo only
+          if (FE.phase !== 'boot') back(g, t);
+          if (p && p.draw) p.draw(g, t);
+          if (FE.leave) { g.globalAlpha = Q.clamp(FE.fade, 0, 1); U.fill(g, 0, 0, 320, 200, '#000000'); g.globalAlpha = 1; }
           U.drawTalk(g);
         },
-        sides: function (g) {   // a wide screen's sides (the engine clips to them): the sky, stars of their own, the drift carried on from the middle every 340 px, the horizon, the same fade
-          var i, k, d, t = TI.t, ox = Q.OX, st = TI.sstars || [];
-          U.bands(g, SKY, 0, 8, Q.W);
+        sides: function (g) {   // a wide screen's sides (the engine clips to them): the splash's dark, or the sky, stars of their own, the drift carried on every 340 px, the horizon, the foot band, the fade
+          var i, k, d, t = FE.t, ox = Q.OX, st = FE.sstars || [];
+          if (FE.phase === 'boot') { if (FE.ph.boot && FE.ph.boot.sides) FE.ph.boot.sides(g); else U.fill(g, 0, 0, Q.W, 200, '#0b0c10'); return; }
+          U.bands(g, FE.SKY, 0, 8, Q.W);
           U.fill(g, 0, 152, Q.W, 48, '#1a2350'); U.fill(g, 0, 152, Q.W, 1, '#2a3878');
           for (i = 0; i < st.length; i++) { d = st[i]; g.fillStyle = Math.sin(t * 2 + d.ph) > 0.6 ? '#ffffff' : '#5d6a9e'; g.fillRect(d.x, d.y, 1, 1); }
           g.save(); g.beginPath(); g.rect(0, 0, Q.W, 152); g.clip();
-          for (i = 0; i < TI.drift.length; i++) { d = TI.drift[i]; for (k = -1; k <= 1; k++) Q.spr(g, d.k === 0 ? 'u5-env' : d.k === 1 ? 'u5-tix' : 'u5-note', 0, ox + Math.round(d.x) + k * 340, Math.round(d.y + Math.sin(t + d.ph) * 2)); }
+          for (i = 0; i < FE.drift.length; i++) { d = FE.drift[i]; for (k = -1; k <= 1; k++) Q.spr(g, d.k === 0 ? 'u5-env' : d.k === 1 ? 'u5-tix' : 'u5-note', 0, ox + Math.round(d.x) + k * 340, Math.round(d.y + Math.sin(t + d.ph) * 2)); }
           g.restore();
-          U.fill(g, 0, 179, Q.W, 15, '#10173a');
-          if (TI.leave) { g.globalAlpha = Q.clamp(TI.fade, 0, 1); U.fill(g, 0, 0, Q.W, 200, '#000000'); g.globalAlpha = 1; }
+          if (Q.scene === 'title') U.fill(g, 0, 179, Q.W, 15, '#10173a');   // (under the codex: no foot band)
+          if (FE.leave) { g.globalAlpha = Q.clamp(FE.fade, 0, 1); U.fill(g, 0, 0, Q.W, 200, '#000000'); g.globalAlpha = 1; }
         },
-        leave: function () { TI.notes = []; }
+        leave: function () { FE.notes = []; }
       });
       U.badge = function (g, cx, cy, gold) {   // the office's own label: 9F, white on a round orange badge (gold once the game is finished)
         var r = [5, 7, 8, 9, 9, 9, 9, 9, 8, 7, 5], i;
@@ -5830,7 +6197,7 @@
     // Up and down to choose, B goes back (to the list, then to the pause). Each page shown sends the event 'codex' { page, sub } (part 14.1).
     (function () {
       var U = Q.ui, CO = { from: 'level', page: 0, sel: 0, read: '', t: 0, list: [] }, SEC = U.codexSec || (U.codexSec = {});
-      var ORDER = ['memos', 'bestiary', 'stars', 'sprint', 'music'];
+      var ORDER = U.codexOrder || (U.codexOrder = ['memos', 'bestiary', 'stars', 'sprint', 'music']);   // a section part may add itself (75-ui-codex-codes.js)
       var LEVELS = { 1: ['THE LOBBY OF UNREAD', 'THE SORTING FLOOR', 'SPAM TOWER'], 2: ['THE COLD AISLE', 'CABLE CANYON', 'THE FAN STACKS'],
                      3: ['UPLOAD MEADOWS', 'THE WINDY BUCKET', 'THE SYNC STORM'], 4: ['THE LATER PILE', 'THE SPRINT STAIRS', 'THE TOWER OF TICKETS'] };
       var BEASTS = { 1: ['spam', 'unsub', 'ooo', 'flag', 'hydra'], 2: ['bug', 'timeout', 'ping', 'spark', 'overheat'], 3: ['spinner', 'limiter', 'miss', 'loop'],
@@ -5989,6 +6356,74 @@
           U.text(s.hint ? s.hint(p.sub) : 'LEFT/RIGHT: PAGE   B: BACK', 160, 188, '#8a93a8', 1, 'center');
           U.drawTalk(g);
       }
+    })();
+    // ===== 75-ui-codex-codes.js =====
+    // ---------- 75-ui-codex-codes.js: the codex's CODES page (UI and ENGINE, the director's, 2 Nov; QUEST-API.md part 19) ----------
+    // The eight cheat codes as a collection. Beating each boss for the first time teaches one (THE INBOX: TALL ORDER, THE SERVER ROOM: LIGHT WORKLOAD,
+    // THE CLOUD: WORK FROM HOME, THE BACKLOG: PETTY CASH), and a code typed in on the CODES screen is known from then on. The file keeps them (Q.SAVE.codes);
+    // a file from before this page learns the codes of the bosses it has already beaten, quietly. The page opens once one code is known; the rest read ???.
+    (function () {
+      var U = Q.ui, SEC = U.codexSec || (U.codexSec = {}), ORD = U.codexOrder;
+      var TEACH = { 'w1-boss': 'tall', 'w2-boss': 'light', 'w3-boss': 'wfh', 'w4-boss': 'cash' };
+      function own(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
+      var ROWS = ['tall', 'light', 'wfh', 'cash', 'green', 'floors', 'toolkit', 'finish'], FROM = { tall: 1, light: 2, wfh: 3, cash: 4 };   // the bosses' four first, in their order
+      function ids() { var out = [], id, i; for (i = 0; i < ROWS.length; i++) if (own(Q.CHEAT, ROWS[i])) out.push(ROWS[i]); for (id in Q.CHEAT) if (own(Q.CHEAT, id) && out.indexOf(id) < 0) out.push(id); return out; }
+      function codesOf(s, door) {   // the file's known codes; a file from before this page learns, once, the codes of the bosses it beat (but the one at this door)
+        var b; if (!s) return {};
+        if (!s.codes || typeof s.codes !== 'object') {
+          s.codes = {};
+          for (b in TEACH) if (own(TEACH, b) && b !== door && s.cleared && s.cleared[b] && own(Q.CHEAT, TEACH[b])) s.codes[TEACH[b]] = true;
+        }
+        return s.codes;
+      }
+      function known() { return codesOf(Q.SAVE); }
+      function count() { var k = known(), l = ids(), n = 0, i; for (i = 0; i < l.length; i++) if (k[l[i]]) n++; return n; }
+      function said(id) { return String(Q.CHEAT[id].code || '').toUpperCase(); }   // its eight presses, in words
+      U.codesKnown = function () { var k = known(), l = ids(), out = [], i; for (i = 0; i < l.length; i++) if (k[l[i]]) out.push(l[i]); return out; };   // for checks
+      Q.knowCode = function (id, quiet, door) {   // a code is known from now on; true when it is new
+        var k = codesOf(Q.SAVE, door); if (!id || !own(Q.CHEAT, id) || k[id]) return false;
+        k[id] = true;
+        if (!quiet) Q.toast('NEW CODE: ' + Q.CHEAT[id].name + '! IT IS IN THE CODEX.', 4);
+        return true;
+      };
+      Q.on('level', function (d) {   // an arena's door: its boss was beaten and its rescue is done
+        var id = d && TEACH[d.id];
+        if (id && !(Q.encoreOn && Q.encoreOn()) && Q.knowCode(id, false, d.id)) Q.saveGame();
+      });
+      var typed = Q.code;
+      Q.code = function (list) {   // a code typed in on the CODES screen: known from now on, done or not
+        var r = typed.apply(this, arguments);
+        if (r && r.id && Q.knowCode(r.id, true)) Q.saveGame();
+        return r;
+      };
+      if (ORD && ORD.indexOf('codes') < 0) ORD.splice(ORD.indexOf('stars') + 1, 0, 'codes');   // its tab after STARS
+      SEC.codes = {
+        name: 'CODES',
+        open: function () { return count() > 0; },
+        col: function () { return '#ff8a1e'; },
+        rows: function () { return ids().length; },
+        title: function () { return 'TYPE THEM IN: PAUSE, THEN CODES'; },
+        count: function () { return 'KNOWN ' + count() + '/' + ids().length; },
+        hint: function () { return 'LEFT/RIGHT: PAGE   UP/DOWN: CHOOSE   B: BACK'; },
+        tab: function (g, x, y) { U.fill(g, x + 5, y + 1, 3, 11, '#ff8a1e'); U.fill(g, x + 1, y + 5, 11, 3, '#ff8a1e'); U.fill(g, x + 6, y + 6, 1, 1, '#14161f'); },   // a small cross of a D-pad
+        draw: function (g, sub, sel) {
+          var l = ids(), k = known(), i, id, y, on, pick = null, c;
+          for (i = 0; i < l.length; i++) {
+            id = l[i]; y = 47 + i * 12; on = sel === i;
+            if (on) { U.fill(g, 14, y - 2, 292, 11, '#262838'); pick = id; }
+            if (k[id]) {
+              U.text(Q.CHEAT[id].name, 22, y, on ? '#ffd23f' : '#f6efe2');
+              U.text(said(id), 298, y, on ? '#ffd23f' : '#8f9ac8', 1, 'right');
+            } else U.text('???', 22, y, '#5d6378');
+          }
+          U.fill(g, 14, 147, 292, 1, '#2a2c3a');
+          if (!pick) return;
+          if (!k[pick]) { U.text(FROM[pick] ? 'THE BOSS OF ' + U.worldName(FROM[pick]) + ' KNOWS THIS ONE.' : 'NOT KNOWN YET. IT IS OUT THERE SOMEWHERE.', 160, 156, '#6f778c', 1, 'center'); return; }
+          c = Q.CHEAT[pick];
+          U.text(c.what || c.name, 160, 154, '#c3c7d4', 1, 'center');
+          if (!c.once) U.text(Q.cheatOn && Q.cheatOn(pick) ? 'THIS FILE: ON (TYPE IT AGAIN FOR OFF)' : 'THIS FILE: OFF', 160, 164, Q.cheatOn && Q.cheatOn(pick) ? '#7bd35a' : '#6f778c', 1, 'center');
+        }
+      };
     })();
     // ===== 75-ui-codex-music.js =====
     // ---------- 75-ui-codex-music.js: the codex's HOLD MUSIC page, the jukebox (UI, builder 5; QUEST-API.md part 14.5) ----------
@@ -6298,7 +6733,7 @@
       }
       function drawRow(g, r, y) {
         var w, x;
-        if (r.kind === 'logo') { Q.spr(g, 'u5-logo-s', 0, 81, y); return; }
+        if (r.kind === 'logo') { Q.spr(g, 'u5-logo-s', 0, 160 - ((Q.SPRITE['u5-logo-s'] ? Q.SPRITE['u5-logo-s'].w : 158) >> 1), y); return; }   // the small logo (77-ui-front-logo.js, B17), centred by its own width
         if (r.kind === 'role') { w = U.width(r.a) + 6 + U.width(r.b); x = 160 - (w >> 1); U.text(r.a, x, y, '#f6efe2'); U.text(r.b, x + U.width(r.a) + 6, y, '#8ff0e6'); return; }
         if (r.kind === 'head') { U.text(r.s, 160, y + 8, '#ffd23f', 2, 'center'); return; }
         if (r.kind === 'big') { U.text(r.s, 160, y, '#f6efe2', 2, 'center'); return; }
@@ -6631,7 +7066,7 @@
       });
     })();
     // ===== 77-ui-art.js =====
-    // ---------- 77-ui-art.js: the UI's own pictures (UI, builder 5): the BATON QUEST lettering, the title's drift, an office desk ----------
+    // ---------- 77-ui-art.js: the UI's own pictures (UI, builder 5): the big lettering, the title's drift, an office desk ----------
     // Our own drawing throughout. The lettering is a chunky block alphabet of our own (2-pixel strokes on a 6 by 7 grid), drawn big with an outline and a
     // deep edge, warm for BATON and cool for QUEST. Ids start with 'u5-' so they never meet ART's.
     (function () {
@@ -6676,14 +7111,7 @@
       };
       var WARM = ['#fff3c4', '#ffd23f', '#ff9a2a'], WARM_SIDE = '#9a4710', COOL = ['#d2fbf6', '#2ec4b6', '#17958b'], COOL_SIDE = '#0b4a47';
       U.WARM = WARM; U.WARM_SIDE = WARM_SIDE; U.COOL = COOL; U.COOL_SIDE = COOL_SIDE;
-      Q.defSprite('u5-logo', { w: 178, h: 94, n: 1, draw: function (g) {   // BATON over QUEST, 5-pixel blocks
-        U.bigWord(g, 'BATON', 4, 3, 5, WARM, WARM_SIDE);
-        U.bigWord(g, 'QUEST', 4, 51, 5, COOL, COOL_SIDE);
-      } });
-      Q.defSprite('u5-logo-s', { w: 158, h: 22, n: 1, draw: function (g) {   // the same in one line, small (for the credits)
-        U.bigWord(g, 'BATON', 2, 2, 2, WARM, WARM_SIDE);
-        U.bigWord(g, 'QUEST', 86, 2, 2, COOL, COOL_SIDE);
-      } });
+      // the BATON QUEST logo ('u5-logo', and 'u5-logo-s' for the credits) is drawn in 77-ui-front-logo.js (B17, 2 Nov); the big letters here stay for THE END, ENCORE and LATER
       // ---- the title's drift: envelopes, tickets and notes, in soft night colours so they stay behind ----
       Q.defSprite('u5-env', { w: 10, h: 7, pal: { k: '#2c3a63', w: '#9cabcd', f: '#6878a3' }, frames: [[
         'kkkkkkkkkk', 'kwfwwwwfwk', 'kwwfwwfwwk', 'kwwwffwwwk', 'kwwwwwwwwk', 'kwwwwwwwwk', 'kkkkkkkkkk'
@@ -6709,6 +7137,120 @@
         f(6, 21, 32, 1, '#6e4529'); f(6, 27, 32, 1, '#4a2d1a');
         f(12, 12, 12, 2, '#1d1d24'); f(13, 12, 10, 1, '#c3c7d4');                              // the keyboard
         f(3, 8, 6, 6, '#1d1d24'); f(4, 9, 4, 5, '#f6efe2'); f(8, 10, 2, 2, '#1d1d24'); f(4, 9, 4, 1, '#ffffff');   // the mug
+      } });
+    })();
+    // ===== 77-ui-front-logo.js =====
+    // ---------- 77-ui-front-logo.js (B17 FRONT END, 2 Nov): the BATON QUEST logo, drawn in code (lab/front/FRONT.md says how it was chosen) ----------
+    // Letters of our own: 6 by 7 cells of k pixels, a cell full '#', empty '.', or cut on one corner at 45 degrees ('a' top left, 'b' top right, 'c' bottom
+    // left, 'd' bottom right). Each word is slanted (one pixel right every 3 rows up), given a block of depth down and right, a 2-pixel ink outline, and
+    // faces in bands (the office's yellow and orange for BATON, its teal for QUEST) with a checkerboard row at each seam, a lit top edge, a shaded bottom edge.
+    // The conductor's baton lies between the words, rising to the right, with its spark at the tip. 'u5-logo' (196 by 98): frame 0 the logo, frame 1 its
+    // faces in white (the title's shine). 'u5-logo-s' (164 by 30): the same in one line, small, for the credits. U.logoTip says where the spark is.
+    (function () {
+      var U = Q.ui, F = U.logoKit = {};
+      F.GLYPH = {
+        B: ['#####b', '##..##', '##..#d', '#####b', '##..##', '##..##', '#####d'],
+        A: ['a####b', '##..##', '##..##', '######', '##..##', '##..##', '##..##'],
+        T: ['######', 'c####d', '..##..', '..##..', '..##..', '..##..', '..##..'],
+        O: ['a####b', '##..##', '##..##', '##..##', '##..##', '##..##', 'c####d'],
+        N: ['##..##', '##b.##', '######', '##.c##', '##..##', '##..##', '##..##'],
+        Q: ['a####b', '##..##', '##..##', '##..##', '##.b##', 'c#####', '....#d'],
+        U: ['##..##', '##..##', '##..##', '##..##', '##..##', '##..##', 'c####d'],
+        E: ['a#####', '##....', '##....', '####..', '##....', '##....', 'c#####'],
+        S: ['a#####', '##....', '##....', 'c####b', '....##', '....##', '#####d']
+      };
+      function cell(ch, px, py, k) { var e = k - 1; return ch === '#' ? true : ch === 'a' ? px + py >= e : ch === 'b' ? py >= px : ch === 'c' ? px >= py : ch === 'd' ? px + py <= e : false; }
+      F.grid = function (w, h) { var m = [], i; for (i = 0; i < w * h; i++) m.push(0); return { w: w, h: h, m: m }; };
+      F.at = function (G, x, y) { return x >= 0 && y >= 0 && x < G.w && y < G.h ? G.m[y * G.w + x] : 0; };
+      function put(G, x, y, v) { if (x >= 0 && y >= 0 && x < G.w && y < G.h) G.m[y * G.w + x] = v; }
+      F.word = function (G, s, x, y, k, gap, slant, tag) {   // a word into G at (x, y); every pixel of it tagged
+        var i, r, c, px, py, rows, gx = x, H = 7 * k, yy, sh;
+        for (i = 0; i < s.length; i++) {
+          rows = F.GLYPH[s.charAt(i)];
+          if (!rows) { gx += 4 * k; continue; }
+          for (r = 0; r < 7; r++) for (c = 0; c < 6; c++) for (py = 0; py < k; py++) for (px = 0; px < k; px++) {
+            if (!cell(rows[r].charAt(c), px, py, k)) continue;
+            yy = r * k + py; sh = slant ? Math.floor((H - 1 - yy) / slant) : 0;
+            put(G, gx + c * k + px + sh, y + yy, tag);
+          }
+          gx += 6 * k + gap;
+        }
+      };
+      F.depth = function (G, tag, ex, ey, n, dep) {   // the pixels the word covers moved 1 to n times by (ex, ey), where nothing is yet: its depth
+        var x, y, d, src = G.m.slice();
+        for (d = 1; d <= n; d++) for (y = 0; y < G.h; y++) for (x = 0; x < G.w; x++) if (src[y * G.w + x] === tag && !F.at(G, x + ex * d, y + ey * d)) put(G, x + ex * d, y + ey * d, dep);
+      };
+      F.outline = function (G, r, ol) {   // empty pixels within r of anything (the corners rounded): the outline
+        var x, y, dx, dy, src = G.m.slice(), hit, lim = r + (r > 1 ? 1 : 0);
+        for (y = 0; y < G.h; y++) for (x = 0; x < G.w; x++) {
+          if (src[y * G.w + x]) continue; hit = false;
+          for (dy = -r; dy <= r && !hit; dy++) for (dx = -r; dx <= r && !hit; dx++) if (Math.abs(dx) + Math.abs(dy) <= lim && x + dx >= 0 && y + dy >= 0 && x + dx < G.w && y + dy < G.h && src[(y + dy) * G.w + x + dx]) hit = true;
+          if (hit) G.m[y * G.w + x] = ol;
+        }
+      };
+      F.line = function (G, x0, y0, x1, y1, r0, r1, tag) {   // a thick straight line, r0 wide at its start to r1 at its end
+        var n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)), i, t, cx, cy, r, dx, dy, R;
+        for (i = 0; i <= n; i++) {
+          t = n ? i / n : 0; cx = x0 + (x1 - x0) * t; cy = y0 + (y1 - y0) * t; r = r0 + (r1 - r0) * t; R = Math.ceil(r);
+          for (dy = -R; dy <= R; dy++) for (dx = -R; dx <= R; dx++) if (dx * dx + dy * dy <= r * r + 0.3) put(G, Math.round(cx + dx), Math.round(cy + dy), tag);
+        }
+      };
+      F.disc = function (G, cx, cy, r, tag) { var dx, dy; for (dy = -r; dy <= r; dy++) for (dx = -r; dx <= r; dx++) if (dx * dx + dy * dy <= r * r + r * 0.6) put(G, cx + dx, cy + dy, tag); };
+      F.paint = function (g, G, look) { var x, y, t, c; for (y = 0; y < G.h; y++) for (x = 0; x < G.w; x++) { t = G.m[y * G.w + x]; if (!t) continue; c = look(x, y, t, G); if (c) { g.fillStyle = c; g.fillRect(x, y, 1, 1); } } };
+      F.band = function (bands, row, x) {   // a face's colour by its row inside the word: bands top to bottom, a checkerboard row at each seam
+        var i, acc = 0;
+        for (i = 0; i < bands.length; i++) { if (row < acc + bands[i][0]) return i > 0 && row === acc && ((x + row) & 1) ? bands[i - 1][1] : bands[i][1]; acc += bands[i][0]; }
+        return bands[bands.length - 1][1];
+      };
+      F.face = function (bands, top, lit, low) { return function (x, y, G) { var me = G.m[y * G.w + x]; return F.at(G, x, y - 1) !== me ? lit : F.at(G, x, y + 1) !== me ? low : F.band(bands, y - top, x); }; };
+      F.WARM = [[2, '#fffbe8'], [6, '#fff0b0'], [7, '#ffd23f'], [7, '#ffaa2a'], [7, '#ff8a1e'], [6, '#e8621a']];
+      F.COOL = [[2, '#f2fffd'], [6, '#c9f7f1'], [7, '#7fe3d8'], [7, '#2ec4b6'], [7, '#1ba39a'], [6, '#13807a']];
+      F.sparkle = function (g, cx, cy, n, c1, c2) {   // a four-point spark, its arms n long, a small cross of light in its middle
+        var i;
+        g.fillStyle = c2; for (i = 2; i <= n; i++) { g.fillRect(cx - i, cy, 1, 1); g.fillRect(cx + i, cy, 1, 1); g.fillRect(cx, cy - i, 1, 1); g.fillRect(cx, cy + i, 1, 1); }
+        if (n > 3) { g.fillRect(cx - 1, cy - 1, 1, 1); g.fillRect(cx + 1, cy - 1, 1, 1); g.fillRect(cx - 1, cy + 1, 1, 1); g.fillRect(cx + 1, cy + 1, 1, 1); }
+        g.fillStyle = c1; g.fillRect(cx - 1, cy, 3, 1); g.fillRect(cx, cy - 1, 1, 3);
+      };
+      F.baton = function (g, w, h, x0, y0, x1, y1, r0, r1, bulb, mask) {   // the baton from its handle (x0, y0) to its tip (x1, y1): outline, shaft and its shade, the walnut bulb
+        var B = F.grid(w, h);
+        F.line(B, x0, y0, x1, y1, r0, r1, 1); if (bulb) F.disc(B, x0, y0, bulb, 2);
+        F.outline(B, 1, 9);
+        F.paint(g, B, function (x, y, t, G) {
+          if (mask) return t === 1 && F.at(G, x, y - 1) === 9 ? '#ffffff' : '';
+          if (t === 9) return '#0b0c10';
+          if (t === 2) return F.at(G, x - 1, y - 1) === 9 || F.at(G, x, y - 1) === 9 ? '#b47a4c' : F.at(G, x + 1, y + 1) === 9 ? '#4e2f1a' : '#7a4a2a';
+          return F.at(G, x, y + 1) === 9 || F.at(G, x + 1, y + 1) === 9 ? '#bdb29b' : F.at(G, x, y - 1) === 9 ? '#ffffff' : '#f6efe2';
+        });
+      };
+      // the two words, their depth and outline, painted (mask: only the faces, in white)
+      F.words = function (g, w, h, a, b, k, gap, dep, ol, mask) {
+        var G = F.grid(w, h), fa = F.face(F.WARM, a[1], '#ffffff', '#c24c12'), fb = F.face(F.COOL, b[1], '#ffffff', '#0f6a65');
+        F.word(G, 'BATON', a[0], a[1], k, gap, 3, 1); F.word(G, 'QUEST', b[0], b[1], k, gap, 3, 2);
+        F.depth(G, 1, 1, 1, dep, 3); F.depth(G, 2, 1, 1, dep, 4);
+        F.outline(G, ol, 9);
+        F.paint(g, G, function (x, y, t, M) {
+          if (mask) return t === 1 || t === 2 ? '#ffffff' : '';
+          if (t === 9) return '#0b0c10';
+          if (t === 3) return F.at(M, x - 1, y - 1) === 1 ? '#b4521a' : '#7c3410';
+          if (t === 4) return F.at(M, x - 1, y - 1) === 2 ? '#0f6c66' : '#083f3b';
+          return t === 1 ? fa(x, y, M) : fb(x, y, M);
+        });
+      };
+      var TIP = { x: 188, y: 43 }, TIP_S = { x: 159, y: 24 };
+      U.logoTip = function (small) { return small ? TIP_S : TIP; };
+      Q.defSprite('u5-logo', { w: 196, h: 98, n: 2, draw: function (g, f) {
+        var i, x, y;
+        F.words(g, 196, 98, [8, 4], [14, 56], 5, 3, 3, 2, f === 1);
+        if (f !== 1) for (i = 0; i < 3; i++) {   // three motion lines along the shaft, above it, from the handle out: the downbeat's swing
+          for (x = 18 + i * 10; x < 110 - i * 26; x++) { y = Math.round(54 - 5 - i * 2 - (x - 7) * 11 / 179); g.fillStyle = (x + i) % 9 < 6 ? ['#8ff0e6', '#2ec4b6', '#1b7f78'][i] : '#14224e'; g.fillRect(x, y, 1, 1); }
+        }
+        F.baton(g, 196, 98, 7, 54, 186, 43, 2.6, 1.1, 5, f === 1);
+        if (f !== 1) F.sparkle(g, TIP.x, TIP.y, 7, '#ffffff', '#ffe98a');
+      } });
+      Q.defSprite('u5-logo-s', { w: 164, h: 30, n: 1, draw: function (g) {   // the credits' small one: BATON QUEST in one line, the baton under it
+        F.words(g, 164, 30, [4, 3], [83, 3], 2, 2, 2, 1, false);
+        F.baton(g, 164, 30, 4, 25, 157, 24, 1.6, 0.8, 3, false);
+        F.sparkle(g, TIP_S.x, TIP_S.y, 4, '#ffffff', '#ffe98a');
       } });
     })();
     // ===== 78-ui-room.js =====
@@ -6890,7 +7432,7 @@
     })();
     // ===== 79-ui-files.js =====
     // ---------- 79-ui-files.js (UI, the director's, 2 Nov): the file screen, three files like the old cartridges (QUEST-API 14.10 item 10) ----------
-    // From the title's FILE n. Each file: its hearts, LV, worlds cleared, gold stars and time played, or NEW GAME. A on a file plays it (a used one
+    // From the title's menu, FILE n (B17's front end, 2 Nov: B comes back to the menu on FILE). Each file: its hearts, LV, worlds cleared, gold stars and time played, or NEW GAME. A on a file plays it (a used one
     // carries on where it was saved, an empty one starts the intro); ERASE A FILE, then a file, then YES empties it (NO is the default). B: back.
     (function () {
       var U = Q.ui, FS = { sel: 0, erase: false, ask: false, askSel: 0, leave: '', fade: 0, t: 0, opt: null };
@@ -6904,7 +7446,7 @@
         if (what === 'start') {   // a new game in this file: the player's settings come along from the file before
           Q.newGame(); if (FS.opt && Q.SAVE) Q.SAVE.opt = FS.opt; U.applyOpt();
           if (Q.scene === 'files') Q.go('intro');
-        } else { Q.continueGame(); if (Q.scene === 'files') Q.go('map'); }
+        } else { U.applyOpt(); Q.continueGame(); if (Q.scene === 'files') Q.go('map'); }   // a used file carries on with its own settings (its MUSIC level at once: B17)
       }
       function card(g, f, i) {
         var y = cardY(i), on = i === FS.sel && !FS.ask, k, x = CX + 64;
@@ -6941,7 +7483,7 @@
             return;
           }
           FS.sel = U.menuMove(FS.sel, 4);
-          if (U.press('b')) { if (FS.erase) { FS.erase = false; Q.sfx('back'); } else { Q.sfx('back'); Q.go('title'); } return; }
+          if (U.press('b')) { if (FS.erase) { FS.erase = false; Q.sfx('back'); } else { Q.sfx('back'); Q.go('title', { back: 'FILE' }); } return; }   // back to the title's menu, on FILE (B17)
           if (U.press('a') || U.press('start')) {
             if (FS.sel === 3) { FS.erase = !FS.erase; FS.sel = FS.erase ? 0 : 3; Q.sfx('select'); return; }
             list = Q.files(); f = list[FS.sel];
@@ -12174,6 +12716,1390 @@
         '############################################'
       ]
     });
+    // ===== 90-battle-art.js =====
+    // ---------- 90-battle-art.js: BATTLE MODE's look (B16, lab/battle; BATTLE.md): the four conductors' colours, palette swaps of ART's own 'hero' ----------
+    // The same 18 frames as 'hero' and 'hero-l' (QUEST-API part 8); only the shirt's three letters (D light, d main, e shade) take the player's colour,
+    // so the face (the >_ prompt), the white bow tie and the baton stay the conductor's own. Ids: 'bt-hero-0' to 'bt-hero-3', each with its '-l' twin.
+    var BT = Q.battle = Q.battle || {};
+    BT.COLS = [   // our own four: a name for the menus, then light, main and shade
+      { name: 'ORANGE', light: '#ffb066', main: '#ff8a1e', shade: '#b4560a' },
+      { name: 'TEAL', light: '#8fe8de', main: '#2ec4b6', shade: '#167a72' },
+      { name: 'BERRY', light: '#f592aa', main: '#e0446a', shade: '#922443' },
+      { name: 'VIOLET', light: '#c6b0f7', main: '#9068e6', shade: '#573ba2' }
+    ];
+    (function () {
+      var base = Q.art && Q.art.heroPal, hero = Q.SPRITE.hero, left = Q.SPRITE['hero-l'], i, k, p, c;
+      if (!base || !hero || !hero.frames) { Q.warn('BATTLE: no hero sprite to colour'); return; }
+      for (i = 0; i < BT.COLS.length; i++) {
+        c = BT.COLS[i]; p = {};
+        for (k in base) if (Object.prototype.hasOwnProperty.call(base, k)) p[k] = base[k];
+        p.D = c.light; p.d = c.main; p.e = c.shade;
+        Q.defSprite('bt-hero-' + i, { w: 16, h: 20, n: hero.frames.length, pal: p, frames: hero.frames });
+        if (left && left.frames) Q.defSprite('bt-hero-' + i + '-l', { w: 16, h: 20, n: left.frames.length, pal: p, frames: left.frames });
+      }
+    })();
+    BT.spr = function (col) { return 'bt-hero-' + (col | 0); };
+    // ===== 90-battle-data.js =====
+    // ---------- 90-battle-data.js: BATTLE MODE's data (B16, lab/battle; BATTLE.md): its numbers, names, power-ups, rules and the four arenas ----------
+    // A file only defines when it loads. BATTLE MODE never writes the adventure's save (Q.SAVE), its conductor (Q.P), its level (Q.level), its entities
+    // (Q.ents) or its events (Q.emit), so the adventure's saves, gold stars and best times stay as they are. BT is Q.battle (90-battle-art.js makes it).
+    BT.N = {
+      KB_BASE: 150, KB_GROW: 30, KB_UP: 0.55, KB_LIFT: 80,   // knockback (px/s): base plus growth for each WOBBLE point; up by KB_UP of it plus KB_LIFT
+      STUN: 0.16, STUN_GROW: 0.022, GRACE: 0.3, DRAG: 110,   // seconds he cannot act after a hit (and its growth); no new hit for GRACE s; a knock slows by DRAG px/s each s
+      WOB_MAX: 12, OUT_T: 1.2, SAFE_T: 2, KO_T: 4,           // the WOBBLE cap; seconds out after a fall; blinking after he comes back; a knock-off counts this long after a hit
+      FALL_Y: 36, SIDE_X: 56, TOP_Y: -400,                   // a fall: this far below the arena, or this far past a side (px); a knock this high comes back down
+      SWING_HIT: 0.14, BIG_W: 26, BIG_K: 1.25,               // the swing hits in its first 0.14 s (as in the adventure); BIGGER BATON: a longer swing, harder knocks
+      POUND_SHOCK: 30, POUND_KB: 1.3,                        // FIRM HAND's landing reaches this far; a pound onto someone knocks this much harder, downwards
+      ITEM_T0: 8, ITEM_T1: 14, ITEM_MAX: 2, ITEM_V: 22, ITEM_BOB: 9,   // a power-up every 8 to 14 s, two at most, drifting 22 px/s with a 9 px bob
+      BUFF_T: 15, BATON_T: 12, METRO_T: 12, METRO_K: 4,      // borrowed moves last 15 s; BIGGER BATON and METRONOME 12 s (rhythm refills 4 times as fast)
+      READY_T: 2.2, END_T: 2.6, OVER_T: 100, OT_K: 2         // ROUND n, READY, GO; the round's winner; OVERTIME after 100 s: WOBBLE grows twice as fast
+    };
+    BT.NAMES = ['TEMPO', 'FORTE', 'PIANO', 'LARGO', 'PRESTO', 'ADAGIO', 'RONDO', 'CODA', 'TRILL', 'ARIA', 'CHORD', 'VIVACE', 'DOLCE', 'LENTO', 'ALTO', 'BASSO'];   // our own list: music words, no typed names
+    BT.RULES0 = { rounds: 3, hearts: 3, items: true, cpu: 1 };   // best of 3, 3 hearts, ITEMS ON, CPU NORMAL
+    BT.ROUNDS = [1, 3, 5]; BT.CPU = ['EASY', 'NORMAL', 'HARD'];
+    BT.ITEMS = {   // the game's own things (BATTLE.md): spr is the sprite drawn in the bubble ('' : the shop's own metronome drawing)
+      coffee: { name: 'COFFEE', spr: 'mug', say: 'A HEART BACK', col: '#f6efe2', w: 1 },
+      baton: { name: 'BIGGER BATON', spr: 'ic-baton', say: 'HITS HARDER', col: '#ffd23f', w: 2 },
+      metro: { name: 'METRONOME', spr: '', say: 'RHYTHM FULL', col: '#c08552', w: 2 },
+      dash: { name: 'QUICK KEYS', spr: 'ic-dash', say: 'C: DASH', col: '#3f7fd9', w: 2 },
+      hover: { name: 'PAUSE TO THINK', spr: 'ic-hover', say: 'HOLD A: HOVER', col: '#46b06a', w: 2 },
+      pound: { name: 'FIRM HAND', spr: 'ic-pound', say: 'DOWN AND B: POUND', col: '#ee7fb0', w: 2 }
+    };
+    BT.ITEM_IDS = ['coffee', 'baton', 'metro', 'dash', 'hover', 'pound'];
+    BT.BUFFS = ['dash', 'hover', 'pound', 'baton', 'metro'];
+    // ---------- the arenas: one a world, 20 by 13 tiles (the whole screen), from that world's own tiles, decorations and background ----------
+    // '#' solid (the world's t<N>-solid), '=' thin (t<N>-oneway), 'S' a start (four), other marks: the world's own Q.defTile (read when a match starts).
+    BT.ARENAS = [
+      { id: 'mail', world: 1, name: 'REPLY ALL', place: 'THE INBOX', bg: 'inbox', look: { sky: 1 }, music: 'boss-hydra',
+        map: [
+          '                    ',
+          '                    ',
+          '                    ',
+          '                    ',
+          '                    ',
+          '      ========      ',
+          '   T          T     ',
+          '  =====      =====  ',
+          '                    ',
+          '  LS T S  BS T S L  ',
+          '  ################  ',
+          '  ################  ',
+          '                    '] },
+      { id: 'rack', world: 2, name: 'HOT SPARE', place: 'THE SERVER ROOM', bg: 'server', look: { w2look: 'hot' }, music: 'boss-overheat',
+        map: [
+          '                    ',
+          '                    ',
+          '                    ',
+          '                    ',
+          '                    ',
+          '        ====        ',
+          '                    ',
+          '  ====        ====  ',
+          '                    ',
+          ' LS  S T    T S  SL ',
+          ' ########  ######## ',
+          ' ########  ######## ',
+          '                    '] },
+      { id: 'sky', world: 3, name: 'SYNC OR SWIM', place: 'THE CLOUD', bg: 'cloud', look: { w3sky: 'day' }, music: 'boss-loop',
+        map: [
+          '                    ',
+          '                    ',
+          '                    ',
+          '                    ',
+          '   ====      ====   ',
+          '                    ',
+          '  F             Y   ',
+          ' ====    ==    ==== ',
+          '                    ',
+          '     YS S  S SB     ',
+          '     ##########     ',
+          '      ########      ',
+          '                    '] },
+      { id: 'pile', world: 4, name: 'STAND-UP', place: 'THE BACKLOG', bg: 'backlog', look: {}, music: 'encore',
+        map: [
+          '                    ',
+          '                    ',
+          '                    ',
+          '                    ',
+          '                    ',
+          '       ======       ',
+          '                    ',
+          '   *          :     ',
+          '  ####        ####  ',
+          '  ####S S, S S####  ',
+          '  ################  ',
+          '  ################  ',
+          '                    '] }
+    ];
+    BT.arenaDef = function (id) { for (var i = 0; i < BT.ARENAS.length; i++) if (BT.ARENAS[i].id === id) return BT.ARENAS[i]; return BT.ARENAS[0]; };
+    // ---------- a seeded random of the match's own (xorshift; its state is a number in the match, so a match replays the same for the same seed) ----------
+    BT.rand = function (o, key) {
+      var s = (o[key] >>> 0) || 1;
+      s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0;
+      o[key] = s; return s / 4294967296;
+    };
+    BT.copy = function (o) { var r = {}, k; for (k in o) if (Object.prototype.hasOwnProperty.call(o, k)) r[k] = o[k]; return r; };
+    // ===== 91-battle-sim.js =====
+    // ---------- 91-battle-sim.js: BATTLE MODE's arena grid and one conductor's moves (B16; BATTLE.md) ----------
+    // Each device runs this for its own conductor (phase 2): BT.sim(c, inp, dt, ar) moves one conductor by one input frame through the arena, by
+    // Q.HERO's numbers and the adventure's own moves (run, jump with coyote time and a buffer, the swing, the charged note, and the borrowed dash, hover
+    // and pound). It makes intents (c.swingT and c.swingId, c.wantNote, c.poundLand) for the host's rules (92) and never decides a hit itself.
+    // An input frame is { h, p }: held and pressed bits, BT.BIT (left 1, right 2, up 4, down 8, a 16, b 32, start 64, c 128).
+    BT.BIT = { left: 1, right: 2, up: 4, down: 8, a: 16, b: 32, start: 64, c: 128 };
+    BT.KEYS = ['left', 'right', 'up', 'down', 'a', 'b', 'start', 'c'];
+    BT.N.FLY_ACC = 260;   // px/s per s of steering while a knock still carries him faster than a run (the adventure's air control would undo a knock at once)
+    var btArenas = {};
+    function btPick(a, b) { return Object.prototype.hasOwnProperty.call(Q.SPRITE, a) ? a : b; }
+    BT.arenaOf = function (id) {   // an arena's grid, built once: solid and thin cells, what each cell draws, the four starts, and the look its background reads
+      if (btArenas[id]) return btArenas[id];
+      var def = BT.arenaDef(id), map = def.map, th = map.length, tw = 0, wd = Q.TILEDEF[def.world] || {}, x, y, ch, i, t, ar;
+      for (y = 0; y < th; y++) tw = Math.max(tw, map[y].length);
+      ar = { id: def.id, def: def, world: def.world, tw: tw, th: th, solid: [], thin: [], art: [], spawns: [] };
+      for (y = 0; y < th; y++) for (x = 0; x < tw; x++) {
+        ch = map[y].charAt(x) || ' '; i = y * tw + x; ar.solid[i] = 0; ar.thin[i] = 0; ar.art[i] = null;
+        if (ch === 'S') ar.spawns.push({ tx: x, ty: y });
+        else if (ch === '#') { ar.solid[i] = 1; ar.art[i] = { spr: btPick('t' + def.world + '-solid', 't0-solid'), auto: true }; }
+        else if (ch === '=') { ar.thin[i] = 1; ar.art[i] = { spr: btPick('t' + def.world + '-oneway', 't0-oneway') }; }
+        else if (ch !== ' ' && ch !== '.') {
+          t = Object.prototype.hasOwnProperty.call(wd, ch) ? wd[ch] : null;
+          if (!t) { Q.warn('BATTLE: arena ' + def.id + ' has "' + ch + '", not a tile of world ' + def.world); continue; }
+          if (t.solid) ar.solid[i] = 1; else if (t.oneWay) ar.thin[i] = 1;
+          ar.art[i] = { spr: t.art, frame: t.frame | 0, fps: +t.fps || 0 };
+        }
+      }
+      ar.tops = [];   // every top a conductor can stand on (solid or thin, nothing solid above): the CPUs' stepping stones (94)
+      for (y = 1; y < th; y++) for (x = 0; x < tw; x++) { i = y * tw + x; if ((ar.solid[i] || ar.thin[i]) && !ar.solid[i - tw]) ar.tops.push({ tx: x, ty: y, x: x * 16 + 8, y: y * 16 }); }
+      ar.look = BT.copy(def.look || {}); ar.look.id = 'battle-' + def.id; ar.look.world = def.world; ar.look.tw = tw; ar.look.th = th; ar.look.bg = def.bg;
+      btArenas[id] = ar;
+      return ar;
+    };
+    function btSolid(ar, tx, ty) { return tx >= 0 && ty >= 0 && tx < ar.tw && ty < ar.th && ar.solid[ty * ar.tw + tx] === 1; }   // open past every edge: falling off is the point
+    function btThin(ar, tx, ty) { return tx >= 0 && ty >= 0 && tx < ar.tw && ty < ar.th && ar.thin[ty * ar.tw + tx] === 1; }
+    BT.solidAt = btSolid; BT.thinAt = btThin;
+    function btMoveX(ar, e, dx) {   // as Q.move (51-engine-tiles.js): X first, stopped by what it hits
+      var T = 16, ty0 = Math.floor(e.y / T), ty1 = Math.floor((e.y + e.h - 0.01) / T), tx, ty, a, b;
+      if (dx > 0) {
+        a = Math.floor((e.x + e.w - 0.01) / T) + 1; b = Math.floor((e.x + e.w + dx - 0.01) / T);
+        for (tx = a; tx <= b; tx++) for (ty = ty0; ty <= ty1; ty++) if (btSolid(ar, tx, ty)) { e.x = tx * T - e.w; e.wallR = true; e.vx = 0; return; }
+      } else {
+        a = Math.floor(e.x / T) - 1; b = Math.floor((e.x + dx) / T);
+        for (tx = a; tx >= b; tx--) for (ty = ty0; ty <= ty1; ty++) if (btSolid(ar, tx, ty)) { e.x = (tx + 1) * T; e.wallL = true; e.vx = 0; return; }
+      }
+      e.x += dx;
+    }
+    function btMoveY(ar, e, dy) {   // then Y; a thin platform holds a body falling onto it unless e.drop
+      var T = 16, tx0 = Math.floor(e.x / T), tx1 = Math.floor((e.x + e.w - 0.01) / T), tx, ty, a, b;
+      if (dy > 0) {
+        a = Math.floor((e.y + e.h - 0.01) / T) + 1; b = Math.floor((e.y + e.h + dy - 0.01) / T);
+        for (ty = a; ty <= b; ty++) for (tx = tx0; tx <= tx1; tx++) if (btSolid(ar, tx, ty) || (!e.drop && btThin(ar, tx, ty))) { e.y = ty * T - e.h; e.ground = true; e.vy = 0; return; }
+      } else {
+        a = Math.floor(e.y / T) - 1; b = Math.floor((e.y + dy) / T);
+        for (ty = a; ty >= b; ty--) for (tx = tx0; tx <= tx1; tx++) if (btSolid(ar, tx, ty)) { e.y = (ty + 1) * T; e.ceil = true; e.vy = 0; return; }
+      }
+      e.y += dy;
+    }
+    BT.move = function (ar, e, dt) {
+      e.ground = false; e.wallL = false; e.wallR = false; e.ceil = false;
+      var dx = (e.vx || 0) * dt, dy = (e.vy || 0) * dt;
+      if (dx) btMoveX(ar, e, dx);
+      if (dy) btMoveY(ar, e, dy);
+    };
+    function btOnThin(ar, c) {   // standing on a thin platform with nothing solid under his feet
+      var ty = Math.floor((c.y + c.h + 1) / 16), x0 = Math.floor(c.x / 16), x1 = Math.floor((c.x + c.w - 0.01) / 16), thin = false, tx;
+      for (tx = x0; tx <= x1; tx++) { if (btSolid(ar, tx, ty)) return false; if (btThin(ar, tx, ty)) thin = true; }
+      return thin;
+    }
+    BT.groundNear = function (ar, c, d) {   // solid or thin ground within d px under his feet
+      var tx, ty, x0 = Math.floor(c.x / 16), x1 = Math.floor((c.x + c.w - 0.01) / 16);
+      for (ty = Math.floor((c.y + c.h) / 16); ty <= Math.floor((c.y + c.h + d) / 16); ty++) for (tx = x0; tx <= x1; tx++) if (btSolid(ar, tx, ty) || btThin(ar, tx, ty)) return true;
+      return false;
+    };
+    BT.newC = function (slot, x, y) {   // one conductor: a plain object (no functions, no links), so a match can be copied, sent or replayed
+      var H = Q.HERO;
+      return { i: slot, x: x, y: y, w: H.W, h: H.H, vx: 0, vy: 0, face: x < 160 ? 1 : -1, ground: false, wallL: false, wallR: false, ceil: false,
+        drop: false, dropT: 0, coyote: 0, buffer: 0, swingT: 0, swingId: 0, swingBuf: 0, chargeT: 0, charged: false, wasB: false, throwT: 0,
+        rhythm: H.RHYTHM, rhythmMax: H.RHYTHM, rhythmT: 0, dashing: false, dashT: 0, dashDir: 1, dashCool: 0, dashBuf: 0, airDash: true, tapDir: 0, tapT: -9, now: 0,
+        hovering: false, hoverT: 0, airHover: true, pounding: false, poundT: 0, poundId: 0, poundLand: false, lagT: 0, flying: false,
+        stun: 0, grace: 0, safe: 0, wob: 0, hp: 3, out: false, outT: 0, gone: false, lastBy: -1, lastT: 99,
+        buff: { dash: 0, hover: 0, pound: 0, baton: 0, metro: 0 }, wantNote: false, frame: 0, animT: 0, runT: 0, landT: 0, fallV: 0, cheer: false, fx: [] };
+    };
+    function btFx(c, k, a, b) { if (c.fx.length < 24) c.fx.push([k, a, b]); }   // for the screen only: a sound ('s', id) or dust ('d', x, y)
+    function btDash(c, k) {
+      var H = Q.HERO;
+      c.dashing = true; c.dashT = H.DASH_T; c.dashDir = k; c.face = k; c.tapDir = 0; c.hovering = false; c.dashCool = H.DASH_COOL; c.flying = false;
+      if (!c.ground) c.airDash = false;
+      btFx(c, 's', 'dash'); btFx(c, 'd', c.x + c.w / 2 - k * 5, c.y + c.h);
+    }
+    // ===== 91-battle-sim-b.js =====
+    // ---------- 91-battle-sim-b.js: BATTLE MODE, one conductor's step (B16): the adventure's moves (52-engine-hero.js) for a conductor of the battle's own ----------
+    // What differs from the adventure (BATTLE.md): QUICK KEYS, PAUSE TO THINK and FIRM HAND work only while borrowed (c.buff); while knocked (c.stun) he
+    // cannot act; while a knock still carries him (c.flying) he steers at FLY_ACC, not the adventure's full air control; no hearts are lost here.
+    BT.sim = function (c, inp, dt, ar) {
+      var H = Q.HERO, N = BT.N, h = inp ? inp.h | 0 : 0, p = inp ? inp.p | 0 : 0, i, k, free, max, v0, v1, mid, wasGround, acc;
+      var L = !!(h & 1), R = !!(h & 2), D = !!(h & 8), A = !!(h & 16), B = !!(h & 32);
+      var tA = !!(p & 16), tB = !!(p & 32), tL = !!(p & 1), tR = !!(p & 2), tD = !!(p & 8), tC = !!(p & 128);
+      c.wantNote = false; c.poundLand = false;
+      if (c.out || c.gone) return;
+      c.now += dt; c.lastT += dt;
+      for (i = 0; i < BT.BUFFS.length; i++) { k = BT.BUFFS[i]; if (c.buff[k] > 0) c.buff[k] = Math.max(0, c.buff[k] - dt); }
+      if (c.stun > 0) c.stun -= dt;
+      if (c.grace > 0) c.grace -= dt;
+      if (c.safe > 0) c.safe -= dt;
+      if (c.lagT > 0) c.lagT -= dt;
+      if (c.throwT > 0) c.throwT -= dt;
+      if (c.landT > 0) c.landT -= dt;
+      if (c.dropT > 0) c.dropT -= dt;
+      c.drop = c.dropT > 0;
+      if (c.rhythm < c.rhythmMax) { c.rhythmT += dt * (c.buff.metro > 0 ? N.METRO_K : 1); if (c.rhythmT >= H.RHYTHM_T) { c.rhythmT -= H.RHYTHM_T; c.rhythm++; } } else c.rhythmT = 0;
+      if (tA) c.buffer = H.BUFFER; else if (c.buffer > 0) c.buffer -= dt;
+      if (c.ground) c.coyote = H.COYOTE; else if (c.coyote > 0) c.coyote -= dt;
+      free = !(c.stun > 0) && !(c.lagT > 0);
+
+      // QUICK KEYS (borrowed): C, the way he is held or facing; or left or right tapped twice. On the ground any time, once in the air per jump
+      if (tC) c.dashBuf = H.DASH_BUF; else if (c.dashBuf > 0) c.dashBuf -= dt;
+      if (c.dashCool > 0) c.dashCool -= dt;
+      if (free && c.buff.dash > 0 && !c.pounding && c.dashBuf > 0 && !c.dashing && !(c.dashCool > 0) && (c.ground || c.airDash)) { btDash(c, R && !L ? 1 : L && !R ? -1 : c.face); c.dashBuf = 0; }
+      if (free && c.buff.dash > 0 && (tL || tR) && !c.pounding) {
+        k = tL ? -1 : 1;
+        if (c.tapDir === k && c.now - c.tapT <= H.DASH_TAP && !c.dashing && !(c.dashCool > 0) && (c.ground || c.airDash)) btDash(c, k);
+        else { c.tapDir = k; c.tapT = c.now; }
+      }
+      // FIRM HAND (borrowed): in the air, Down and B: a short stop, then straight down
+      if (free && tB && D && !c.ground && c.buff.pound > 0 && !c.pounding) {
+        c.pounding = true; c.poundT = H.POUND_WAIT; c.poundId++; c.dashing = false; c.hovering = false; c.flying = false;
+        c.vx = 0; c.vy = 0; c.swingT = 0; c.charged = false; c.chargeT = 0; tB = false; btFx(c, 's', 'drop');
+      }
+      // the swing (on the press), the charge (B held) and the note (let go when charged: one RHYTHM; the host makes the note)
+      if (tB && !c.pounding) c.swingBuf = 0.1; else if (c.swingBuf > 0) c.swingBuf -= dt;
+      if (c.swingT > 0) c.swingT -= dt;
+      if (free && c.swingBuf > 0 && c.swingT <= 0 && !c.pounding) { c.swingT = H.SWING_T; c.swingId++; c.swingBuf = 0; c.chargeT = 0; c.charged = false; btFx(c, 's', 'swing'); }
+      if (B && !c.pounding && free) { c.chargeT += dt; if (!c.charged && c.chargeT >= H.CHARGE_T) { c.charged = true; btFx(c, 's', 'charge'); } }
+      else if (!B) {
+        if (c.charged && c.wasB) { if (c.rhythm >= 1) { c.rhythm--; c.throwT = 0.16; c.wantNote = true; btFx(c, 's', 'note'); } else btFx(c, 's', 'nope'); }
+        c.charged = false; c.chargeT = 0;
+      }
+      c.wasB = B;
+
+      // jump; Down on a thin platform drops through it (Down and A too)
+      if (!c.drop && c.ground && free && !c.pounding && tD && btOnThin(ar, c)) { c.dropT = 0.22; c.drop = true; c.buffer = 0; c.ground = false; c.coyote = 0; c.vy = 40; }
+      if (c.buffer > 0 && (c.ground || c.coyote > 0) && free && !c.pounding) {
+        if (D && c.ground && btOnThin(ar, c)) { c.dropT = 0.22; c.drop = true; c.buffer = 0; c.ground = false; c.coyote = 0; c.vy = 40; }
+        else { c.vy = -H.JUMP; c.ground = false; c.coyote = 0; c.buffer = 0; c.dashing = false; btFx(c, 's', 'jump'); btFx(c, 'd', c.x + c.w / 2, c.y + c.h); }
+      }
+
+      // across
+      if (c.dashing) c.vx = c.dashDir * H.DASH_V;
+      else if (c.pounding) c.vx = 0;
+      else if (!free) c.vx = Q.approach(c.vx, 0, (c.stun > 0 ? N.DRAG : H.STOP) * dt);
+      else {
+        k = (R ? 1 : 0) - (L ? 1 : 0); max = c.hovering ? H.HOVER_RUN : H.RUN;
+        acc = c.flying ? N.FLY_ACC : 0;
+        if (k) {
+          c.face = k;
+          if (c.vx * k < 0) c.vx = Q.approach(c.vx, k * max, (acc || H.STOP) * dt);
+          else if (Math.abs(c.vx) > max) c.vx = Q.approach(c.vx, k * max, (acc || H.DASH_SLOW) * dt);
+          else c.vx = Q.approach(c.vx, k * max, (c.ground ? H.ACC : H.AIRACC) * dt);
+        } else c.vx = Q.approach(c.vx, 0, (c.ground ? H.STOP : acc || H.AIRACC) * dt);
+      }
+      // down: a dash holds him level, a pound waits then drops, a hover drifts, else gravity (A held while rising: GRAV_UP, never while knocked)
+      wasGround = c.ground; v0 = c.vy;
+      if (c.dashing) { c.dashT -= dt; v1 = 0; mid = 0; }
+      else if (c.pounding) { if (c.poundT > 0) { c.poundT -= dt; v1 = 0; } else v1 = H.POUND_V; mid = v1; }
+      else if (c.hovering) { c.hoverT -= dt; v1 = H.HOVER_FALL; mid = v1; }
+      else { v1 = Math.min(v0 + (v0 < 0 && A && !c.flying && !(c.stun > 0) ? H.GRAV_UP : H.GRAV) * dt, Math.max(H.FALL, v0)); mid = (v0 + v1) * 0.5; }   // the mean speed: exact heights
+      c.vy = mid;
+      BT.move(ar, c, dt);
+      if (!c.ground && !c.ceil) c.vy = v1;
+      c.fallV = Math.max(c.fallV, v1);
+      if (c.dashing && (c.dashT <= 0 || c.wallL || c.wallR)) { c.dashing = false; if (!c.wallL && !c.wallR) c.vx = c.dashDir * H.DASH_END; }
+      if (c.ground) {
+        if (c.pounding && c.poundT <= 0) {   // FIRM HAND lands: the host's rules shake the ground round him (92)
+          c.pounding = false; c.lagT = 0.12; c.landT = 0.12; c.poundLand = true;
+          btFx(c, 's', 'pound'); btFx(c, 'd', c.x + c.w / 2 - 6, c.y + c.h); btFx(c, 'd', c.x + c.w / 2 + 6, c.y + c.h);
+        } else if (!wasGround && c.fallV > 160) { btFx(c, 's', 'land'); btFx(c, 'd', c.x + c.w / 2, c.y + c.h); c.landT = 0.1; }
+        c.airDash = true; c.airHover = true; c.hovering = false; c.fallV = 0; c.flying = false;
+      }
+      // PAUSE TO THINK (borrowed): A held while falling, once per jump (not just above the ground: that press is a buffered jump)
+      if (c.hovering && (!A || c.ground || c.hoverT <= 0 || !free || c.dashing || c.pounding)) c.hovering = false;
+      if (!c.hovering && !c.ground && A && c.vy > 0 && c.airHover && free && !c.dashing && !c.pounding && c.buff.hover > 0 && !BT.groundNear(ar, c, 18)) {
+        c.hovering = true; c.airHover = false; c.hoverT = H.HOVER_T; c.vy = H.HOVER_FALL; c.vx = Q.clamp(c.vx, -H.HOVER_RUN, H.HOVER_RUN); c.flying = false; btFx(c, 's', 'hover');
+      }
+      if (c.flying && !(c.stun > 0) && Math.abs(c.vx) <= H.RUN) c.flying = false;
+      btFrame(c, dt);
+    };
+    function btFrame(c, dt) {   // the 'hero' frames (QUEST-API part 8), as the adventure picks them
+      var H = Q.HERO, f;
+      c.animT += dt;
+      if (c.stun > 0) f = 16;
+      else if (c.cheer) f = 17;
+      else if (c.pounding) f = 15;
+      else if (c.dashing) f = 12;
+      else if (c.hovering) f = 13 + Math.floor(c.animT * 8) % 2;
+      else if (c.throwT > 0) f = 11;
+      else if (c.swingT > 0) f = c.swingT > H.SWING_T * 0.55 ? 8 : 9;
+      else if (!c.ground) f = c.vy < 0 ? 6 : 7;
+      else if (Math.abs(c.vx) > 8) { c.runT += dt * Math.max(0.6, Math.abs(c.vx) / H.RUN); f = 2 + Math.floor(c.runT * 10) % 4; }
+      else if (c.charged || c.chargeT > 0.15) f = 10;
+      else f = Math.floor(c.animT * 1.6) % 2;
+      c.frame = f;
+    }
+    // ===== 92-battle-host.js =====
+    // ---------- 92-battle-host.js: BATTLE MODE's rules, the host's (B16; BATTLE.md) ----------
+    // BT.host(M, dt), after every conductor has moved: the notes, swing and pound hits, knockback and WOBBLE, falls and hearts, coming back, the power-ups.
+    // BT.hostRound(M), after the events are applied: the round and the match. Every decision is an event pushed to M.ev and carried out by BT.apply (93).
+    // In phase 1 the one device does all of it; in phase 2 only the host decides, and each device applies the events it is sent.
+    function btLive(c) { return !c.out && !c.gone; }
+    function btCanHit(v) { return !v.out && !v.gone && !(v.safe > 0) && !(v.grace > 0); }
+    BT.cOf = function (M, slot) { for (var i = 0; i < M.cs.length; i++) if (M.cs[i].i === slot) return M.cs[i]; return null; };
+    BT.swingBox = function (c) { var w = c.buff.baton > 0 ? BT.N.BIG_W : Q.HERO.SWING_W; return { x: c.face > 0 ? c.x + c.w - 4 : c.x + 4 - w, y: c.y - 2, w: w, h: Q.HERO.SWING_H }; };
+    BT.knock = function (M, v, fromX, how, big) {   // a hit's knock: away from fromX, harder with the victim's WOBBLE (SmashWiki's base plus growth)
+      var N = BT.N, add = (how === 'meteor' ? 2 : 1) + (big ? 1 : 0), wob, sp, dir;
+      if (M.ot) add *= N.OT_K;
+      wob = Math.min(N.WOB_MAX, v.wob + add);
+      sp = (N.KB_BASE + N.KB_GROW * wob) * (big ? N.BIG_K : 1) * (how === 'meteor' ? N.POUND_KB : 1);
+      dir = v.x + v.w / 2 < fromX ? -1 : v.x + v.w / 2 > fromX ? 1 : (v.face > 0 ? -1 : 1);
+      if (how === 'meteor') return { wob: wob - v.wob, kvx: dir * sp * 0.25, kvy: sp * 0.7, stun: N.STUN + N.STUN_GROW * wob };
+      if (how === 'shock') return { wob: wob - v.wob, kvx: dir * sp * 0.45, kvy: -(sp * 0.8 + N.KB_LIFT), stun: N.STUN + N.STUN_GROW * wob };
+      return { wob: wob - v.wob, kvx: dir * sp, kvy: -(sp * N.KB_UP + N.KB_LIFT), stun: N.STUN + N.STUN_GROW * wob };
+    };
+    function btHit(M, v, by, how, fromX, big) {
+      var k = BT.knock(M, v, fromX, how, big);
+      M.ev.push({ k: 'hit', who: v.i, by: by, how: how, kvx: k.kvx, kvy: k.kvy, stun: k.stun, wob: k.wob, x: v.x + v.w / 2, y: v.y + 5 });
+      v.grace = BT.N.GRACE;   // the host's own guard until the event is applied: never two hits from one swing in one step
+    }
+    function btBackSpot(M, ar, v) {   // back from above the start farthest from everyone still in
+      var best = ar.spawns[0], bd = -1, i, j, s, d, o, x;
+      for (i = 0; i < ar.spawns.length; i++) {
+        s = ar.spawns[i]; x = s.tx * 16 + 3; d = 9999;
+        for (j = 0; j < M.cs.length; j++) { o = M.cs[j]; if (o !== v && btLive(o)) d = Math.min(d, Math.abs(o.x - x)); }
+        if (d > bd) { bd = d; best = s; }
+      }
+      return { x: best.tx * 16 + 3, y: -28 };
+    }
+    function btItemPick(M) {
+      var tot = 0, i, r, id;
+      for (i = 0; i < BT.ITEM_IDS.length; i++) tot += BT.ITEMS[BT.ITEM_IDS[i]].w;
+      r = BT.rand(M, 'rs') * tot;
+      for (i = 0; i < BT.ITEM_IDS.length; i++) { id = BT.ITEM_IDS[i]; r -= BT.ITEMS[id].w; if (r < 0) return id; }
+      return BT.ITEM_IDS[0];
+    }
+    BT.host = function (M, dt) {
+      var N = BT.N, H = Q.HERO, ar = BT.arenaOf(M.arena), cs = M.cs, aw = ar.tw * 16, i, j, a, v, n, b, it, on, side;
+      for (i = 0; i < cs.length; i++) {   // a note let go: the host makes it, from the baton's tip
+        a = cs[i];
+        if (a.wantNote && btLive(a)) M.ev.push({ k: 'note', id: ++M.noteId, by: a.i, x: a.face > 0 ? a.x + a.w : a.x - 8, y: a.y + 1, vx: a.face * H.NOTE_V, big: a.buff.baton > 0 });
+      }
+      for (j = 0; j < M.notes.length; j++) {   // the notes: straight on; the first other conductor one touches is hit; a wall or its time ends it
+        n = M.notes[j]; if (n.dead) continue;
+        n.t += dt; n.x += n.vx * dt;
+        if (n.t >= H.NOTE_T || BT.solidAt(ar, Math.floor((n.x + 4) / 16), Math.floor((n.y + 4) / 16)) || n.x < -24 || n.x > aw + 24) { n.dead = true; M.ev.push({ k: 'noteEnd', id: n.id, x: n.x + 4, y: n.y + 4 }); continue; }
+        for (i = 0; i < cs.length; i++) {
+          v = cs[i]; if (v.i === n.by || !btCanHit(v) || !Q.overlap(n, v)) continue;
+          btHit(M, v, n.by, 'note', n.x + 4 - n.vx, n.big); n.dead = true; M.ev.push({ k: 'noteEnd', id: n.id, x: n.x + 4, y: n.y + 4 });
+          break;
+        }
+      }
+      for (i = 0; i < cs.length; i++) {   // swings, in their first SWING_HIT s; FIRM HAND falling onto someone, and its landing's shake
+        a = cs[i]; if (!btLive(a)) continue;
+        if (a.swingT > H.SWING_T - N.SWING_HIT) {
+          b = BT.swingBox(a);
+          for (j = 0; j < cs.length; j++) { v = cs[j]; if (v !== a && btCanHit(v) && Q.overlap(b, v)) btHit(M, v, a.i, 'baton', a.x + a.w / 2, a.buff.baton > 0); }
+        }
+        if (a.pounding && a.poundT <= 0) for (j = 0; j < cs.length; j++) { v = cs[j]; if (v !== a && btCanHit(v) && Q.overlap(a, v)) btHit(M, v, a.i, 'meteor', a.x + a.w / 2, false); }
+        if (a.poundLand) {
+          M.ev.push({ k: 'shake', who: a.i, x: a.x + a.w / 2, y: a.y + a.h });
+          for (j = 0; j < cs.length; j++) {
+            v = cs[j];
+            if (v !== a && btCanHit(v) && v.ground && Math.abs(v.x + v.w / 2 - (a.x + a.w / 2)) <= N.POUND_SHOCK + v.w / 2 && Math.abs(v.y + v.h - (a.y + a.h)) <= 12) btHit(M, v, a.i, 'shock', a.x + a.w / 2, false);
+          }
+        }
+      }
+      for (i = 0; i < cs.length; i++) {   // falls: off the bottom, or far past a side (a knock-off for the last hitter within KO_T)
+        v = cs[i];
+        if (btLive(v) && (v.y > ar.th * 16 + N.FALL_Y || v.x < -N.SIDE_X || v.x > aw + N.SIDE_X)) M.ev.push({ k: 'fall', who: v.i, by: v.lastT <= N.KO_T ? v.lastBy : -1, x: Math.round(v.x + v.w / 2) });
+        else if (btLive(v) && v.y < N.TOP_Y) v.vy = Math.max(v.vy, 0);
+      }
+      for (i = 0; i < cs.length; i++) {   // back in after OUT_T, from above a start, blinking
+        v = cs[i];
+        if (v.out && !v.gone) { v.outT -= dt; if (v.outT <= 0) { b = btBackSpot(M, ar, v); M.ev.push({ k: 'back', who: v.i, x: b.x, y: b.y }); v.outT = 99; } }
+      }
+      if (!M.rules.items) return;
+      M.itemT -= dt;   // power-ups: one drifts in now and then from a side, at most ITEM_MAX at once
+      if (M.itemT <= 0) {
+        M.itemT = N.ITEM_T0 + BT.rand(M, 'rs') * (N.ITEM_T1 - N.ITEM_T0);
+        for (on = 0, j = 0; j < M.items.length; j++) if (!M.items[j].dead) on++;
+        if (on < N.ITEM_MAX) {
+          side = BT.rand(M, 'rs') < 0.5 ? 1 : -1;
+          M.ev.push({ k: 'itemIn', id: ++M.itemId, kind: btItemPick(M), x: side > 0 ? -16 : aw + 2, y0: 40 + Math.floor(BT.rand(M, 'rs') * 76), vx: side * N.ITEM_V * (0.85 + BT.rand(M, 'rs') * 0.3), ph: BT.rand(M, 'rs') * 6.28 });
+        }
+      }
+      for (j = 0; j < M.items.length; j++) {
+        it = M.items[j]; if (it.dead) continue;
+        it.t += dt; it.x += it.vx * dt; it.y = it.y0 + Math.sin(it.t * 2.2 + it.ph) * N.ITEM_BOB;
+        if (it.x < -28 || it.x > aw + 28) { it.dead = true; M.ev.push({ k: 'itemOut', id: it.id }); continue; }
+        for (i = 0; i < cs.length; i++) { v = cs[i]; if (btLive(v) && Q.overlap(it, v)) { it.dead = true; M.ev.push({ k: 'item', who: v.i, id: it.id, kind: it.kind, x: it.x + 7, y: it.y + 7 }); break; } }
+      }
+    };
+    BT.hostRound = function (M) {   // one left ends the round (none left: a draw); a conductor with the wins needed ends the match; OVERTIME after OVER_T
+      var N = BT.N, i, live = 0, last = -1, need, best = -1, bw = -1, c;
+      if (M.phase === 'fight') {
+        if (!M.ot && M.roundT >= N.OVER_T) BT.emit(M, { k: 'ot' });
+        for (i = 0; i < M.cs.length; i++) { c = M.cs[i]; if (!c.gone) { live++; last = c.i; } }
+        if (live <= 1) BT.emit(M, { k: 'round', winner: live === 1 ? last : -1 });
+      } else if (M.phase === 'end' && M.phaseT >= N.END_T) {
+        need = Math.floor(M.rules.rounds / 2) + 1;
+        for (i = 0; i < 4; i++) if (M.wins[i] > bw) { bw = M.wins[i]; best = i; }
+        if (bw >= need) BT.emit(M, { k: 'over', winner: best });
+        else BT.emit(M, { k: 'next' });
+      }
+    };
+    BT.emit = function (M, e) { M.ev.push(e); BT.apply(M, e); };   // a decision made after the step's events: applied at once
+    // ===== 93-battle-match.js =====
+    // ---------- 93-battle-match.js: BATTLE MODE's match (B16; BATTLE.md): the events carried out, a match and its rounds, one fixed step, the input frames ----------
+    // A match M is one plain object (numbers, strings, arrays, plain objects): it can be copied, sent and replayed. Its random is its own (M.rs, M.cpuRs).
+    BT.ZERO = { h: 0, p: 0 };
+    BT.apply = function (M, e) {   // one of the host's decisions, carried out (on every device in phase 2)
+      var N = BT.N, v = e.who !== undefined ? BT.cOf(M, e.who) : null, i, k, list;
+      M.count[e.k] = (M.count[e.k] || 0) + 1;
+      if (e.k === 'note') M.notes.push({ id: e.id, by: e.by, x: e.x, y: e.y, w: 8, h: 8, vx: e.vx, t: 0, big: !!e.big, dead: false });
+      else if (e.k === 'noteEnd' || e.k === 'itemOut' || e.k === 'item') {
+        list = e.k === 'noteEnd' ? M.notes : M.items;
+        for (i = 0; i < list.length; i++) if (list[i].id === e.id) list[i].dead = true;
+      }
+      if (e.k === 'hit' && v) {
+        v.vx = e.kvx; v.vy = e.kvy; v.stun = e.stun; v.grace = N.GRACE; v.wob = Math.min(N.WOB_MAX, v.wob + e.wob); v.flying = true; v.ground = false;
+        v.lastBy = e.by; v.lastT = 0; v.dashing = false; v.hovering = false; v.pounding = false; v.charged = false; v.chargeT = 0; v.swingT = 0; v.lagT = 0; v.dropT = 0; v.drop = false;
+        if (M.stats[e.by]) M.stats[e.by].hits++;
+        M.stats[e.who].took++;
+      } else if (e.k === 'fall' && v) {
+        v.hp = Math.max(0, v.hp - 1); v.out = true; v.outT = N.OUT_T; v.wob = 0; v.vx = 0; v.vy = 0; v.stun = 0; v.flying = false; v.cheer = false;
+        for (i = 0; i < BT.BUFFS.length; i++) v.buff[BT.BUFFS[i]] = 0;
+        M.stats[e.who].falls++;
+        if (e.by >= 0 && e.by !== e.who && M.stats[e.by]) M.stats[e.by].kos++;
+        if (v.hp <= 0) v.gone = true;
+      } else if (e.k === 'back' && v) {
+        v.out = false; v.x = e.x; v.y = e.y; v.vx = 0; v.vy = 0; v.safe = N.SAFE_T; v.face = e.x < 160 ? 1 : -1; v.rhythm = v.rhythmMax; v.rhythmT = 0;
+        v.airDash = true; v.airHover = true; v.swingT = 0; v.charged = false; v.chargeT = 0; v.dashing = false; v.hovering = false; v.pounding = false; v.lastBy = -1; v.lastT = 99;
+      } else if (e.k === 'itemIn') M.items.push({ id: e.id, kind: e.kind, x: e.x, y: e.y0, y0: e.y0, w: 14, h: 14, vx: e.vx, t: 0, ph: e.ph, dead: false });
+      else if (e.k === 'item' && v) {
+        k = e.kind; M.stats[e.who].items++;
+        if (k === 'coffee') v.hp = Math.min(M.rules.hearts, v.hp + 1);
+        else if (k === 'baton') v.buff.baton = N.BATON_T;
+        else if (k === 'metro') { v.rhythm = v.rhythmMax; v.buff.metro = N.METRO_T; }
+        else if (k === 'dash' || k === 'hover' || k === 'pound') v.buff[k] = N.BUFF_T;
+      } else if (e.k === 'ot') M.ot = true;
+      else if (e.k === 'round') {
+        M.phase = 'end'; M.phaseT = 0; M.roundWinner = e.winner;
+        if (e.winner >= 0) { M.wins[e.winner]++; v = BT.cOf(M, e.winner); if (v) v.cheer = true; }
+        M.rounds.push({ winner: e.winner, t: Math.round(M.roundT * 10) / 10 });
+      } else if (e.k === 'next') BT.startRound(M);
+      else if (e.k === 'over') { M.phase = 'over'; M.phaseT = 0; M.winner = e.winner; }
+    };
+    BT.newMatch = function (setup) {   // setup: { slots: [4 x { on, who: 'human' | 'cpu', pad, col, name }], arena, rules, seed }
+      var M = { v: 1, seed: (setup.seed >>> 0) || 1, rs: 0, cpuRs: 0, step: 0, t: 0, rules: BT.copy(setup.rules || BT.RULES0), arena: setup.arena || BT.ARENAS[0].id,
+        round: 0, wins: [0, 0, 0, 0], phase: 'ready', phaseT: 0, roundT: 0, ot: false, winner: -1, roundWinner: -1, rounds: [],
+        cs: [], notes: [], items: [], noteId: 0, itemId: 0, itemT: 0, ev: [], count: {}, stats: [] }, i, s, c;
+      M.rs = M.seed; M.cpuRs = ((M.seed ^ 0x5bd1e995) >>> 0) || 7;
+      for (i = 0; i < 4; i++) {
+        M.stats.push({ hits: 0, took: 0, falls: 0, kos: 0, items: 0 });
+        s = setup.slots && setup.slots[i]; if (!s || !s.on) continue;
+        c = BT.newC(i, 0, 0); c.who = s.who === 'human' ? 'human' : 'cpu'; c.pad = s.pad | 0; c.col = s.col | 0; c.name = s.name | 0;
+        M.cs.push(c);
+      }
+      BT.startRound(M);
+      return M;
+    };
+    BT.SPREAD = { 1: [0], 2: [0, 3], 3: [0, 1, 3], 4: [0, 1, 2, 3] };   // which starts n conductors take (they turn round one place each round)
+    BT.startRound = function (M) {
+      var ar = BT.arenaOf(M.arena), n = M.cs.length, use = BT.SPREAD[n] || BT.SPREAD[4], i, c, f, sp;
+      M.round++; M.phase = 'ready'; M.phaseT = 0; M.roundT = 0; M.ot = false; M.roundWinner = -1; M.notes = []; M.items = [];
+      M.itemT = BT.N.ITEM_T0 * 0.6 + BT.rand(M, 'rs') * 3;
+      for (i = 0; i < n; i++) {
+        c = M.cs[i]; sp = ar.spawns[use[(i + M.round - 1) % use.length] % ar.spawns.length];
+        f = BT.newC(c.i, sp.tx * 16 + 3, sp.ty * 16 + 16 - Q.HERO.H);
+        f.who = c.who; f.pad = c.pad; f.col = c.col; f.name = c.name; f.hp = M.rules.hearts; f.ground = true;
+        M.cs[i] = f;
+      }
+    };
+    BT.step = function (M, dt, inp) {   // one fixed step: every conductor moves by its input frame, the host decides, the events are carried out, the round goes on
+      var ar = BT.arenaOf(M.arena), i, j, list, fight;
+      M.step++; M.t += dt; M.phaseT += dt; M.ev.length = 0;
+      for (i = 0; i < M.cs.length; i++) M.cs[i].fx.length = 0;
+      if (M.phase === 'over') return;
+      if (M.phase === 'ready' && M.phaseT >= BT.N.READY_T) { M.phase = 'fight'; M.phaseT = 0; }
+      fight = M.phase === 'fight';
+      if (fight) M.roundT += dt;
+      for (i = 0; i < M.cs.length; i++) BT.sim(M.cs[i], fight && inp ? inp[i] || BT.ZERO : BT.ZERO, dt, ar);
+      if (fight) BT.host(M, dt);
+      for (i = 0; i < M.ev.length; i++) BT.apply(M, M.ev[i]);
+      list = M.notes; for (i = 0, j = 0; i < list.length; i++) if (!list[i].dead) list[j++] = list[i]; list.length = j;
+      list = M.items; for (i = 0, j = 0; i < list.length; i++) if (!list[i].dead) list[j++] = list[i]; list.length = j;
+      BT.hostRound(M);
+    };
+    // ---------- the input frames: slot 1's person on the device's own buttons; the others on the runtime's controller n (BATTLE.md's api.pad proposal); CPUs (94) ----------
+    BT.pad = function (n) { var a = Q.api; return a && typeof a.pad === 'function' ? a.pad(n) || null : null; };
+    BT.padsOn = function () { var a = Q.api; return !!(a && typeof a.pad === 'function'); };
+    var btLatch = { 2: {}, 3: {}, 4: {} }, btLatchAt = { 2: -1, 3: -1, 4: -1 };
+    BT.padLatch = function () {   // each step and each draw: a controller's press seen in this frame is kept until a step reads it (a frame may run no step)
+      var a = Q.api, t = a && a.t ? a.t() : 0, n, pd, k;
+      for (n = 2; n <= 4; n++) {
+        if (btLatchAt[n] === t) continue;
+        pd = BT.pad(n); if (!pd) continue;
+        btLatchAt[n] = t;
+        for (k = 0; k < 8; k++) if (pd.pressed(BT.KEYS[k])) btLatch[n][BT.KEYS[k]] = true;
+      }
+    };
+    BT.padClear = function () { for (var n = 2; n <= 4; n++) btLatch[n] = {}; };
+    BT.readPad = function (n) {
+      var pd = BT.pad(n), f = { h: 0, p: 0 }, k, nm;
+      BT.padLatch();
+      if (!pd) return f;
+      for (k = 0; k < 8; k++) { nm = BT.KEYS[k]; if (pd.held(nm)) f.h |= BT.BIT[nm]; if (btLatch[n][nm]) { f.p |= BT.BIT[nm]; btLatch[n][nm] = false; } }
+      return f;
+    };
+    BT.readDevice = function () {   // the device's own buttons: held from the runtime, presses from the engine's one record (Q.press, QUEST-API part 13 item 28)
+      var a = Q.api, f = { h: 0, p: 0 }, k, nm;
+      if (!a) return f;
+      for (k = 0; k < 8; k++) { nm = BT.KEYS[k]; if (a.held(nm)) f.h |= BT.BIT[nm]; if (Q.press(nm)) f.p |= BT.BIT[nm]; }
+      return f;
+    };
+    BT.inputs = function (M, dt) {   // this step's frame for every conductor, in M.cs order
+      var out = [], i, c;
+      for (i = 0; i < M.cs.length; i++) {
+        c = M.cs[i];
+        if (c.who === 'cpu') out.push(BT.cpu(M, c, dt));
+        else if (c.pad > 1) out.push(BT.readPad(c.pad));
+        else out.push(BT.readDevice());
+      }
+      return out;
+    };
+    // ===== 94-battle-cpu.js =====
+    // ---------- 94-battle-cpu.js: BATTLE MODE's CPU conductors (B16; BATTLE.md): fun, not perfect ----------
+    // BT.cpu(M, c, dt) gives the same input frame a person makes ({ h, p }, the Command pattern). It thinks only every so often (its level's react time),
+    // and between thoughts it acts on what it saw then; it sometimes does the wrong thing on purpose, recovers the simple way, keeps off edges (jumping the
+    // gaps it can clear), goes for near power-ups, and picks a target with a little chance in it. The host runs the CPUs (phase 2).
+    BT.CPU_LV = [   // EASY, NORMAL, HARD
+      { react: 0.42, miss: 0.25, swing: 0.5, note: 0.15, item: 0.5, edge: 0.7, reach: 22 },
+      { react: 0.26, miss: 0.1, swing: 0.75, note: 0.3, item: 0.75, edge: 0.9, reach: 25 },
+      { react: 0.14, miss: 0.03, swing: 0.92, note: 0.45, item: 0.9, edge: 0.99, reach: 27 }
+    ];
+    function btCpuGround(ar, px, row0, rows) {   // the first row with ground in px's column, from row0 down rows rows (or -1)
+      var tx = Math.floor(px / 16), ty;
+      for (ty = Math.max(0, row0); ty < Math.min(ar.th, row0 + rows); ty++) if (BT.solidAt(ar, tx, ty) || BT.thinAt(ar, tx, ty)) return ty;
+      return -1;
+    }
+    function btCpuStageX(ar, px) {   // the middle of the nearest column with ground in the arena's lower part
+      var best = 160, bd = 9999, tx, ty, d;
+      for (tx = 0; tx < ar.tw; tx++) for (ty = 4; ty < ar.th; ty++) if (BT.solidAt(ar, tx, ty) || BT.thinAt(ar, tx, ty)) { d = Math.abs(tx * 16 + 8 - px); if (d < bd) { bd = d; best = tx * 16 + 8; } break; }
+      return best;
+    }
+    function btCpuSafe(ar, c, dir) {   // is there ground ahead (within 5 rows down) where his next steps land
+      var feet = Math.floor((c.y + c.h + 1) / 16), px = dir > 0 ? c.x + c.w + 7 : c.x - 7;
+      return btCpuGround(ar, px, feet, 5) >= 0;
+    }
+    function btCpuGap(ar, c, dir) {   // past an edge: ground again within 4 tiles, at about his height (a running jump clears 4.4 tiles)
+      var feet = Math.floor((c.y + c.h + 1) / 16), k, px, g;
+      for (k = 1; k <= 4; k++) { px = c.x + c.w / 2 + dir * (k * 16 + 8); g = btCpuGround(ar, px, feet - 2, 4); if (g >= 0) return true; }
+      return false;
+    }
+    function btCpuLive(c) { return !c.out && !c.gone; }
+    function btCpuStone(ar, c, gx) {   // a top he can jump up onto (16 to 50 px above his feet) on the way to gx, or null
+      var feet = c.y + c.h, cx = c.x + c.w / 2, best = null, bd = 9999, i, t, d;
+      for (i = 0; i < ar.tops.length; i++) {
+        t = ar.tops[i];
+        if (t.y > feet - 14 || t.y < feet - 50 || Math.abs(t.x - cx) > 140) continue;
+        d = Math.abs(t.x - gx) + Math.abs(t.x - cx) * 0.6;
+        if (d < bd) { bd = d; best = t; }
+      }
+      return best;
+    }
+    function btCpuThink(M, c, ai, lv) {
+      var r = function () { return BT.rand(M, 'cpuRs'); }, i, o, d, bd = 9999, best = null, live = [], it, cx = c.x + c.w / 2, cy = c.y + c.h / 2, t;
+      ai.swingNow = false; ai.flail = false; ai.risky = r() > lv.edge;   // this thought, it may misjudge an edge
+      if (r() < lv.miss) {   // a mistake on purpose: wander off somewhere, or swing at the air
+        if (r() < 0.5) { ai.mode = 'wander'; ai.gx = 48 + r() * 224; } else { ai.mode = 'chase'; ai.flail = true; }
+        return;
+      }
+      if (M.rules.items && M.items.length) {   // a near power-up, most of the time
+        for (i = 0; i < M.items.length; i++) {
+          it = M.items[i]; d = Math.abs(it.x + 7 - cx) + Math.abs(it.y + 7 - cy) * 1.5;
+          if (M.rules.cpu > 0 && !(c.buff.dash > 0 || c.buff.hover > 0) && btCpuGround(BT.arenaOf(M.arena), it.x + 7, 0, BT.arenaOf(M.arena).th) < 0) continue;   // over a pit: only EASY is that greedy
+          if (it.y > 24 && d < 150 && d < bd) { bd = d; best = it; }
+        }
+        if (best && r() < lv.item) { ai.mode = 'item'; ai.item = best.id; return; }
+      }
+      for (i = 0; i < M.cs.length; i++) { o = M.cs[i]; if (o !== c && btCpuLive(o)) live.push(o); }
+      t = BT.cOf(M, ai.tgt);
+      if (ai.tgtT <= 0 || !t || !btCpuLive(t)) {   // mostly the nearest, sometimes another: never always the leader
+        best = null; bd = 9999;
+        for (i = 0; i < live.length; i++) { d = Math.abs(live[i].x - c.x) + Math.abs(live[i].y - c.y); if (d < bd) { bd = d; best = live[i]; } }
+        if (live.length > 1 && r() < 0.3) best = live[Math.floor(r() * live.length) % live.length];
+        ai.tgt = best ? best.i : -1; ai.tgtT = 1.5 + r() * 2;
+        t = best;
+      }
+      ai.mode = t ? 'chase' : 'wander';
+      if (!t) { ai.gx = 160; return; }
+      ai.sx = t.x + t.w / 2; ai.sy = t.y + t.h / 2;   // where it saw the target: it acts on this until it thinks again
+      d = ai.sx - cx;
+      if (Math.abs(d) < lv.reach + 4 && Math.abs(ai.sy - cy) < 18 && r() < lv.swing) ai.swingNow = true;
+      ai.noteNow = Math.abs(ai.sy - cy) < 12 && Math.abs(d) > 56 && Math.abs(d) < 190 && c.rhythm >= 1 && r() < lv.note;
+    }
+    BT.cpu = function (M, c, dt) {
+      var ar = BT.arenaOf(M.arena), lv = BT.CPU_LV[Q.clamp(M.rules.cpu | 0, 0, 2)], ai = c.ai, h = 0, tap = 0, f, cx, cy, gx, gy, dx, dy, dir, it, i, t;
+      if (!ai) ai = c.ai = { t: 0, mode: 'wander', tgt: -1, tgtT: 0, gx: 160, sx: 160, sy: 100, item: -1, last: 0, jumpHold: 0, charge: 0, stuckT: 0, lastX: c.x, swingNow: false, noteNow: false, flail: false, risky: false, gapT: 0, gapDir: 1 };
+      if (c.out || c.gone || c.stun > 0) { ai.last = 0; ai.charge = 0; return { h: 0, p: 0 }; }
+      ai.t -= dt; ai.tgtT -= dt;
+      if (ai.t <= 0) { ai.t = lv.react * (0.7 + 0.6 * BT.rand(M, 'cpuRs')); btCpuThink(M, c, ai, lv); }
+      cx = c.x + c.w / 2; cy = c.y + c.h / 2;
+      if (!c.ground && btCpuGround(ar, cx, Math.floor((c.y + c.h) / 16), ar.th) < 0) {   // over the pit: back to the arena, the simple way
+        gx = btCpuStageX(ar, cx); dir = ai.gapT > 0 ? ai.gapDir : gx > cx ? 1 : -1;   // a gap it jumped on purpose: keep going the way it jumped
+        ai.gapT -= dt;
+        h |= dir > 0 ? BT.BIT.right : BT.BIT.left;
+        if (ai.jumpHold > 0) { ai.jumpHold -= dt; if (c.vy < 0) h |= BT.BIT.a; }   // and keep A held while rising: a jump let go of early falls short
+        if (c.buff.dash > 0 && c.airDash && !c.dashing && c.vy > -60 && BT.rand(M, 'cpuRs') < lv.edge) tap |= BT.BIT.c;
+        if (c.buff.hover > 0 && c.vy > 0) h |= BT.BIT.a;
+        else if (c.coyote > 0) tap |= BT.BIT.a;
+        return btCpuOut(ai, h, tap, c);
+      }
+      if (ai.mode === 'item') {
+        it = null; for (i = 0; i < M.items.length; i++) if (M.items[i].id === ai.item) it = M.items[i];
+        if (!it) ai.mode = 'chase';
+        else { gx = it.x + 7 + it.vx * 0.4; gy = it.y + 7; }
+      }
+      if (ai.mode === 'chase') {
+        t = BT.cOf(M, ai.tgt);
+        if (!t || !btCpuLive(t)) { ai.mode = 'wander'; ai.gx = 160; }
+        else { gx = ai.sx; gy = ai.sy; }
+      }
+      if (ai.mode === 'wander') { gx = ai.gx; gy = cy; }
+      dy = gy - cy; ai.stone = null;
+      if (c.ground && dy < -28) { ai.stone = btCpuStone(ar, c, gx); if (ai.stone) gx = ai.stone.x; }   // higher up: by a top it can reach, never at thin air
+      dx = gx - cx; dir = dx > 0 ? 1 : -1;
+      if (Math.abs(dx) > (ai.mode === 'chase' ? lv.reach - 6 : 6)) {   // along, but never off an edge it cannot jump
+        if (btCpuSafe(ar, c, dir)) h |= dir > 0 ? BT.BIT.right : BT.BIT.left;
+        else if (c.ground && btCpuGap(ar, c, dir) && BT.rand(M, 'cpuRs') < lv.edge) { h |= dir > 0 ? BT.BIT.right : BT.BIT.left; tap |= BT.BIT.a; ai.jumpHold = 0.35; ai.gapT = 0.9; ai.gapDir = dir; }
+        else if (ai.risky) h |= dir > 0 ? BT.BIT.right : BT.BIT.left;   // now and then (once a thought) it misjudges an edge
+      } else if (ai.mode === 'chase' && (c.face > 0) !== (dx > 0) && Math.abs(dx) > 2 && btCpuSafe(ar, c, dir)) h |= dx > 0 ? BT.BIT.right : BT.BIT.left;   // turn to face it
+      if (ai.stone && Math.abs(ai.stone.x - cx) < (ai.stone.y < c.y + c.h - 24 ? 40 : 18)) { tap |= BT.BIT.a; ai.jumpHold = 0.35; h |= ai.stone.x > cx ? BT.BIT.right : BT.BIT.left; }   // up onto it
+      if (c.ground && dy > 28 && Math.abs(dx) < 40 && btCpuGround(ar, c.x + 1, Math.floor((c.y + c.h) / 16) + 1, ar.th) >= 0 && btCpuGround(ar, c.x + c.w - 1, Math.floor((c.y + c.h) / 16) + 1, ar.th) >= 0) tap |= BT.BIT.down;   // down through a thin platform, only onto ground
+      if (ai.mode === 'chase') {
+        if (ai.swingNow || ai.flail) { tap |= BT.BIT.b; ai.swingNow = false; ai.flail = false; }
+        if (ai.noteNow && !ai.charge && (c.face > 0) === (dx > 0)) { ai.charge = Q.HERO.CHARGE_T + 0.06; ai.noteNow = false; tap |= BT.BIT.b; }
+        if (c.buff.pound > 0 && !c.ground && Math.abs(dx) < 14 && dy > 16) { h |= BT.BIT.down; tap |= BT.BIT.b; }
+      }
+      if (ai.charge > 0) { ai.charge -= dt; if (ai.charge > 0) h |= BT.BIT.b; }   // a note: B held until charged, then let go
+      if (ai.jumpHold > 0) { ai.jumpHold -= dt; if (c.vy < 0 || tap & BT.BIT.a) h |= BT.BIT.a; }
+      if (h & (BT.BIT.left | BT.BIT.right) && c.ground && Math.abs(c.x - ai.lastX) < 0.2) { ai.stuckT += dt; if (ai.stuckT > 0.8) { tap |= BT.BIT.a; ai.jumpHold = 0.3; ai.stuckT = 0; } } else ai.stuckT = 0;
+      ai.lastX = c.x;
+      f = btCpuOut(ai, h, tap, c);
+      return f;
+    };
+    function btCpuOut(ai, h, tap, c) {   // held bits plus presses: a tapped button must have been up the step before (else it is let go for one step)
+      var p = 0, k, bit;
+      for (k = 0; k < 8; k++) {
+        bit = 1 << k;
+        if (tap & bit) { if (ai.last & bit) { h &= ~bit; } else { h |= bit; p |= bit; } }
+        else if ((h & bit) && !(ai.last & bit)) p |= bit;
+      }
+      ai.last = h;
+      return { h: h, p: p };
+    }
+    // ===== 95-battle-draw.js =====
+    // ---------- 95-battle-draw.js: BATTLE MODE's picture of a fight (B16; BATTLE.md): the arena, the power-ups, the notes, the conductors, the sparks ----------
+    // It only reads the match (M) and draws: the arena fits a 320 screen, so the view is fixed and no camera holds anything. On a wider screen (QUEST-API
+    // part 15) the fight is a wide scene: the arena sits in the centred 320 column (Q.OX) and its world's background fills Q.W, with the camera at -Q.OX as
+    // the level scene shows a narrow level. The background painter (Q.BG) reads Q.level for its look: for that one call Q.level is the arena's look, then back.
+    BT.at320 = function (fn) {   // fn drawn as on a 320 screen (an offscreen picture: Q.W 320 and Q.OX 0 for its length, as inside Q.col, with no shift)
+      var w = Q.W, ox = Q.OX;
+      Q.W = 320; Q.OX = 0;
+      try { fn(); } finally { Q.W = w; Q.OX = ox; }
+    };
+    BT.err = function (what, er) { Q.warn('ERROR in BATTLE ' + what + ': ' + (er && er.message ? er.message : er)); };
+    var btTileCv = {}, btBubble = null, btFxl = [], btShake = { a: 0, t: 0 };
+    function btBg(g, ar, t, camX, camY) {
+      var bg = Object.prototype.hasOwnProperty.call(Q.BG, ar.def.bg) ? Q.BG[ar.def.bg] : null, keep = Q.level;
+      if (!bg) { g.fillStyle = '#20262a'; g.fillRect(0, 0, Q.W, 200); return; }
+      Q.level = ar.look;
+      try { bg(g, camX || 0, camY || 0, t, Q); } catch (er) { BT.err('background ' + ar.def.bg, er); g.fillStyle = '#20262a'; g.fillRect(0, 0, Q.W, 200); }
+      Q.level = keep;
+    }
+    function btTiles(ar) {   // the arena's still tiles, drawn once into a canvas of their own (the moving ones are drawn each frame)
+      var cv = btTileCv[ar.id], c, x, y, i, a, f;
+      if (cv) return cv;
+      cv = btTileCv[ar.id] = Q.canvas(ar.tw * 16, ar.th * 16); c = cv.getContext('2d');
+      for (y = 0; y < ar.th; y++) for (x = 0; x < ar.tw; x++) {
+        i = y * ar.tw + x; a = ar.art[i]; if (!a || a.fps) continue;
+        f = a.auto ? (y > 0 && ar.solid[i - ar.tw] ? 1 : 0) : a.frame;
+        Q.spr(c, a.spr, f, x * 16, y * 16);
+      }
+      return cv;
+    }
+    BT.drawArena = function (g, ar, t, ox, oy) {   // the background, then the tiles; ox, oy: where the arena's top left is on the screen (the column's left, a shake)
+      var x, y, i, a;
+      btBg(g, ar, t, -(ox | 0), -(oy | 0));
+      g.drawImage(btTiles(ar), ox | 0, oy | 0);
+      for (y = 0; y < ar.th; y++) for (x = 0; x < ar.tw; x++) { a = ar.art[y * ar.tw + x]; if (a && a.fps) Q.spr(g, a.spr, a.frame + Math.floor(t * a.fps), x * 16 + (ox | 0), y * 16 + (oy | 0)); }
+    };
+    function btBubbleCv() {   // our own bubble a power-up floats in: a pale ring, a faint inside, a shine at the top left
+      var c, x, y, d;
+      if (btBubble) return btBubble;
+      btBubble = Q.canvas(22, 22); c = btBubble.getContext('2d');
+      for (y = 0; y < 22; y++) for (x = 0; x < 22; x++) {
+        d = Math.sqrt((x - 10.5) * (x - 10.5) + (y - 10.5) * (y - 10.5));
+        if (d <= 10.6 && d > 9.4) { c.fillStyle = 'rgba(214,236,255,0.95)'; c.fillRect(x, y, 1, 1); }
+        else if (d <= 9.4) { c.fillStyle = 'rgba(150,196,255,0.22)'; c.fillRect(x, y, 1, 1); }
+      }
+      c.fillStyle = '#ffffff'; c.fillRect(5, 5, 3, 2); c.fillRect(5, 7, 1, 1);
+      return btBubble;
+    }
+    BT.drawItem = function (g, kind, x, y, t) {   // a power-up at its top left (a 14 by 14 box), in its bubble
+      var d = BT.ITEMS[kind], s, w, h;
+      g.drawImage(btBubbleCv(), Math.round(x) - 4, Math.round(y) - 4);
+      if (!d) return;
+      if (!d.spr && Q.ui.metronome) { Q.ui.metronome(g, Math.round(x) + 1, Math.round(y), t); return; }
+      s = Q.SPRITE[d.spr]; w = s ? s.w : 8; h = s ? s.h : 8;
+      Q.spr(g, d.spr, Math.floor(t * 3), Math.round(x + 7 - w / 2), Math.round(y + 7 - h / 2));
+    };
+    BT.tagOf = function (c) { return c.who === 'cpu' ? 'CPU' : 'P' + (c.i + 1); };
+    function btDrawC(g, c, t, ox, oy) {
+      var H = Q.HERO, col = BT.COLS[c.col] || BT.COLS[0], x, y, b, bx, by, fr, on, gx, gy;
+      if (c.out || c.gone) return;
+      x = Math.round(c.x) - 3 + ox; y = Math.round(c.y) + c.h - 20 + oy;
+      if (!(c.safe > 0 && Math.floor(c.safe * 14) % 2 === 1)) {   // blinking just after he comes back
+        Q.spr(g, BT.spr(c.col), c.frame, x, y, c.face < 0);
+        if (c.charged || c.chargeT > 0.15) {   // the baton glows, brighter when charged
+          on = Math.floor(t * 14) % 2; gx = c.face < 0 ? x - 1 : x + 15; gy = y + 8;
+          g.fillStyle = c.charged ? (on ? '#ffffff' : '#ffd23f') : 'rgba(255,210,63,0.6)'; g.fillRect(gx, gy, 2, 2);
+        }
+        if (c.buff.baton > 0 && Math.floor(t * 8) % 2) { g.fillStyle = '#ffd23f'; g.fillRect(c.face < 0 ? x - 2 : x + 16, y + 6, 2, 2); }   // BIGGER BATON: its tip sparkles
+        if (c.swingT > H.SWING_T - 0.12) {   // the swing's smear, as long as its box
+          b = BT.swingBox(c); bx = Math.round(b.x) + ox; by = Math.round(b.y) + oy; fr = c.face > 0;
+          g.fillStyle = 'rgba(255,255,255,0.75)';
+          g.fillRect(fr ? bx + b.w - 10 : bx + 4, by + 1, 6, 1); g.fillRect(fr ? bx + b.w - 6 : bx + 2, by + 3, 3, 3);
+          g.fillRect(fr ? bx + b.w - 4 : bx + 1, by + 6, 2, 5); g.fillRect(fr ? bx + b.w - 6 : bx + 2, by + 11, 3, 2);
+        }
+      }
+      gx = Math.round(c.x + c.w / 2) + ox; gy = Math.max(2, y - 11);   // his pointer; the tag over it is drawn by btDrawTags (stacked clear of the others)
+      g.fillStyle = col.main; g.fillRect(gx - 1, gy + 8, 3, 1); g.fillRect(gx, gy + 9, 1, 1);
+    }
+    function btDrawTags(g, list, ox, oy) {   // who is who: a tag in his colour over his head; tags that would overlap stack upwards, so each stays readable
+      var placed = [], i, j, k, c, p, tag, tw, x, y, col, hit;
+      for (i = 0; i < list.length; i++) {
+        c = list[i]; if (c.out || c.gone) continue;
+        tag = BT.tagOf(c); tw = Q.ui.width(tag); col = BT.COLS[c.col] || BT.COLS[0];
+        x = Math.round(c.x + c.w / 2) + ox - (tw >> 1); y = Math.max(2, Math.round(c.y) + c.h - 31 + oy);
+        for (k = 0; k < 4; k++) {
+          hit = false;
+          for (j = 0; j < placed.length; j++) { p = placed[j]; if (x < p.x + p.w + 2 && p.x < x + tw + 2 && y < p.y + 9 && p.y < y + 9) { hit = true; break; } }
+          if (!hit || y - 9 < 2) break;
+          y -= 9;
+        }
+        placed.push({ x: x, y: y, w: tw });
+        Q.ui.text(tag, x + 1, y + 1, '#0b0c10'); Q.ui.text(tag, x, y, c.who === 'cpu' ? col.light : col.main);
+      }
+    }
+    BT.drawFight = function (g, M, t) {   // the whole screen of a fight (the HUD and the words come from 95-battle-draw-b.js)
+      var ar = BT.arenaOf(M.arena), ox = Q.OX, oy = 0, i, n, it, c, order = [];   // the arena in the centred column on a wide screen
+      if (btShake.t > 0) { ox += Math.round((Math.random() * 2 - 1) * btShake.a); oy = Math.round((Math.random() * 2 - 1) * btShake.a); }
+      BT.drawArena(g, ar, t, ox, oy);
+      for (i = 0; i < M.items.length; i++) { it = M.items[i]; if (!it.dead) BT.drawItem(g, it.kind, it.x + ox, it.y + oy, t + it.ph); }
+      for (i = 0; i < M.notes.length; i++) {
+        n = M.notes[i]; if (n.dead) continue;
+        if (n.big) { g.fillStyle = 'rgba(255,210,63,0.45)'; g.fillRect(Math.round(n.x) - 1 + ox, Math.round(n.y) - 1 + oy, 10, 10); }
+        Q.spr(g, 'note', Math.floor(n.t * 10), Math.round(n.x) + ox, Math.round(n.y) + oy, n.vx < 0);
+      }
+      for (i = 0; i < M.cs.length; i++) order.push(M.cs[i]);
+      order.sort(function (a, b) { return (a.who === 'cpu' ? 0 : 1) - (b.who === 'cpu' ? 0 : 1) || a.i - b.i; });   // people over CPUs
+      for (i = 0; i < order.length; i++) { c = order[i]; try { btDrawC(g, c, t, ox, oy); } catch (er) { BT.err('draw of a conductor', er); } }
+      btDrawTags(g, order, ox, oy);
+      btFxDraw(g, ox, oy);
+    };
+    // ---------- sparks of the battle's own (the engine's particles belong to its level scene) ----------
+    function btPart(x, y, vx, vy, life, col, s, gr, ring, text) {
+      var p = btFxl.length < 260 ? {} : btFxl.shift();
+      p.x = x; p.y = y; p.vx = vx; p.vy = vy; p.life = life; p.max = life; p.col = col; p.s = s; p.g = gr || 0; p.ring = ring || 0; p.text = text || '';
+      btFxl.push(p);
+    }
+    BT.fx = function (kind, x, y, col, n) {   // 'dust', 'hit', 'big', 'pop', 'confetti', 'splash' (a fall, in his colour), 'text' (n is the words)
+      var i, a, sp;
+      if (kind === 'dust') for (i = 0; i < (n || 3); i++) btPart(x + (Math.random() - 0.5) * 6, y - 1, (Math.random() - 0.5) * 50, -8 - Math.random() * 22, 0.3 + Math.random() * 0.2, i % 2 ? '#ece5d6' : '#c9bfae', 2, -20);
+      else if (kind === 'hit' || kind === 'big') {
+        for (i = 0; i < (kind === 'big' ? 10 : 6); i++) { a = i / 6 * 6.283 + Math.random() * 0.5; sp = 90 + Math.random() * 70; btPart(x, y, Math.cos(a) * sp, Math.sin(a) * sp, 0.14 + Math.random() * 0.1, i % 2 ? '#ffffff' : col || '#ffd23f', 2, 0); }
+        btPart(x, y, 0, 0, 0.14, '#ffffff', 1, 0, kind === 'big' ? 2 : 1);
+      } else if (kind === 'pop') { for (i = 0; i < 8; i++) { a = i / 8 * 6.283; btPart(x, y, Math.cos(a) * 70, Math.sin(a) * 70, 0.28, col || '#f6efe2', 2, 0); } btPart(x, y, 0, 0, 0.2, '#ffffff', 1, 0, 2); }
+      else if (kind === 'confetti') for (i = 0; i < (n || 30); i++) btPart(x + (Math.random() - 0.5) * 10, y, (Math.random() - 0.5) * 180, -100 - Math.random() * 140, 1.2 + Math.random() * 0.8, ['#2ec4b6', '#ff8a1e', '#ffd23f', '#e0446a', '#9068e6', '#f6efe2'][i % 6], 2, 260);
+      else if (kind === 'splash') for (i = 0; i < 18; i++) btPart(x + (Math.random() - 0.5) * 14, 198, (Math.random() - 0.5) * 60, -160 - Math.random() * 160, 0.6 + Math.random() * 0.3, i % 3 ? col : '#ffffff', 2, 420);
+      else if (kind === 'text') btPart(x, y, 0, -26, 0.9, col || '#ffffff', 1, 0, 0, String(n));
+    };
+    BT.fxStep = function (dt) {
+      var i, p;
+      for (i = btFxl.length - 1; i >= 0; i--) { p = btFxl[i]; p.life -= dt; if (p.life <= 0) { btFxl.splice(i, 1); continue; } p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
+      if (btShake.t > 0) btShake.t -= dt;
+    };
+    BT.fxClear = function () { btFxl.length = 0; btShake.t = 0; };
+    BT.shake = function (a, t) { if (a >= btShake.a || btShake.t <= 0) { btShake.a = a; btShake.t = t; } };
+    BT.drawFxOnly = function (g) { btFxDraw(g, 0, 0); };   // the sparks alone (the results' confetti)
+    function btFxDraw(g, ox, oy) {
+      var i, p, x, y, r, s;
+      for (i = 0; i < btFxl.length; i++) {
+        p = btFxl[i]; x = Math.round(p.x) + ox; y = Math.round(p.y) + oy;
+        if (p.text) { s = Q.ui.width(p.text) >> 1; x = Q.clamp(x, s + 2, Q.W - 2 - s); Q.ui.text(p.text, x - s + 1, y + 1, '#0b0c10'); Q.ui.text(p.text, x - s, y, p.col); continue; }
+        g.fillStyle = p.col;
+        if (p.ring) { r = Math.round((1 - p.life / p.max) * (p.ring === 2 ? 12 : 8)) + 2; g.fillRect(x - r, y - r, r * 2 + 1, 1); g.fillRect(x - r, y + r, r * 2 + 1, 1); g.fillRect(x - r, y - r, 1, r * 2); g.fillRect(x + r, y - r, 1, r * 2); continue; }
+        s = p.s; if (s > 1 && p.life < p.max * 0.35) s--;
+        g.fillRect(x - (s >> 1), y - (s >> 1), s, s);
+      }
+    }
+    // ===== 95-battle-draw-b.js =====
+    // ---------- 95-battle-draw-b.js: BATTLE MODE's HUD, its big words, and each step's events turned into sounds and sparks (B16; BATTLE.md) ----------
+    // The HUD: a panel for each conductor along the bottom (his tag and name, his rounds won, his hearts, his WOBBLE pips, what he has borrowed).
+    BT.HUD_Y = 180;
+    function btPanelX(n, k) { var w = n * 80 - 2; return Math.round((Q.W >> 1) - w / 2) + k * 80; }   // centred on the screen, whatever its width
+    BT.drawHud = function (g, M, t) {
+      var U = Q.ui, n = M.cs.length, need = Math.floor(M.rules.rounds / 2) + 1, i, j, c, col, px, y = BT.HUD_Y, x, wob, bx, b, tag;
+      for (i = 0; i < n; i++) {
+        c = M.cs[i]; col = BT.COLS[c.col] || BT.COLS[0]; px = btPanelX(n, i);
+        g.fillStyle = 'rgba(11,12,16,0.86)'; g.fillRect(px, y, 78, 20);
+        g.fillStyle = c.gone ? '#4a4d5c' : col.main; g.fillRect(px, y, 78, 1); g.fillRect(px, y, 2, 20);
+        tag = BT.tagOf(c);
+        U.text(tag, px + 5, y + 3, c.gone ? '#5d6378' : col.main);
+        U.text(BT.NAMES[c.name] || '?', px + 9 + U.width(tag), y + 3, c.gone ? '#5d6378' : '#f6efe2');
+        for (j = 0; j < need; j++) {   // rounds won: small squares at the right
+          x = px + 72 - (need - 1 - j) * 6;
+          g.fillStyle = '#0b0c10'; g.fillRect(x - 1, y + 3, 6, 6);
+          g.fillStyle = M.wins[c.i] > j ? '#ffd23f' : '#3a3d4c'; g.fillRect(x, y + 4, 4, 4);
+        }
+        if (c.gone) { U.text('OUT', px + 5, y + 12, '#e0446a'); continue; }
+        for (j = 0; j < M.rules.hearts; j++) Q.spr(g, 'ui-heart', j < c.hp ? 0 : 1, px + 4 + j * 8, y + 11);
+        x = px + 6 + M.rules.hearts * 8; wob = c.wob;
+        for (j = 0; j < Math.min(BT.N.WOB_MAX, 12); j++) {   // WOBBLE: a pip for each point, white to red
+          g.fillStyle = j < wob ? (j < 3 ? '#f6efe2' : j < 6 ? '#ffd23f' : j < 9 ? '#ff8a1e' : '#ff4a4a') : '#2a2d3a';
+          g.fillRect(x + j * 2, y + 12, 1, 6);
+        }
+        bx = x + 26;
+        for (j = 0; j < BT.BUFFS.length; j++) {   // borrowed moves and power-ups still on: a square in the item's colour, blinking as it runs out
+          b = BT.BUFFS[j];
+          if (!(c.buff[b] > 0) || bx > px + 74) continue;
+          if (c.buff[b] < 2 && Math.floor(t * 8) % 2) { bx += 6; continue; }
+          g.fillStyle = BT.ITEMS[b].col; g.fillRect(bx, y + 12, 4, 6); bx += 6;
+        }
+      }
+    };
+    BT.big = function (s, y, col, k) {   // big words in the middle with a dark edge
+      var U = Q.ui, w = U.width(s, k), x = (Q.W >> 1) - (w >> 1), dx, dy;
+      for (dy = -1; dy <= 1; dy++) for (dx = -1; dx <= 1; dx++) if (dx || dy) U.text(s, x + dx * k, y + dy * k, '#0b0c10', k);
+      U.text(s, x, y, col, k);
+    };
+    BT.drawWords = function (g, M) {   // ROUND n, READY, GO!, OVERTIME!, the round's winner
+      var N = BT.N, w, c;
+      if (M.phase === 'ready') {
+        if (M.phaseT < 1.1) BT.big('ROUND ' + M.round, 64, '#ffffff', 3);
+        else BT.big('READY', 64, '#ffd23f', 3);
+        if (M.phaseT < 1.1 && M.round === 1) BT.big(M.rules.hearts + ' HEARTS. LAST ONE STANDING WINS.', 98, '#f6efe2', 1);
+      } else if (M.phase === 'fight') {
+        if (M.roundT < 0.7) BT.big('GO!', 58, '#ff8a1e', 4);
+        if (M.ot && M.roundT - N.OVER_T < 1.6) BT.big('OVERTIME!', 64, '#ff4a4a', 3);
+        else if (M.ot && Math.floor(M.roundT * 2) % 2) Q.ui.text('OVERTIME', (Q.W >> 1) - (Q.ui.width('OVERTIME') >> 1), 4, '#ff8a6a');
+      } else if (M.phase === 'end' || M.phase === 'over') {
+        c = M.roundWinner >= 0 ? BT.cOf(M, M.roundWinner) : null;
+        w = c ? BT.NAMES[c.name] + ' WINS' : 'A DRAW';
+        BT.big(M.phase === 'over' && c ? w + '!' : w + (c ? ' THE ROUND' : ''), 60, c ? BT.COLS[c.col].light : '#f6efe2', 2);
+        BT.big(btScore(M), 84, '#f6efe2', 1);
+      }
+    };
+    function btScore(M) { var s = [], i, c; for (i = 0; i < M.cs.length; i++) { c = M.cs[i]; s.push(BT.NAMES[c.name] + ' ' + M.wins[c.i]); } return s.join('   '); }
+    BT.present = function (M) {   // this step's sounds and sparks (each sound once a step: four conductors are loud enough)
+      var played = {}, i, j, c, f, e, v, col;
+      function snd(id) { if (!played[id]) { played[id] = 1; Q.sfx(id); } }
+      for (i = 0; i < M.cs.length; i++) {
+        c = M.cs[i];
+        for (j = 0; j < c.fx.length; j++) { f = c.fx[j]; if (f[0] === 's') snd(f[1]); else if (f[0] === 'd') BT.fx('dust', f[1], f[2]); }
+      }
+      for (i = 0; i < M.ev.length; i++) {
+        e = M.ev[i]; v = e.who !== undefined ? BT.cOf(M, e.who) : e.k === 'round' && e.winner >= 0 ? BT.cOf(M, e.winner) : null; col = v ? (BT.COLS[v.col] || BT.COLS[0]).main : '#ffffff';
+        if (e.k === 'hit') { snd(e.how === 'baton' || e.how === 'note' ? 'hit' : 'bosshit'); BT.fx(e.how === 'meteor' || e.how === 'shock' || e.wob > 1 ? 'big' : 'hit', e.x, e.y, col); if (e.how === 'meteor') BT.shake(3, 0.2); }
+        else if (e.k === 'noteEnd') BT.fx('hit', e.x, e.y, '#ffd23f');
+        else if (e.k === 'fall') { snd('hurt'); BT.fx('splash', Q.clamp(e.x, 8 - Q.OX, 312 + Q.OX), 0, col); BT.shake(2, 0.2); if (v && v.gone) BT.fx('text', e.x, 150, col, BT.NAMES[v.name] + ' IS OUT'); }
+        else if (e.k === 'back') snd('warp');
+        else if (e.k === 'itemIn') snd('tick');
+        else if (e.k === 'item') { snd(e.kind === 'coffee' ? 'heart' : e.kind === 'baton' ? 'buy' : e.kind === 'metro' ? 'charge' : 'learn'); BT.fx('pop', e.x, e.y, BT.ITEMS[e.kind].col); BT.fx('text', e.x, e.y - 12, '#ffffff', BT.ITEMS[e.kind].name); }
+        else if (e.k === 'shake') BT.shake(3, 0.25);
+        else if (e.k === 'ot') snd('roar');
+        else if (e.k === 'round') { snd('clear'); if (v) BT.fx('confetti', v.x + v.w / 2, v.y, col, 30); }
+        else if (e.k === 'next') snd('card');
+        else if (e.k === 'over') snd('star');
+      }
+    };
+    // ===== 96-battle-fight.js =====
+    // ---------- 96-battle-fight.js: BATTLE MODE's fight, the scene 'battle' (B16; BATTLE.md) ----------
+    // enter({ setup }) starts a match; each step: every conductor's input frame (93), START from any person opens the pause, BT.step, then the sounds and
+    // sparks. The pause: RESUME, RULES (shown), QUIT (asks first, NO chosen at first); B or START in it resumes. The match over: the results (96-battle-menus-b).
+    BT.keys = function () {   // the presses for a menu this step: the device's own (Q.ui.press) and every extra controller's
+      var U = Q.ui, f = 0, k, n, pf;
+      for (k = 0; k < 8; k++) if (U.press(BT.KEYS[k])) f |= BT.BIT[BT.KEYS[k]];
+      if (BT.padsOn()) for (n = 2; n <= 4; n++) { pf = BT.readPad(n); f |= pf.p; BT.keysBy[n] = pf.p; }
+      return f;
+    };
+    BT.keysBy = { 2: 0, 3: 0, 4: 0 };
+    (function () {
+      var U = Q.ui, BF = BT.F = { M: null, setup: null, pause: null, overT: 0, cue: '' };
+      var PAUSE = ['RESUME', 'RULES', 'QUIT'];
+      function cue(M) {   // the round's start, its READY and its GO, each heard once
+        var c = M.phase === 'ready' ? (M.phaseT < 1.1 ? 'round' : 'ready') + M.round : M.phase === 'fight' && M.roundT < 0.7 ? 'go' + M.round : '';
+        if (c && c !== BF.cue) { BF.cue = c; Q.sfx(c.indexOf('round') === 0 ? 'card' : c.indexOf('ready') === 0 ? 'tick' : 'zap'); }
+      }
+      function pauseStep() {
+        var P = BF.pause, k = BT.keys(), B = BT.BIT;
+        if (P.rules) { if (k & (B.a | B.b | B.start)) { P.rules = false; Q.sfx('back'); } return; }
+        if (P.ask) {
+          if (k & (B.left | B.right | B.up | B.down)) { P.askSel = 1 - P.askSel; Q.sfx('move'); }
+          if (k & B.b) { P.ask = false; Q.sfx('back'); return; }
+          if (k & (B.a | B.start)) {
+            P.ask = false;
+            if (P.askSel) { Q.sfx('select'); BF.pause = null; BF.M = null; Q.music('map'); Q.go('bplayers'); } else Q.sfx('back');
+          }
+          return;
+        }
+        if (k & B.up) { P.sel = (P.sel + PAUSE.length - 1) % PAUSE.length; Q.sfx('move'); }
+        if (k & B.down) { P.sel = (P.sel + 1) % PAUSE.length; Q.sfx('move'); }
+        if (k & (B.b | B.start)) { BF.pause = null; Q.sfx('back'); return; }
+        if (k & B.a) {
+          if (PAUSE[P.sel] === 'RESUME') { BF.pause = null; Q.sfx('back'); }
+          else if (PAUSE[P.sel] === 'RULES') { P.rules = true; Q.sfx('select'); }
+          else { P.ask = true; P.askSel = 0; Q.sfx('select'); }
+        }
+      }
+      BT.rulesLines = function (r) {
+        return ['BEST OF ' + r.rounds + (r.rounds === 1 ? ': ONE ROUND' : ': FIRST TO ' + (Math.floor(r.rounds / 2) + 1) + ' ROUNDS'), r.hearts + (r.hearts === 1 ? ' HEART' : ' HEARTS') + ' EACH: A FALL COSTS ONE',
+          'EACH HIT ADDS WOBBLE: YOU FLY FURTHER', 'ITEMS ' + (r.items ? 'ON: POWER-UPS FLOAT IN' : 'OFF'), 'CPU LEVEL ' + BT.CPU[r.cpu]];
+      };
+      function drawPause(g) {   // the whole screen dimmed, the menu in the centred column
+        g.fillStyle = 'rgba(5,6,10,0.6)'; g.fillRect(0, 0, Q.W, 200);
+        Q.col(g, drawPauseIn);
+      }
+      function drawPauseIn(g) {
+        var P = BF.pause, i, y, lines;
+        if (P.rules) {
+          lines = BT.rulesLines(BF.M.rules);
+          U.box(g, 22, 40, 276, 104, '#ffd23f', '#1d1d24'); U.text('THE RULES OF THIS MATCH', 160 - (U.width('THE RULES OF THIS MATCH') >> 1), 50, '#ffd23f');
+          for (i = 0; i < lines.length; i++) U.text(lines[i], 160 - (U.width(lines[i]) >> 1), 66 + i * 12, '#f6efe2');
+          U.text('A OR B: BACK', 160 - (U.width('A OR B: BACK') >> 1), 130, '#8f9ac8');
+          return;
+        }
+        U.box(g, 96, 46, 128, 98, '#ffd23f', '#1d1d24');
+        U.text('PAUSED', 160 - (U.width('PAUSED', 2) >> 1), 56, '#ffffff', 2);
+        if (P.by) U.text('BY ' + P.by, 160 - (U.width('BY ' + P.by) >> 1), 74, '#8f9ac8');
+        for (i = 0; i < PAUSE.length; i++) { y = 88 + i * 16; U.item(PAUSE[i], 160, y, i === P.sel && !P.ask, false, 'center'); }
+        if (P.ask) {
+          U.box(g, 70, 76, 180, 48, '#ff8a6a', '#1d1d24');
+          U.text('QUIT THIS MATCH?', 160 - (U.width('QUIT THIS MATCH?') >> 1), 86, '#ffffff');
+          U.item('NO', 128, 104, P.askSel === 0, false, 'center'); U.item('YES', 192, 104, P.askSel === 1, false, 'center');
+        }
+      }
+      Q.defScene('battle', {
+        wide: true,   // it fills a wider screen itself (QUEST-API part 15): the world's background across it, the arena in the middle
+        enter: function (opts) {
+          U.entered(); U.cancel(); U.clearToasts(); BT.padClear();
+          opts = opts || {};
+          if (opts.resume && BF.M) return;
+          BF.setup = opts.setup || BT.setupNow(); BF.M = BT.newMatch(BF.setup); BF.pause = null; BF.overT = 0; BF.cue = ''; BT.fxClear();
+          Q.music(BT.arenaDef(BF.M.arena).music || 'boss');
+        },
+        update: function (dt) {
+          var M = BF.M, inp, i, by = '';
+          if (!M) return;
+          BT.fxStep(dt);
+          if (BF.pause) { pauseStep(); return; }
+          inp = BT.inputs(M, dt);
+          for (i = 0; i < inp.length; i++) if (M.cs[i].who === 'human' && (inp[i].p & BT.BIT.start)) by = by || BT.tagOf(M.cs[i]);
+          if (!by && Q.press('start')) by = 'P1';   // the device's own START pauses even a match of CPUs (when slot 1 is a person, its frame took it above)
+          if (by && M.phase !== 'over') { BF.pause = { sel: 0, ask: false, askSel: 0, rules: false, by: by }; Q.sfx('select'); return; }
+          BT.step(M, dt, inp);
+          BT.present(M);
+          cue(M);
+          if (M.phase === 'over') { BF.overT += dt; if (BF.overT > 2.4) Q.go('bresults', { M: M, setup: BF.setup }); }
+        },
+        draw: function (g) {
+          var M = BF.M;
+          if (!M) { g.fillStyle = '#0b0c10'; g.fillRect(0, 0, Q.W, 200); return; }
+          BT.drawFight(g, M, Q.t); BT.drawHud(g, M, Q.t); BT.drawWords(g, M);
+          if (BF.pause) drawPause(g);
+          BT.padLatch();
+          U.drawTalk(g);
+        },
+        leave: function () { BT.fxClear(); }
+      });
+      BT.fightAt = function () {   // for checks: where the fight is
+        var M = BF.M; if (!M) return null;
+        return { phase: M.phase, round: M.round, wins: M.wins.slice(), winner: M.winner, pause: BF.pause ? { sel: BF.pause.sel, ask: BF.pause.ask, rules: BF.pause.rules } : null, n: M.cs.length, t: Math.round(M.roundT * 10) / 10 };
+      };
+    })();
+    // ===== 96-battle-menus.js =====
+    // ---------- 96-battle-menus.js: GAME MODES and BATTLE MODE's splash card (B16; BATTLE.md) ----------
+    // 'modes' (GAME MODES): BATTLE (live), HIGH SCORE and SPEED RUN (each in a light red COMING SOON ribbon whose ends fold behind the button; A on one plays
+    // 'nope' and says COMING SOON, nothing starts); B: the title. Its own scene, so a later main menu can open it with Q.go('modes').
+    // 'bsplash': the card when battle starts; A, START or a short wait: the players; B: GAME MODES. BT.S, the battle's setup, is kept only while the game
+    // is open (never in the save: BATTLE MODE writes nothing the adventure keeps).
+    BT.S = { slots: [{ on: true, who: 'human', pad: 1, col: 0, name: 0 }, { on: true, who: 'cpu', pad: 2, col: 1, name: 1 }, { on: true, who: 'cpu', pad: 3, col: 2, name: 2 }, { on: true, who: 'cpu', pad: 4, col: 3, name: 3 }],
+      arena: 'random', rules: BT.copy(BT.RULES0), seed: 0 };
+    BT.setupNow = function () {   // the setup for a new match: the slots as they stand, RANDOM made an arena, a new seed
+      var S = BT.S, slots = [], i, a = S.arena;
+      for (i = 0; i < 4; i++) slots.push(BT.copy(S.slots[i]));
+      if (a === 'random') a = BT.ARENAS[Math.floor(Math.random() * BT.ARENAS.length) % BT.ARENAS.length].id;
+      S.seed = ((S.seed || Math.floor(Math.random() * 4294967295)) * 1103515245 + 12345) >>> 0 || 1;
+      return { slots: slots, arena: a, rules: BT.copy(S.rules), seed: S.seed };
+    };
+    BT.SKY = Q.ui.grad('#0b1030', '#26346a', 25);
+    BT.backdrop = function (g, t) {   // the battle menus' own night sky, with a slow shimmer of stars
+      var i, x, y;
+      Q.ui.bands(g, BT.SKY, 0, 8);
+      for (i = 0; i < 40; i++) { x = (i * 83 + 17) % 320; y = (i * 47 + 11) % 170; g.fillStyle = Math.sin(t * 2 + i) > 0.6 ? '#ffffff' : '#56609a'; g.fillRect(x, y, 1, 1); }
+    };
+    BT.sstars = null;
+    BT.sides = function (g, Qx) {   // a battle menu's sides on a wide screen (the engine clips to them): the same night sky, stars of their own, the footer band
+      var i, d, t = Q.t, W = Q.W, r;
+      if (!BT.sstars) { r = Q.api && Q.api.rand ? Q.api.rand(41) : Math.random; BT.sstars = []; for (i = 0; i < 90; i++) BT.sstars.push({ x: Math.floor(r() * Q.WMAX), y: Math.floor(r() * 170), ph: r() * 6.28 }); }
+      Q.ui.bands(g, BT.SKY, 0, 8, W);
+      for (i = 0; i < BT.sstars.length; i++) { d = BT.sstars[i]; if (d.x >= W) continue; g.fillStyle = Math.sin(t * 2 + d.ph) > 0.6 ? '#ffffff' : '#56609a'; g.fillRect(d.x, d.y, 1, 1); }
+      Q.ui.fill(g, 0, 186, W, 14, BT.footCol || '#10173a');
+    };
+    BT.head = function (g, s) { var U = Q.ui; BT.big(s, 8, '#ffffff', 2); g.fillStyle = '#ffd23f'; g.fillRect(160 - (U.width(s, 2) >> 1), 25, U.width(s, 2), 1); };
+    BT.foot = function (s) { var U = Q.ui; BT.footCol = '#10173a'; U.fill(Q.g, 0, 186, 320, 14, '#10173a'); U.text(s, 160 - (U.width(s) >> 1), 190, '#8f9ac8'); };
+    BT.ribbon = function (g, x, y, w, h, wig) {   // COMING SOON's back: the ribbon's two tails behind the button, darker red, each cut like a swallowtail
+      var by = y + h - 16 + (wig || 0), r, cut;
+      g.fillStyle = '#a5383b';
+      for (r = 0; r < 10; r++) { cut = r >= 3 && r <= 6 ? 2 : 0; g.fillRect(x - 7 + cut, by + 3 + r, 9 - cut, 1); g.fillRect(x + w - 2, by + 3 + r, 9 - cut, 1); }
+    };
+    BT.ribbonFront = function (g, x, y, w, h, wig) {
+      var U = Q.ui, by = y + h - 16 + (wig || 0), s = 'COMING SOON', sx;
+      g.fillStyle = '#7d2629'; g.fillRect(x, by + 1, 3, 13); g.fillRect(x + w - 3, by + 1, 3, 13);   // where it folds round the edge: darker
+      g.fillStyle = '#f27f7f'; g.fillRect(x + 3, by, w - 6, 12);
+      g.fillStyle = '#ffb3b0'; g.fillRect(x + 3, by, w - 6, 1);
+      g.fillStyle = '#d65c5e'; g.fillRect(x + 3, by + 11, w - 6, 1);
+      sx = x + (w >> 1) - (U.width(s) >> 1);
+      U.text(s, sx + 1, by + 3, '#a5383b'); U.text(s, sx, by + 2, '#ffffff');
+    };
+    (function () {
+      var U = Q.ui, MO = { sel: 0, t: 0, soon: 0, soonAt: -1 };
+      var MODES = [
+        { id: 'battle', name: 'BATTLE', line: 'UP TO 4 CONDUCTORS, ONE ARENA', live: true },
+        { id: 'score', name: 'HIGH SCORE', line: 'A SCORE TO BEAT', live: false },
+        { id: 'speed', name: 'SPEED RUN', line: 'A RACE AGAINST THE CLOCK', live: false }
+      ];
+      var BX = 46, BW = 228, BH = 40, BY = [36, 84, 132];
+      function icon(g, id, x, y, t) {
+        if (id === 'battle') { Q.spr(g, BT.spr(0), Math.floor(t * 3) % 2 ? 8 : 0, x - 2, y + 4); Q.spr(g, BT.spr(2), Math.floor(t * 3 + 1) % 2 ? 8 : 0, x + 12, y + 4, true); }
+        else if (id === 'score') U.sprite(g, Q.SPRITE['u5-star'] ? 'u5-star' : 'ic-star', 0, x + 2, y + 2, 2);
+        else U.sprite(g, Q.SPRITE['u5-clock'] ? 'u5-clock' : 'ic-clock', 0, x + 2, y + 2, 3);
+      }
+      Q.defScene('modes', {
+        enter: function () { U.entered(); U.cancel(); U.clearToasts(); BT.padClear(); MO.t = 0; MO.soon = 0; Q.music('title'); },
+        update: function (dt) {
+          var k = BT.keys(), B = BT.BIT;
+          MO.t += dt; if (MO.soon > 0) MO.soon -= dt;
+          if (k & B.up) { MO.sel = (MO.sel + MODES.length - 1) % MODES.length; Q.sfx('move'); }
+          if (k & B.down) { MO.sel = (MO.sel + 1) % MODES.length; Q.sfx('move'); }
+          if (k & B.b) { Q.sfx('back'); Q.go('title'); return; }
+          if (k & (B.a | B.start)) {
+            if (MODES[MO.sel].live) { Q.sfx('select'); Q.go('bsplash'); }
+            else { Q.sfx('nope'); MO.soon = 1.4; MO.soonAt = MO.sel; }   // not yet: nothing starts
+          }
+        },
+        draw: function (g) {
+          var i, m, x = BX, y, on, wig;
+          BT.backdrop(g, MO.t); BT.head(g, 'GAME MODES');
+          for (i = 0; i < MODES.length; i++) {
+            m = MODES[i]; y = BY[i]; on = i === MO.sel; wig = MO.soon > 0 && MO.soonAt === i ? (Math.floor(MO.t * 30) % 2 ? 1 : -1) : 0;
+            if (!m.live) BT.ribbon(g, x, y, BW, BH, wig);
+            U.box(g, x, y, BW, BH, on ? '#ffd23f' : '#5d6378', on ? '#24284a' : '#1d1d24');
+            U.box(g, x + 5, y + 5, 30, 30, on ? '#ffd23f' : '#3c4160', '#0f1226');
+            icon(g, m.id, x + 7, y + 7, MO.t);
+            U.text(m.name, x + 42, y + 7, m.live ? (on ? '#ffd23f' : '#ffffff') : '#c3c7d4', 2);
+            if (m.live) U.text(m.line, x + 42, y + 27, '#8f9ac8');
+            if (!m.live) BT.ribbonFront(g, x, y, BW, BH, wig);
+            if (on && Math.floor(MO.t * 2.5) % 3) U.text('>', x - 10, y + 16, '#ffd23f');
+          }
+          if (MO.soon > 0) {   // A on a mode that is not here yet: the footer says so, in the ribbon's red
+            BT.footCol = '#7d2629'; U.fill(g, 0, 186, 320, 14, '#7d2629'); U.text(MODES[MO.soonAt].name + ': COMING SOON', 160 - (U.width(MODES[MO.soonAt].name + ': COMING SOON') >> 1), 190, '#ffffff');
+          } else BT.foot('UP AND DOWN: CHOOSE   A: PLAY   B: BACK');
+          U.drawTalk(g);
+        },
+        leave: function () {},
+        sides: BT.sides
+      });
+      BT.modesAt = function () { return { sel: MO.sel, id: MODES[MO.sel].id, soon: MO.soon > 0, soonAt: MO.soonAt, modes: MODES.map(function (m) { return m.id + (m.live ? '' : ':soon'); }) }; };
+      var SP = { t: 0 };
+      Q.defScene('bsplash', {
+        enter: function () { U.entered(); BT.padClear(); SP.t = 0; Q.music('map'); },
+        update: function (dt) {
+          var k = BT.keys(), B = BT.BIT;
+          SP.t += dt;
+          if (k & B.b) { Q.sfx('back'); Q.go('modes'); return; }
+          if (k & (B.a | B.start) || SP.t > 3.2) { Q.sfx('select'); Q.go('bplayers'); }
+        },
+        draw: function (g) {
+          var i, x, t = SP.t, f, s;
+          BT.backdrop(g, t);
+          for (i = 0; i < 6; i++) { g.fillStyle = 'rgba(255,226,150,' + (0.025 + i * 0.012).toFixed(3) + ')'; g.fillRect(60 - i * 6, 96 + i * 9, 200 + i * 12, 54 - i * 9); }   // a soft beam onto the stage
+          g.fillStyle = '#1d1d24'; g.fillRect(30, 150, 260, 3); g.fillStyle = '#7a4a2a'; g.fillRect(30, 153, 260, 10); g.fillStyle = '#a86f43'; g.fillRect(30, 153, 260, 2);
+          for (i = 0; i < 4; i++) {   // the four conductors, each swinging in turn
+            x = 58 + i * 56; f = Math.floor(t * 4) % 4 === i ? 8 + Math.floor(t * 8) % 2 : Math.floor(t * 1.6 + i) % 2;
+            U.sprite(g, BT.spr(i), f, x, 110, 2, i >= 2);
+          }
+          BT.big('BATTLE', 30 + Math.round(Math.sin(t * 2) * 1.5), '#ff8a1e', 5);
+          s = 'UP TO FOUR CONDUCTORS. LAST ONE STANDING.'; U.text(s, 160 - (U.width(s) >> 1), 80, '#f6efe2');
+          if (Math.floor(t * 2) % 2) { s = 'PRESS A'; U.text(s, 160 - (U.width(s) >> 1), 172, '#ffd23f'); }
+          BT.foot('A: ON   B: BACK');
+          U.drawTalk(g);
+        },
+        leave: function () {},
+        sides: BT.sides
+      });
+    })();
+    // ===== 96-battle-menus-b.js =====
+    // ---------- 96-battle-menus-b.js: BATTLE MODE's player select ('bplayers') and rules ('brules') (B16; BATTLE.md) ----------
+    // Player select: four slots, each WHO (slot 1: PLAYER or CPU; slots 2 to 4: CPU, PLAYER n on controller n, or OFF), COLOUR (never two alike), NAME (our
+    // own list, never two alike). The device's arrows move round the grid and A changes a cell; a second controller's A joins its own slot as a player (its
+    // left and right change its colour, up and down its name, B gives the slot back to a CPU). RULES above, NEXT below (two conductors at least). B: GAME MODES.
+    (function () {
+      var U = Q.ui, PL = { row: 1, col: 0, t: 0, warn: 0 }, ROWS = 5;
+      function on(i) { return BT.S.slots[i].on; }
+      function count() { var n = 0, i; for (i = 0; i < 4; i++) if (on(i)) n++; return n; }
+      function free(i, key, from, step, n) {   // the next value of a slot's key that no other slot on has
+        var v = from, k, j, used;
+        for (k = 0; k < n; k++) {
+          v = (v + step + n) % n; used = false;
+          for (j = 0; j < 4; j++) if (j !== i && on(j) && BT.S.slots[j][key] === v) used = true;
+          if (!used) return v;
+        }
+        return from;
+      }
+      function recolour(i, step) {   // the next colour; when all four are taken, it swaps with the slot that has that colour
+        var s = BT.S.slots[i], want = (s.col + step + 4) % 4, j, v = free(i, 'col', s.col, step, 4);
+        if (v !== s.col) { s.col = v; return; }
+        for (j = 0; j < 4; j++) if (j !== i && on(j) && BT.S.slots[j].col === want) { BT.S.slots[j].col = s.col; s.col = want; return; }
+      }
+      function tidy(i) { var s = BT.S.slots[i]; s.col = free(i, 'col', s.col, 0, 4); s.name = free(i, 'name', s.name, 0, BT.NAMES.length); }   // a slot just turned on keeps clear of the others
+      BT.whoText = function (i) { var s = BT.S.slots[i]; return !s.on ? 'OFF' : s.who === 'cpu' ? 'CPU' : 'PLAYER ' + (i + 1); };
+      BT.setWho = function (i, who) {   // for the menus and for checks: 'human', 'cpu' or 'off'
+        var s = BT.S.slots[i];
+        if (who === 'off') { if (i === 0) return false; s.on = false; return true; }
+        if (who === 'human' && i > 0 && !BT.padsOn()) return false;
+        s.who = who; s.pad = i + 1; if (!s.on) { s.on = true; tidy(i); }
+        return true;
+      };
+      function cycleWho(i) {
+        var s = BT.S.slots[i], order = i === 0 ? ['human', 'cpu'] : BT.padsOn() ? ['cpu', 'human', 'off'] : ['cpu', 'off'], now = !s.on ? 'off' : s.who, k = order.indexOf(now);
+        BT.setWho(i, order[(k + 1) % order.length]);
+      }
+      function change(i, row) {
+        var s = BT.S.slots[i];
+        if (row === 1) cycleWho(i);
+        else if (!s.on) { Q.sfx('nope'); return; }
+        else if (row === 2) recolour(i, 1);
+        else s.name = free(i, 'name', s.name, 1, BT.NAMES.length);
+        Q.sfx('move');
+      }
+      function next() { if (count() < 2) { Q.sfx('nope'); PL.warn = 1.6; return; } Q.sfx('select'); Q.go('barena'); }
+      function pads() {   // extra controllers: A joins (or, already in, nothing), left and right a colour, up and down a name, B leaves to a CPU
+        var n, i, s, p, B = BT.BIT;
+        if (!BT.padsOn()) return;
+        for (n = 2; n <= 4; n++) {
+          p = BT.keysBy[n]; i = n - 1; s = BT.S.slots[i];
+          if (!p) continue;
+          if (p & B.a && !(s.on && s.who === 'human')) { BT.setWho(i, 'human'); Q.sfx('select'); }
+          else if (s.on && s.who === 'human') {
+            if (p & B.b) { s.who = 'cpu'; Q.sfx('back'); }
+            if (p & (B.left | B.right)) { recolour(i, p & B.left ? -1 : 1); Q.sfx('move'); }
+            if (p & (B.up | B.down)) { s.name = free(i, 'name', s.name, p & B.up ? -1 : 1, BT.NAMES.length); Q.sfx('move'); }
+          }
+        }
+      }
+      Q.defScene('bplayers', {
+        enter: function () { U.entered(); BT.padClear(); PL.t = 0; PL.warn = 0; Q.music('map'); },
+        update: function (dt) {
+          var k = BT.keysDev(), B = BT.BIT;
+          PL.t += dt; if (PL.warn > 0) PL.warn -= dt;
+          pads();
+          if (k & B.up) { PL.row = Math.max(0, PL.row - 1); Q.sfx('move'); }
+          if (k & B.down) { PL.row = Math.min(ROWS - 1, PL.row + 1); Q.sfx('move'); }
+          if (k & (B.left | B.right) && PL.row >= 1 && PL.row <= 3) { PL.col = (PL.col + (k & B.left ? 3 : 1)) % 4; Q.sfx('move'); }
+          if (k & B.b) { Q.sfx('back'); Q.go('modes'); return; }
+          if (k & B.start) { next(); return; }
+          if (k & B.a) { if (PL.row === 0) { Q.sfx('select'); Q.go('brules'); } else if (PL.row === 4) next(); else change(PL.col, PL.row); }
+        },
+        draw: function (g) {
+          var i, s, x, y, cx, col, sel, f, r, txt, hint;
+          BT.backdrop(g, PL.t); BT.head(g, 'PLAYERS');
+          r = BT.S.rules; txt = 'BEST OF ' + r.rounds + '  ' + r.hearts + ' HEARTS  ITEMS ' + (r.items ? 'ON' : 'OFF') + '  CPU ' + BT.CPU[r.cpu];
+          U.box(g, 8, 30, 304, 15, PL.row === 0 ? '#ffd23f' : '#3c4160', '#151a36'); U.text('RULES: ' + txt, 160 - (U.width('RULES: ' + txt) >> 1), 34, PL.row === 0 ? '#ffd23f' : '#c3c7d4');
+          for (i = 0; i < 4; i++) {
+            s = BT.S.slots[i]; x = 8 + i * 77; cx = x + 36; col = BT.COLS[s.col] || BT.COLS[0];
+            U.box(g, x, 50, 72, 110, s.on ? col.main : '#3c4160', s.on ? '#1a1e38' : '#12152a');
+            U.text(String(i + 1), x + 5, 55, s.on ? col.light : '#5d6378');
+            if (s.on) { f = s.who === 'cpu' ? Math.floor(PL.t * 1.6 + i) % 2 : Math.floor(PL.t * 6) % 4 === 0 ? 17 : Math.floor(PL.t * 1.6) % 2; U.sprite(g, BT.spr(s.col), f, cx - 16, 58, 2, i >= 2); }
+            else { g.globalAlpha = 0.25; U.sprite(g, BT.spr(s.col), 0, cx - 16, 58, 2, i >= 2); g.globalAlpha = 1; }
+            for (y = 1; y <= 3; y++) {
+              sel = PL.row === y && PL.col === i;
+              txt = y === 1 ? BT.whoText(i) : !s.on ? '' : y === 2 ? col.name : BT.NAMES[s.name];
+              if (sel) U.box(g, x + 3, 89 + y * 16, 66, 14, '#ffd23f', '#24284a');
+              if (y === 2 && s.on) { g.fillStyle = col.main; g.fillRect(x + 8, 93 + y * 16, 6, 6); }
+              U.text(txt, cx - (U.width(txt) >> 1) + (y === 2 ? 4 : 0), 93 + y * 16, sel ? '#ffd23f' : y === 1 ? (s.on ? '#ffffff' : '#5d6378') : '#c3c7d4');
+            }
+          }
+          sel = PL.row === 4; U.box(g, 96, 164, 128, 17, sel ? '#ffd23f' : '#3c4160', sel ? '#24284a' : '#151a36');
+          U.text('NEXT: ARENA >', 160 - (U.width('NEXT: ARENA >') >> 1), 169, sel ? '#ffd23f' : '#f6efe2');
+          hint = PL.warn > 0 ? 'TWO CONDUCTORS AT LEAST' : BT.padsOn() ? 'A ON ANOTHER CONTROLLER JOINS   B: BACK' : 'ARROWS   A: CHANGE   START: NEXT   B: BACK';
+          BT.foot(hint);
+          U.drawTalk(g);
+        },
+        leave: function () {},
+        sides: BT.sides
+      });
+      BT.playersAt = function () { return { row: PL.row, col: PL.col, slots: BT.S.slots.map(function (s, i) { return { who: BT.whoText(i), col: s.col, name: BT.NAMES[s.name] }; }) }; };
+      // ---------- the rules ----------
+      var RU = { sel: 0, t: 0 }, RROWS = ['ROUNDS', 'HEARTS', 'ITEMS', 'CPU LEVEL', 'DONE'];
+      function val(i) { var r = BT.S.rules; return i === 0 ? 'BEST OF ' + r.rounds : i === 1 ? String(r.hearts) : i === 2 ? (r.items ? 'ON' : 'OFF') : i === 3 ? BT.CPU[r.cpu] : ''; }
+      var SAY = ['WIN MORE THAN HALF TO WIN THE MATCH', 'EACH, EVERY ROUND. A FALL COSTS ONE', 'POWER-UPS FLOAT IN NOW AND THEN', 'HOW SHARP THE CPUS ARE', 'BACK TO THE PLAYERS'];
+      function turn(i, d) {
+        var r = BT.S.rules, k;
+        if (i === 0) { k = BT.ROUNDS.indexOf(r.rounds); r.rounds = BT.ROUNDS[(k + d + BT.ROUNDS.length) % BT.ROUNDS.length]; }
+        else if (i === 1) r.hearts = Q.clamp(r.hearts + d, 1, 5);
+        else if (i === 2) r.items = !r.items;
+        else if (i === 3) r.cpu = (r.cpu + d + 3) % 3;
+        else return;
+        Q.sfx('move');
+      }
+      Q.defScene('brules', {
+        enter: function () { U.entered(); BT.padClear(); RU.t = 0; RU.sel = 0; },
+        update: function (dt) {
+          var k = BT.keys(), B = BT.BIT;
+          RU.t += dt;
+          if (k & B.up) { RU.sel = (RU.sel + RROWS.length - 1) % RROWS.length; Q.sfx('move'); }
+          if (k & B.down) { RU.sel = (RU.sel + 1) % RROWS.length; Q.sfx('move'); }
+          if (k & B.left) turn(RU.sel, -1);
+          if (k & B.right) turn(RU.sel, 1);
+          if (k & B.b || (k & (B.a | B.start) && RU.sel === 4)) { Q.sfx('back'); Q.go('bplayers'); return; }
+          if (k & B.a && RU.sel < 4) turn(RU.sel, 1);
+        },
+        draw: function (g) {
+          var i, y, on, v;
+          BT.backdrop(g, RU.t); BT.head(g, 'RULES');
+          for (i = 0; i < RROWS.length; i++) {
+            y = 33 + i * 30; on = i === RU.sel;
+            U.box(g, 40, y, 240, 27, on ? '#ffd23f' : '#3c4160', on ? '#24284a' : '#151a36');
+            U.text(RROWS[i], 50, y + 5, on ? '#ffd23f' : '#ffffff');
+            v = val(i);
+            if (v) { U.text((on ? '< ' : '') + v + (on ? ' >' : ''), 270 - U.width((on ? '< ' : '') + v + (on ? ' >' : '')), y + 5, on ? '#ffd23f' : '#c3c7d4'); }
+            U.text(SAY[i], 50, y + 16, '#6b7186');
+          }
+          BT.foot('LEFT AND RIGHT: CHANGE   B: BACK');
+          U.drawTalk(g);
+        },
+        leave: function () {},
+        sides: BT.sides
+      });
+      BT.rulesAt = function () { return { sel: RU.sel, rules: BT.copy(BT.S.rules) }; };
+    })();
+    BT.keysDev = function () { var U = Q.ui, f = 0, k, n; for (k = 0; k < 8; k++) if (U.press(BT.KEYS[k])) f |= BT.BIT[BT.KEYS[k]]; if (BT.padsOn()) for (n = 2; n <= 4; n++) BT.keysBy[n] = BT.readPad(n).p; return f; };   // the device's presses only (the extra controllers' go to BT.keysBy)
+    // ===== 96-battle-menus-c.js =====
+    // ---------- 96-battle-menus-c.js: BATTLE MODE's arena select ('barena') and results ('bresults') (B16; BATTLE.md) ----------
+    // Arena select: the four arenas (one a world) and RANDOM, each shown as a picture of the arena itself; left and right choose, A fights, B: the players.
+    // Results: the winner cheering, each conductor's rounds won, knock-offs, falls and hits; REMATCH (the same players and arena), NEW ARENA, BACK (the players).
+    (function () {
+      var U = Q.ui, AR = { sel: 0, t: 0 }, prev = {};
+      function choices() { var l = [], i; for (i = 0; i < BT.ARENAS.length; i++) l.push(BT.ARENAS[i].id); l.push('random'); return l; }
+      function preview(id) {   // the arena drawn once at full size (its background at its first moment, its tiles), shown at half size
+        var cv = prev[id], c;
+        if (cv) return cv;
+        cv = prev[id] = Q.canvas(320, 208); c = cv.getContext('2d');
+        BT.at320(function () { try { BT.drawArena(c, BT.arenaOf(id), 0, 0, 0); } catch (er) { BT.err('arena picture ' + id, er); } });   // as a 320 screen draws it
+        return cv;
+      }
+      Q.defScene('barena', {
+        enter: function () {
+          var l = choices(), i;
+          U.entered(); BT.padClear(); AR.t = 0;
+          AR.sel = Math.max(0, l.indexOf(BT.S.arena));
+          for (i = 0; i < BT.ARENAS.length; i++) preview(BT.ARENAS[i].id);   // before this scene's first picture: a background may write on the screen itself
+        },
+        update: function (dt) {
+          var k = BT.keys(), B = BT.BIT, l = choices();
+          AR.t += dt;
+          if (k & B.left) { AR.sel = (AR.sel + l.length - 1) % l.length; Q.sfx('move'); }
+          if (k & B.right) { AR.sel = (AR.sel + 1) % l.length; Q.sfx('move'); }
+          BT.S.arena = l[AR.sel];
+          if (k & B.b) { Q.sfx('back'); Q.go('bplayers'); return; }
+          if (k & (B.a | B.start)) { Q.sfx('select'); Q.go('battle', { setup: BT.setupNow() }); }
+        },
+        draw: function (g) {
+          var l = choices(), id = l[AR.sel], d = id === 'random' ? null : BT.arenaDef(id), i, x, s, on;
+          BT.backdrop(g, AR.t); BT.head(g, 'ARENA');
+          U.box(g, 76, 30, 168, 112, '#ffd23f', '#0b0c10');
+          if (d) g.drawImage(preview(id), 0, 0, 320, 208, 80, 34, 160, 104);
+          else { U.fill(g, 80, 34, 160, 104, '#151a36'); BT.big('?', 66, '#ffd23f', 5); for (i = 0; i < 4; i++) g.drawImage(preview(BT.ARENAS[i].id), 0, 0, 320, 208, 84 + i * 38, 112, 34, 22); }
+          if (Math.floor(AR.t * 2.5) % 3) { U.text('<', 62, 82, '#ffd23f', 2); U.text('>', 248, 82, '#ffd23f', 2); }
+          s = d ? d.name : 'RANDOM'; BT.big(s, 148, '#ffffff', 2);
+          s = d ? d.place + ', WORLD ' + d.world : 'ANY OF THE FOUR'; U.text(s, 160 - (U.width(s) >> 1), 166, '#8f9ac8');
+          for (i = 0; i < l.length; i++) { x = 160 - l.length * 6 + i * 12; on = i === AR.sel; U.fill(g, x, 177, 8, 4, on ? '#ffd23f' : '#3c4160'); }
+          BT.foot('LEFT AND RIGHT: CHOOSE   A: FIGHT   B: BACK');
+          U.drawTalk(g);
+        },
+        leave: function () {},
+        sides: BT.sides
+      });
+      BT.arenaAt = function () { var l = choices(); return { sel: AR.sel, id: l[AR.sel], list: l }; };
+      // ---------- the results ----------
+      var RE = { M: null, setup: null, sel: 0, t: 0, order: [] }, BTN = ['REMATCH', 'NEW ARENA', 'BACK'];
+      function leave(what) {
+        var st;
+        Q.sfx(what === 'BACK' ? 'back' : 'select');
+        if (what === 'REMATCH') { st = BT.setupNow(); st.arena = RE.setup ? RE.setup.arena : st.arena; st.slots = RE.setup ? RE.setup.slots : st.slots; Q.go('battle', { setup: st }); }
+        else if (what === 'NEW ARENA') { Q.music('map'); Q.go('barena'); }
+        else { Q.music('map'); Q.go('bplayers'); }
+      }
+      Q.defScene('bresults', {
+        enter: function (opts) {
+          var M = opts && opts.M, i;
+          U.entered(); BT.padClear(); RE.t = 0; RE.sel = 0; RE.M = M || null; RE.setup = opts && opts.setup || null; RE.order = [];
+          if (M) { for (i = 0; i < M.cs.length; i++) RE.order.push(M.cs[i]); RE.order.sort(function (a, b) { return M.wins[b.i] - M.wins[a.i] || M.stats[b.i].kos - M.stats[a.i].kos || a.i - b.i; }); }
+          Q.music('rescue');
+        },
+        update: function (dt) {
+          var k = BT.keys(), B = BT.BIT;
+          RE.t += dt;
+          if (RE.t > 0.6 && Math.floor(RE.t / 1.4) !== Math.floor((RE.t - dt) / 1.4) && RE.M && RE.M.winner >= 0) BT.fx('confetti', 48, 40, '#ffd23f', 24);
+          BT.fxStep(dt);
+          if (k & B.left) { RE.sel = (RE.sel + BTN.length - 1) % BTN.length; Q.sfx('move'); }
+          if (k & B.right) { RE.sel = (RE.sel + 1) % BTN.length; Q.sfx('move'); }
+          if (k & B.b) { leave('BACK'); return; }
+          if (k & (B.a | B.start)) leave(BTN[RE.sel]);
+        },
+        draw: function (g) {
+          var M = RE.M, w = M && M.winner >= 0 ? BT.cOf(M, M.winner) : null, col = w ? BT.COLS[w.col] : null, i, c, y, s, x, cl;
+          BT.backdrop(g, RE.t);
+          BT.big(w ? BT.NAMES[w.name] + ' WINS!' : 'NO WINNER', 8, col ? col.light : '#f6efe2', 2);
+          if (w) { U.fill(g, 14, 104, 72, 4, '#7a4a2a'); U.sprite(g, BT.spr(w.col), Math.floor(RE.t * 3) % 2 ? 17 : 0, 26, 44, 3); }
+          x = 96; cl = [['WINS', 110], ['KOS', 138], ['FALLS', 168], ['HITS', 201]]; for (i = 0; i < cl.length; i++) U.text(cl[i][0], x + cl[i][1] - (U.width(cl[i][0]) >> 1), 32, '#8f9ac8');
+          for (i = 0; M && i < RE.order.length; i++) {
+            c = RE.order[i]; y = 46 + i * 20; cl = BT.COLS[c.col] || BT.COLS[0];
+            U.box(g, x, y - 4, 218, 17, i === 0 && w ? '#ffd23f' : '#3c4160', '#151a36');
+            g.fillStyle = cl.main; g.fillRect(x + 4, y, 6, 8);
+            U.text(BT.tagOf(c) + ' ' + BT.NAMES[c.name], x + 14, y + 1, cl.light);
+            s = M.stats[c.i];
+            U.text(String(M.wins[c.i]), x + 110 - (U.width(String(M.wins[c.i])) >> 1), y + 1, '#ffd23f'); U.text(String(s.kos), x + 138 - (U.width(String(s.kos)) >> 1), y + 1, '#f6efe2'); U.text(String(s.falls), x + 168 - (U.width(String(s.falls)) >> 1), y + 1, '#f6efe2'); U.text(String(s.hits), x + 201 - (U.width(String(s.hits)) >> 1), y + 1, '#f6efe2');
+          }
+          if (M) { s = BT.arenaDef(M.arena).name + '   ' + M.rounds.length + (M.rounds.length === 1 ? ' ROUND' : ' ROUNDS'); U.text(s, 160 - (U.width(s) >> 1), 132, '#6b7186'); }
+          for (i = 0; i < BTN.length; i++) U.item(BTN[i], 70 + i * 90, 152, i === RE.sel, false, 'center');
+          BT.drawFxOnly(g);
+          BT.foot('LEFT AND RIGHT: CHOOSE   A: GO   B: BACK');
+          U.drawTalk(g);
+        },
+        leave: function () { BT.fxClear(); },
+        sides: BT.sides
+      });
+      BT.resultsAt = function () { var M = RE.M; return M ? { sel: RE.sel, winner: M.winner, wins: M.wins.slice(), rounds: M.rounds.slice(), order: RE.order.map(function (c) { return c.i; }) } : null; };
+    })();
     // ===== 99-main.js =====
     // ---------- 99-main.js (ENGINE): Baton Quest on the 9F computer: NFX.arcade.add, start, the frame (fixed steps), stop, state() and cheat ----------
     // Presses: the runtime's api.pressed is true for one frame. A frame that runs no step (a fast screen) keeps its presses for the next frame that does;

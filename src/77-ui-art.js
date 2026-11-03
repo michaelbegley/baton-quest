@@ -1,4 +1,4 @@
-    // ---------- 77-ui-art.js: the UI's own pictures (UI, builder 5): the BATON QUEST lettering, the title's drift, an office desk ----------
+    // ---------- 77-ui-art.js: the UI's own pictures (UI, builder 5): the big lettering, the title's drift, an office desk ----------
     // Our own drawing throughout. The lettering is a chunky block alphabet of our own (2-pixel strokes on a 6 by 7 grid), drawn big with an outline and a
     // deep edge, warm for BATON and cool for QUEST. Ids start with 'u5-' so they never meet ART's.
     (function () {
@@ -43,14 +43,7 @@
       };
       var WARM = ['#fff3c4', '#ffd23f', '#ff9a2a'], WARM_SIDE = '#9a4710', COOL = ['#d2fbf6', '#2ec4b6', '#17958b'], COOL_SIDE = '#0b4a47';
       U.WARM = WARM; U.WARM_SIDE = WARM_SIDE; U.COOL = COOL; U.COOL_SIDE = COOL_SIDE;
-      Q.defSprite('u5-logo', { w: 178, h: 94, n: 1, draw: function (g) {   // BATON over QUEST, 5-pixel blocks
-        U.bigWord(g, 'BATON', 4, 3, 5, WARM, WARM_SIDE);
-        U.bigWord(g, 'QUEST', 4, 51, 5, COOL, COOL_SIDE);
-      } });
-      Q.defSprite('u5-logo-s', { w: 158, h: 22, n: 1, draw: function (g) {   // the same in one line, small (for the credits)
-        U.bigWord(g, 'BATON', 2, 2, 2, WARM, WARM_SIDE);
-        U.bigWord(g, 'QUEST', 86, 2, 2, COOL, COOL_SIDE);
-      } });
+      // the BATON QUEST logo ('u5-logo', and 'u5-logo-s' for the credits) is drawn in 77-ui-front-logo.js (B17, 2 Nov); the big letters here stay for THE END, ENCORE and LATER
       // ---- the title's drift: envelopes, tickets and notes, in soft night colours so they stay behind ----
       Q.defSprite('u5-env', { w: 10, h: 7, pal: { k: '#2c3a63', w: '#9cabcd', f: '#6878a3' }, frames: [[
         'kkkkkkkkkk', 'kwfwwwwfwk', 'kwwfwwfwwk', 'kwwwffwwwk', 'kwwwwwwwwk', 'kwwwwwwwwk', 'kkkkkkkkkk'

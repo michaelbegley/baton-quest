@@ -7,7 +7,7 @@
     // Up and down to choose, B goes back (to the list, then to the pause). Each page shown sends the event 'codex' { page, sub } (part 14.1).
     (function () {
       var U = Q.ui, CO = { from: 'level', page: 0, sel: 0, read: '', t: 0, list: [] }, SEC = U.codexSec || (U.codexSec = {});
-      var ORDER = ['memos', 'bestiary', 'stars', 'sprint', 'music'];
+      var ORDER = U.codexOrder || (U.codexOrder = ['memos', 'bestiary', 'stars', 'sprint', 'music']);   // a section part may add itself (75-ui-codex-codes.js)
       var LEVELS = { 1: ['THE LOBBY OF UNREAD', 'THE SORTING FLOOR', 'SPAM TOWER'], 2: ['THE COLD AISLE', 'CABLE CANYON', 'THE FAN STACKS'],
                      3: ['UPLOAD MEADOWS', 'THE WINDY BUCKET', 'THE SYNC STORM'], 4: ['THE LATER PILE', 'THE SPRINT STAIRS', 'THE TOWER OF TICKETS'] };
       var BEASTS = { 1: ['spam', 'unsub', 'ooo', 'flag', 'hydra'], 2: ['bug', 'timeout', 'ping', 'spark', 'overheat'], 3: ['spinner', 'limiter', 'miss', 'loop'],

@@ -176,7 +176,7 @@
   /* ---------- page parts ---------- */
   .toc { list-style: none; margin: 0; padding: 0; }
   .toc li { margin: 0; }
-  .toc button { display: flex; width: 100%; align-items: baseline; gap: calc(6 * var(--u)); background: none; border: 0; padding: calc(6.5 * var(--u)) 0; cursor: pointer; color: var(--ink);
+  .toc button { display: flex; width: 100%; align-items: baseline; gap: calc(6 * var(--u)); background: none; border: 0; padding: calc(4.6 * var(--u)) 0; cursor: pointer; color: var(--ink);
     font-family: var(--pix); font-size: calc(12.5 * var(--u)); letter-spacing: 0.03em; text-align: left; }
   .toc button:hover span:first-child { color: var(--orange-dk); }
   .toc .lead-dots { flex: 1; border-bottom: calc(2 * var(--u)) dotted #b9a983; transform: translateY(calc(-3 * var(--u))); }
@@ -263,6 +263,9 @@
   .book.spread .page.staples::before { content: ''; position: absolute; top: calc(190 * var(--u)); width: calc(3 * var(--u)); height: calc(36 * var(--u)); z-index: 9;
     background: linear-gradient(90deg, #8c929b, #d4d8de, #8c929b); box-shadow: 0 calc(240 * var(--u)) 0 #a2a8b0; border-radius: calc(1 * var(--u)); }
   .front .page.staples::before { left: 0; } .back .page.staples::before { right: 0; }
+  .pups { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: calc(8 * var(--u)) calc(6 * var(--u)); }
+  .pups span { display: grid; justify-items: center; text-align: center; gap: calc(3 * var(--u)); font-family: var(--pix); font-size: calc(9.5 * var(--u)); letter-spacing: 0.02em; }
+  .pups i { font-style: normal; font-size: calc(8 * var(--u)); color: var(--muted); }
   .turnme { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 4; background: rgba(20, 12, 6, 0.85); color: #ffe9b8; font-family: var(--pix); font-size: 12px;
     padding: 12px 16px; border-radius: 10px; text-align: center; pointer-events: none; letter-spacing: 0.06em; }
 </style>
@@ -296,7 +299,7 @@
   <div class="stars"></div>
   <div class="abs tag"><span class="badge9">9F</span>POCKET</div>
   <div class="abs players">1 PLAYER</div>
-  <img class="abs logo" data-px="logo" data-s="2.1" alt="Baton Quest">
+  <img class="abs logo" data-px="logo" data-s="2" alt="Baton Quest">
   <img class="abs float" data-px="spam" data-s="3" style="left:calc(286*var(--u));top:calc(330*var(--u));animation-delay:-0.4s" alt="">
   <img class="abs float" data-px="spam" data-s="3" style="left:calc(352*var(--u));top:calc(398*var(--u));animation-delay:-1.3s" alt="">
   <img class="abs float" data-px="spam" data-s="2" style="left:calc(300*var(--u));top:calc(452*var(--u));animation-delay:-2s" alt="">
@@ -333,25 +336,70 @@
 <section class="page" style="--sec:var(--ink)" data-label="CONTENTS">
   <h2>CONTENTS</h2>
   <ul class="toc">
-    <li><button type="button" data-go="3"><span>THE STORY</span><span class="lead-dots"></span><span>4</span></button></li>
-    <li><button type="button" data-go="5"><span>THE CAST</span><span class="lead-dots"></span><span>6</span></button></li>
-    <li><button type="button" data-go="8"><span>THE 9F POCKET</span><span class="lead-dots"></span><span>9</span></button></li>
-    <li><button type="button" data-go="9"><span>KEYS AND CONTROLLERS</span><span class="lead-dots"></span><span>10</span></button></li>
-    <li><button type="button" data-go="10"><span>THE SCREEN</span><span class="lead-dots"></span><span>11</span></button></li>
-    <li><button type="button" data-go="11"><span>MOVES</span><span class="lead-dots"></span><span>12</span></button></li>
-    <li><button type="button" data-go="13"><span>ITEMS</span><span class="lead-dots"></span><span>14</span></button></li>
-    <li><button type="button" data-go="14"><span>VEND-9'S SHOP</span><span class="lead-dots"></span><span>15</span></button></li>
-    <li><button type="button" data-go="15"><span>THE MAP AND THE PAUSE MENU</span><span class="lead-dots"></span><span>16</span></button></li>
-    <li><button type="button" data-go="16"><span>THE FOUR FLOORS</span><span class="lead-dots"></span><span>17</span></button></li>
-    <li><button type="button" data-go="18"><span>AT THE TOP OF EACH FLOOR</span><span class="lead-dots"></span><span>19</span></button></li>
-    <li><button type="button" data-go="19"><span>FOES</span><span class="lead-dots"></span><span>20</span></button></li>
-    <li><button type="button" data-go="21"><span>SAVING AND SECRETS</span><span class="lead-dots"></span><span>22</span></button></li>
-    <li><button type="button" data-go="22"><span>NOTES</span><span class="lead-dots"></span><span>23</span></button></li>
+    <li><button type="button" data-go="3"><span>GETTING STARTED</span><span class="lead-dots"></span><span>4</span></button></li>
+    <li><button type="button" data-go="5"><span>THE STORY</span><span class="lead-dots"></span><span>6</span></button></li>
+    <li><button type="button" data-go="7"><span>THE CAST</span><span class="lead-dots"></span><span>8</span></button></li>
+    <li><button type="button" data-go="10"><span>THE 9F POCKET</span><span class="lead-dots"></span><span>11</span></button></li>
+    <li><button type="button" data-go="11"><span>KEYS AND CONTROLLERS</span><span class="lead-dots"></span><span>12</span></button></li>
+    <li><button type="button" data-go="12"><span>THE SCREEN</span><span class="lead-dots"></span><span>13</span></button></li>
+    <li><button type="button" data-go="13"><span>MOVES</span><span class="lead-dots"></span><span>14</span></button></li>
+    <li><button type="button" data-go="15"><span>ITEMS</span><span class="lead-dots"></span><span>16</span></button></li>
+    <li><button type="button" data-go="16"><span>VEND-9'S SHOP</span><span class="lead-dots"></span><span>17</span></button></li>
+    <li><button type="button" data-go="17"><span>THE MAP AND THE PAUSE MENU</span><span class="lead-dots"></span><span>18</span></button></li>
+    <li><button type="button" data-go="18"><span>THE FOUR FLOORS</span><span class="lead-dots"></span><span>19</span></button></li>
+    <li><button type="button" data-go="20"><span>AT THE TOP OF EACH FLOOR</span><span class="lead-dots"></span><span>21</span></button></li>
+    <li><button type="button" data-go="21"><span>FOES</span><span class="lead-dots"></span><span>22</span></button></li>
+    <li><button type="button" data-go="23"><span>SAVING AND SECRETS</span><span class="lead-dots"></span><span>24</span></button></li>
+    <li><button type="button" data-go="24"><span>GAME MODES</span><span class="lead-dots"></span><span>25</span></button></li>
+    <li><button type="button" data-go="25"><span>BATTLE</span><span class="lead-dots"></span><span>26</span></button></li>
+    <li><button type="button" data-go="26"><span>NOTES</span><span class="lead-dots"></span><span>27</span></button></li>
   </ul>
   <div class="tip"><img data-px="hero-cheer" data-s="1.5" alt=""><h4>TIP</h4><span class="clicktap">Click</span> any line to turn straight to it.</div>
 </section>
 
-<!-- 3: the story, part 1 -->
+<!-- 3: getting started (version 118's front end) -->
+<section class="page" style="--sec:var(--teal)" data-label="GETTING STARTED">
+  <h2><small>FIRST THINGS FIRST</small>GETTING STARTED</h2>
+  <p class="lead">Switch on and the 9F POCKET says hello. Any button skips it. At the title, press START or A for the main menu.</p>
+  <figure style="margin-top:0"><img class="shot" data-shot="menu" style="--sw:268" alt="The main menu: NEW GAME, GAME MODES, OPTIONS, EXTRAS"><figcaption>THE MAIN MENU, ON A NEW GAME.</figcaption></figure>
+  <div class="box">
+    <ul class="menu-list">
+      <li><b>CONTINUE</b><span>Back where you saved, on the file you played last. Its gold stars are counted beside it.</span></li>
+      <li><b>NEW GAME</b><span>From the very top. Over a saved game, it asks first.</span></li>
+      <li><b>FILE</b><span>Pick one of three files. It shows once a file has a save.</span></li>
+      <li><b>GAME MODES</b><span>BATTLE, with more on the way. Page 25.</span></li>
+      <li><b>OPTIONS</b><span>Music, text speed and the controls. Next page.</span></li>
+      <li><b>EXTRAS</b><span>The codex, your gold stars and the credits.</span></li>
+    </ul>
+  </div>
+  <div class="tip"><img data-px="facil" data-s="2" alt=""><h4>FACILITATOR'S TIP</h4>B goes back on every screen. Nothing is lost by looking around.</div>
+</section>
+
+<!-- 4: options and extras -->
+<section class="page" style="--sec:var(--teal)" data-label="OPTIONS AND EXTRAS">
+  <h2><small>THE MAIN MENU, CONTINUED</small>OPTIONS AND EXTRAS</h2>
+  <figure style="margin-top:0"><img class="shot" data-shot="options" style="--sw:300" alt="OPTIONS: MUSIC, TEXT and CONTROLS"></figure>
+  <div class="box">
+    <h4>OPTIONS</h4>
+    <ul class="menu-list">
+      <li><b>MUSIC</b><span>FULL, LOW or OFF. The pause menu has it too.</span></li>
+      <li><b>TEXT</b><span>NORMAL or FAST, for the chattier characters.</span></li>
+      <li><b>BOW TIE</b><span>Once you own the gold one.</span></li>
+      <li><b>CONTROLS</b><span>Every button, for KEYS, TOUCH and CONTROLLER.</span></li>
+    </ul>
+  </div>
+  <div class="box" style="--sec:var(--orange)">
+    <h4>EXTRAS</h4>
+    <ul class="menu-list">
+      <li><b>CODEX</b><span>Memos, foes you have met, gold stars, codes and best times.</span></li>
+      <li><b>STARS</b><span>Straight to your gold stars.</span></li>
+      <li><b>CREDITS</b><span>Who made what, with the band playing.</span></li>
+      <li><b>LATER</b><span>Finish the game and THE ENDING and HOLD MUSIC join them.</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- 5: the story, part 1 -->
 <section class="page" style="--sec:var(--orange)" data-label="THE STORY">
   <h2><small>CHAPTER ONE</small>THE STORY</h2>
   <p class="lead">It is late on the ninth floor. The boss has gone home. C1, C2 and C3 are still typing, and the conductor, as always, keeps time.</p>
@@ -597,7 +645,7 @@
       <li><b>CODEX</b><span>Memos, foes you have met, gold stars and best times.</span></li>
       <li><b>MUSIC</b><span>FULL, LOW or OFF.</span></li>
       <li><b>TEXT</b><span>NORMAL or FAST.</span></li>
-      <li><b>CODES</b><span>Shh. See page 23.</span></li>
+      <li><b>CODES</b><span>Shh. See page 27.</span></li>
       <li><b>MAP, TITLE</b><span>Leave the level. It asks first.</span></li>
     </ul>
   </div>
@@ -699,19 +747,60 @@
       <li>Some walls are not walls. Look for something a little off: a crack, a loose vent, an odd cloud.</li>
       <li>There are 32 GOLD STARS. Some are for doing things well. Some are for doing things oddly.</li>
       <li>Finish a level fast enough and you beat its PAR.</li>
+      <li>Every boss you beat teaches you a cheat code. The codex's CODES page keeps every one you know.</li>
       <li>The show does not end at the credits.</li>
     </ul>
   </div>
 </section>
 
-<!-- 22: notes, with a sticky note -->
+<!-- 24: game modes -->
+<section class="page" style="--sec:var(--violet)" data-label="GAME MODES">
+  <h2><small>MORE WAYS TO PLAY</small>GAME MODES</h2>
+  <figure style="margin-top:0"><img class="shot" data-shot="modes" style="--sw:268" alt="GAME MODES: BATTLE, then HIGH SCORE and SPEED RUN under COMING SOON ribbons"><figcaption>FROM THE MAIN MENU: GAME MODES.</figcaption></figure>
+  <p><b class="pix">BATTLE.</b> Up to four conductors in one arena, last one standing. The next page has the rules.</p>
+  <p><b class="pix">HIGH SCORE</b> and <b class="pix">SPEED RUN</b> are coming soon. The ribbons come off when they are ready.</p>
+  <div class="box">
+    <h4>SETTING UP A BATTLE</h4>
+    <ul class="menu-list">
+      <li><b>PLAYERS</b><span>Each of four slots: you, a CPU, or nobody, with a colour (ORANGE, TEAL, BERRY, VIOLET) and a name of our own, like TEMPO or FORTE.</span></li>
+      <li><b>RULES</b><span>ROUNDS (best of 1, 3 or 5), HEARTS (1 to 5), ITEMS (on or off), CPU (EASY, NORMAL, HARD).</span></li>
+      <li><b>ARENA</b><span>One from each floor: REPLY ALL, HOT SPARE, SYNC OR SWIM, STAND-UP.</span></li>
+    </ul>
+  </div>
+  <p class="small">This version: you against up to three CPUs. More controllers on one screen, and playing online with friends, are on the way.</p>
+</section>
+
+<!-- 25: battle -->
+<section class="page" style="--sec:var(--red)" data-label="BATTLE">
+  <h2><small>LAST ONE STANDING</small>BATTLE</h2>
+  <figure style="margin-top:0"><img class="shot" data-shot="battle" style="--sw:268" alt="Four CPU conductors fighting in STAND-UP, THE BACKLOG's arena"></figure>
+  <ul class="dots" style="--sec:var(--red)">
+    <li>Everyone has hearts, and only a fall off the arena costs one.</li>
+    <li>Every hit adds WOBBLE, the pips by your name. The more WOBBLE, the further the next hit sends you.</li>
+    <li>A fall resets your WOBBLE. You drop back in blinking, and nobody can hit you while you blink.</li>
+    <li>Last one with hearts wins the round. After 100 seconds it is OVERTIME, and WOBBLE grows twice as fast.</li>
+  </ul>
+  <div class="box">
+    <h4>POWER-UPS (THEY FLOAT IN; GRAB ONE)</h4>
+    <div class="pups">
+      <span><img data-px="mug" data-s="2" alt="">COFFEE<i>A HEART BACK</i></span>
+      <span><img data-px="ic-baton" data-s="2" alt="">BIGGER BATON<i>HARDER KNOCKS</i></span>
+      <span><img data-px="ic-note" data-s="2" alt="">METRONOME<i>NOTES, FULL</i></span>
+      <span><img data-px="ic-dash" data-s="2" alt="">QUICK KEYS<i>DASH, 15 S</i></span>
+      <span><img data-px="ic-hover" data-s="2" alt="">PAUSE TO THINK<i>HOVER, 15 S</i></span>
+      <span><img data-px="ic-pound" data-s="2" alt="">FIRM HAND<i>POUND, 15 S</i></span>
+    </div>
+  </div>
+</section>
+
+<!-- 26: notes, with a sticky note -->
 <section class="page" style="--sec:var(--ink)" data-label="NOTES">
   <h2>NOTES</h2>
   <div class="lines"></div>
   <div class="sticky" id="sticky" role="button" tabindex="0" aria-label="A sticky note. Turn it over.">
     <div class="in">
       <div class="s f">PSST!<small><span class="clicktap">CLICK</span> TO TURN ME OVER</small></div>
-      <div class="s b">THE CODES SCREEN: PAUSE, THEN CODES, THEN EIGHT PRESSES. TRY THIS ONE:<span class="code">DOWN UP DOWN UP<br>B B B B</span>GREEN SCREEN. SEVEN MORE ARE OUT THERE.</div>
+      <div class="s b">THE CODES SCREEN: PAUSE, THEN CODES, THEN EIGHT PRESSES. TRY THIS ONE:<span class="code">DOWN UP DOWN UP<br>B B B B</span>GREEN SCREEN. SEVEN MORE ARE OUT THERE: EACH BOSS KNOWS ONE.</div>
     </div>
   </div>
 </section>
@@ -724,7 +813,7 @@
     <p>SCOPE CREEP has pulled C1, C2 and C3 into the 9F computer. Grab your baton and go after them: four floors, twelve levels, four very big problems, a vending machine with opinions, and one cat.</p>
     <div class="shots"><img class="shot" data-shot="w1-1" alt=""><img class="shot" data-shot="w3-1" alt=""><img class="shot" data-shot="w4-1" alt=""></div>
     <div class="agents"><div><img data-px="c1-trapped" data-s="3" alt="C1, wrapped in sticky notes"><span>C1</span></div><div><img data-px="c2-trapped" data-s="3" alt="C2, wrapped in sticky notes"><span>C2</span></div><div><img data-px="c3-trapped" data-s="3" alt="C3, wrapped in sticky notes"><span>C3</span></div><p>THEY ARE COUNTING ON YOU.</p></div>
-    <div class="feats"><span>3 SAVE FILES</span><span>32 GOLD STARS</span><span>24 MEMOS</span><span>KEYS, TOUCH OR CONTROLLER</span></div>
+    <div class="feats"><span>3 SAVE FILES</span><span>32 GOLD STARS</span><span>24 MEMOS</span><span>8 CHEAT CODES</span><span>BATTLE MODE</span><span>KEYS, TOUCH OR PAD</span></div>
     <div class="foot">
       <div class="barcode"><svg id="barcode" viewBox="0 0 120 40" preserveAspectRatio="none" aria-hidden="true"></svg><i>9 F 0 0 0 1 1 6</i></div>
       <div class="madewith"><span class="badge9" style="width:calc(26*var(--u));height:calc(26*var(--u));font-size:calc(10*var(--u))">9F</span><br>MADE WITH CLAUDE.</div>
@@ -738,7 +827,7 @@
 <script>
 (function () {
   'use strict';
-  var SIZES = {"bigtoken":[12,12],"bug":[12,12],"c1-cheer":[16,20],"c1-trapped":[16,20],"c2-cheer":[16,20],"c2-trapped":[16,20],"c3-cheer":[16,20],"c3-trapped":[16,20],"cat":[16,12],"door":[16,24],"face-creep":[16,16],"facil":[12,12],"flag":[14,18],"heart":[8,8],"hero":[16,20],"hero-charge":[16,20],"hero-cheer":[16,20],"hero-dash":[16,20],"hero-gold":[16,20],"hero-hover":[16,20],"hero-jump":[16,20],"hero-pound":[16,20],"hero-run":[16,20],"hero-swing":[16,20],"ic-baton":[12,12],"ic-dash":[12,12],"ic-hover":[12,12],"ic-memofinder":[12,12],"ic-note":[12,12],"ic-pound":[12,12],"invite":[16,16],"limiter":[16,16],"logo":[178,94],"memo":[8,10],"miss":[14,14],"mug":[16,16],"nice":[10,10],"note":[8,8],"ooo":[16,14],"ping":[12,12],"push":[12,12],"shot-map":[320,200],"shot-title":[320,200],"shot-w1-1":[320,200],"shot-w2-1":[320,200],"shot-w3-1":[320,200],"shot-w4-1":[320,200],"sign":[16,16],"spam":[14,12],"spark":[10,10],"spinner":[14,14],"ticket":[14,12],"timeout":[14,14],"token":[8,8],"unsub":[14,16],"urgent":[14,12],"vend":[32,48]};
+  var SIZES = {"bigtoken":[12,12],"bug":[12,12],"c1-cheer":[16,20],"c1-trapped":[16,20],"c2-cheer":[16,20],"c2-trapped":[16,20],"c3-cheer":[16,20],"c3-trapped":[16,20],"cat":[16,12],"door":[16,24],"face-creep":[16,16],"facil":[12,12],"flag":[14,18],"heart":[8,8],"hero":[16,20],"hero-charge":[16,20],"hero-cheer":[16,20],"hero-dash":[16,20],"hero-gold":[16,20],"hero-hover":[16,20],"hero-jump":[16,20],"hero-pound":[16,20],"hero-run":[16,20],"hero-swing":[16,20],"ic-baton":[12,12],"ic-dash":[12,12],"ic-hover":[12,12],"ic-memofinder":[12,12],"ic-note":[12,12],"ic-pound":[12,12],"invite":[16,16],"limiter":[16,16],"logo":[196,98],"memo":[8,10],"miss":[14,14],"mug":[16,16],"nice":[10,10],"note":[8,8],"ooo":[16,14],"ping":[12,12],"push":[12,12],"shot-battle":[320,200],"shot-map":[320,200],"shot-menu":[320,200],"shot-modes":[320,200],"shot-options":[320,200],"shot-title":[320,200],"shot-w1-1":[320,200],"shot-w2-1":[320,200],"shot-w3-1":[320,200],"shot-w4-1":[320,200],"sign":[16,16],"spam":[14,12],"spark":[10,10],"spinner":[14,14],"ticket":[14,12],"timeout":[14,14],"token":[8,8],"unsub":[14,16],"urgent":[14,12],"vend":[32,48]};
   var root = document.documentElement, book = document.getElementById('book'), stage = document.getElementById('stage');
   var pages = [].slice.call(document.querySelectorAll('#pages > .page')), N = pages.length;
   var hint = document.getElementById('hint'), where = document.getElementById('where');

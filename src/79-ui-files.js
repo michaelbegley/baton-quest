@@ -1,5 +1,5 @@
     // ---------- 79-ui-files.js (UI, the director's, 2 Nov): the file screen, three files like the old cartridges (QUEST-API 14.10 item 10) ----------
-    // From the title's FILE n. Each file: its hearts, LV, worlds cleared, gold stars and time played, or NEW GAME. A on a file plays it (a used one
+    // From the title's menu, FILE n (B17's front end, 2 Nov: B comes back to the menu on FILE). Each file: its hearts, LV, worlds cleared, gold stars and time played, or NEW GAME. A on a file plays it (a used one
     // carries on where it was saved, an empty one starts the intro); ERASE A FILE, then a file, then YES empties it (NO is the default). B: back.
     (function () {
       var U = Q.ui, FS = { sel: 0, erase: false, ask: false, askSel: 0, leave: '', fade: 0, t: 0, opt: null };
@@ -13,7 +13,7 @@
         if (what === 'start') {   // a new game in this file: the player's settings come along from the file before
           Q.newGame(); if (FS.opt && Q.SAVE) Q.SAVE.opt = FS.opt; U.applyOpt();
           if (Q.scene === 'files') Q.go('intro');
-        } else { Q.continueGame(); if (Q.scene === 'files') Q.go('map'); }
+        } else { U.applyOpt(); Q.continueGame(); if (Q.scene === 'files') Q.go('map'); }   // a used file carries on with its own settings (its MUSIC level at once: B17)
       }
       function card(g, f, i) {
         var y = cardY(i), on = i === FS.sel && !FS.ask, k, x = CX + 64;
@@ -50,7 +50,7 @@
             return;
           }
           FS.sel = U.menuMove(FS.sel, 4);
-          if (U.press('b')) { if (FS.erase) { FS.erase = false; Q.sfx('back'); } else { Q.sfx('back'); Q.go('title'); } return; }
+          if (U.press('b')) { if (FS.erase) { FS.erase = false; Q.sfx('back'); } else { Q.sfx('back'); Q.go('title', { back: 'FILE' }); } return; }   // back to the title's menu, on FILE (B17)
           if (U.press('a') || U.press('start')) {
             if (FS.sel === 3) { FS.erase = !FS.erase; FS.sel = FS.erase ? 0 : 3; Q.sfx('select'); return; }
             list = Q.files(); f = list[FS.sel];

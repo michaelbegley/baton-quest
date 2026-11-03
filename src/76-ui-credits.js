@@ -20,7 +20,7 @@
       }
       function drawRow(g, r, y) {
         var w, x;
-        if (r.kind === 'logo') { Q.spr(g, 'u5-logo-s', 0, 81, y); return; }
+        if (r.kind === 'logo') { Q.spr(g, 'u5-logo-s', 0, 160 - ((Q.SPRITE['u5-logo-s'] ? Q.SPRITE['u5-logo-s'].w : 158) >> 1), y); return; }   // the small logo (77-ui-front-logo.js, B17), centred by its own width
         if (r.kind === 'role') { w = U.width(r.a) + 6 + U.width(r.b); x = 160 - (w >> 1); U.text(r.a, x, y, '#f6efe2'); U.text(r.b, x + U.width(r.a) + 6, y, '#8ff0e6'); return; }
         if (r.kind === 'head') { U.text(r.s, 160, y + 8, '#ffd23f', 2, 'center'); return; }
         if (r.kind === 'big') { U.text(r.s, 160, y, '#f6efe2', 2, 'center'); return; }
