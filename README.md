@@ -4,6 +4,8 @@ A small platforming RPG. SCOPE CREEP, a tangle of just one more thing, has wrapp
 
 **Play it:** https://michaelbegley.github.io/baton-quest/
 
+**The manual:** https://michaelbegley.github.io/baton-quest/manual.html, an instruction booklet of our own that opens and turns like a real one: the story, the cast, the controls, the four floors and a secret or two.
+
 On a computer it fills the window (on very wide screens the sides glow with the game's colours). On a phone or tablet it is the 9F POCKET, a handheld of our own that fills the screen: upright, or turned sideways for a bigger picture. A controller works on both. On a phone, "Add to Home Screen" opens it full screen.
 
 MENU (top right on a computer) has the settings: VIEW (auto, full window or handheld), PIXELS (sharp whole-number steps, or fill), SIDE GLOW, BUTTONS (small, medium, large) and VIBRATION. They stay in your browser.
@@ -13,19 +15,19 @@ MENU (top right on a computer) has the settings: VIEW (auto, full window or hand
 | | Keyboard | Phone | Controller |
 |---|---|---|---|
 | Move | Arrow keys or W A S D | D-pad | D-pad or left stick |
-| Jump (A) | Space or Z | A | Bottom button |
-| Baton (B), hold for a note | X | B | Right button |
-| Dash (C) | C | C | Left or top button, or a bumper |
+| Jump (A) | Space, Z or K | A | Bottom button |
+| Baton (B), hold for a note | X or J | B | Right button |
+| Dash (C) | C or L | C | Left or top button, or a bumper |
 | Drop through a thin shelf | Down | Down | Down |
 | Open a door | Up | Up | Up |
-| Pause | Enter | START | Start |
+| Pause | Enter or P | START | Start |
 
 ## Saves
 
-The game saves at the coffee mugs, in your own browser, in one of three files. Updates to this page keep your saves.
+The game saves at the coffee mugs, in your own browser, in one of three files. Updates to this page keep your saves. To be extra safe, MENU, then SAVES: save a backup file or copy a code, and restore it on any phone or computer.
 
 ## Building
 
-The game is written in plain JavaScript in `src/` (one part per file, joined in name order). `python3 tools/build.py` joins them into `js/game.js`. `js/runtime.js` is the little computer the game runs on, and `js/pocket.js` is the handheld around it (keys, touch, controller, sound).
+The game is written in plain JavaScript in `src/` (one part per file, joined in name order). `python3 tools/build.py` joins them into `js/game.js`. `js/runtime.js` is the little computer the game runs on, and `js/pocket.js` is the handheld around it (keys, touch, controller, sound), and `js/saves.js` adds the save backup to the MENU. `manual.html` is the instruction booklet, with its pictures in `manual/`.
 
 Made with Claude.
