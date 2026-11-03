@@ -73,6 +73,11 @@
   .book.single .leaf { left: 0; }
   .leaf.turned { transform: rotateY(-180deg); }
   .leaf.gone { visibility: hidden; }
+  /* Memory: every drawn page is a picture the browser keeps, and on a phone each is about 6 MB. All 28 at once (about 480 MB, measured in Chromium
+     at 393 by 659 at 3 times) crashed Safari on an iPhone, so only the leaves beside the open pages are drawn, and at rest the side of a leaf that
+     faces away is not drawn at all. */
+  .leaf.far { display: none; }
+  .leaf.still:not(.turned) > .back, .leaf.still.turned > .front { visibility: hidden; }
   .face { position: absolute; inset: 0; overflow: hidden; backface-visibility: hidden; -webkit-backface-visibility: hidden; background: var(--paper); }
   .face.back { transform: rotateY(180deg); }
   .shade { position: absolute; inset: 0; z-index: 9; pointer-events: none; background: #1a1006; opacity: 0; }
@@ -867,12 +872,14 @@
     }
     t = tFor(keepPage); place(true);
   }
-  function zNorm() {
-    var L = leaves.length;
+  function zNorm() {   // at rest: the stacking order from t; only the leaves beside the open pages drawn (the next turn either way is ready); each one's far side hidden
+    var L = leaves.length, lo = mode === 'spread' ? t - 2 : t - 1, hi = t + 1;
     leaves.forEach(function (lf, i) {
       var on = i < t; lf.classList.remove('fwd', 'bwd'); lf.style.zIndex = on ? 10 + i : 10 + (L - i);
       lf.classList.toggle('gone', mode !== 'spread' && on && i < t);   // single-page view: a turned page is out of sight
+      lf.classList.toggle('far', i < lo || i > hi); lf.classList.add('still');
     });
+    void book.offsetWidth; leaves.forEach(function (lf) { lf.style.transition = ''; });   // leaves moved out of sight in a long jump turn again next time
   }
   function bookState(tt) {
     var mt = maxT(); book.classList.toggle('at-front', tt === 0); book.classList.toggle('at-back', tt === mt); book.classList.toggle('open', tt > 0 && tt < mt);
@@ -892,11 +899,14 @@
     var mt = maxT(); t2 = Math.max(0, Math.min(mt, t2)); if (t2 === t) return;
     var dir = t2 > t ? 1 : -1, list = [], i, L = leaves.length;
     if (dir > 0) for (i = t; i < t2; i++) list.push(i); else for (i = t - 1; i >= t2; i--) list.push(i);
+    var skip = list.length > 3 ? list.splice(1, list.length - 3) : [];   // a long jump turns the first leaf and the last two; the ones between move at once, out of sight
+    skip.forEach(function (li) { var lf = leaves[li]; lf.classList.add('far'); lf.classList.remove('fwd', 'bwd'); lf.style.transition = 'none'; lf.classList.toggle('turned', dir > 0); });
+    [t - 1, t, t2 - 1, t2].concat(list).forEach(function (li) { if (leaves[li]) leaves[li].classList.remove('far'); });   // drawn while the pages turn: the open pages, the turning leaves, what lies under the last
     var n = list.length, step = n > 1 ? Math.min(110, 520 / n) : 0, dur = reduce ? 1 : n > 1 ? 560 : DUR;
     var fromEnd = t === 0 || t === mt, toEnd = t2 === 0 || t2 === mt, d0 = 0;
     if (fromEnd && !reduce) { bookState(Math.max(1, Math.min(mt - 1, t2))); d0 = 280; } else if (!toEnd) bookState(t2);
     list.forEach(function (li, k) {
-      var lf = leaves[li]; lf.style.setProperty('--dur', dur + 'ms'); lf.style.zIndex = 500 + (dir > 0 ? li : L - li); lf.classList.remove('gone');
+      var lf = leaves[li]; lf.style.setProperty('--dur', dur + 'ms'); lf.style.zIndex = 500 + (dir > 0 ? li : L - li); lf.classList.remove('gone', 'still');
       setTimeout(function () { lf.classList.remove('fwd', 'bwd'); void lf.offsetWidth; lf.classList.add(dir > 0 ? 'fwd' : 'bwd'); lf.classList.toggle('turned', dir > 0); }, d0 + k * step);
     });
     var end = d0 + (n - 1) * step + dur;
