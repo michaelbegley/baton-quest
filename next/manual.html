@@ -1,0 +1,993 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Baton Quest: Instruction Booklet</title>
+<meta name="description" content="The instruction booklet for Baton Quest: the story, the cast, the controls, the four floors and a secret or two.">
+<meta name="theme-color" content="#3b2516">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Barlow+Semi+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,500&display=swap">
+<style>
+  /* Baton Quest's instruction booklet: a 24-page booklet of our own, lying on a desk. Click it open; the pages turn in 3D.
+     Every page is drawn at 440 by 660 design units (--u is one unit, set from the window), so text stays sharp at any size.
+     Wide windows show two pages at once (a spread); narrow ones show one page. Keys, swipes, clicks and a controller all turn pages. */
+  :root {
+    --u: 1px; --pw: 440; --ph: 660;
+    --ink: #1d1d24; --paper: #f7f0e0; --paper2: #ece2cb; --rule: #d6c8aa; --muted: #6f6250;
+    --teal: #2ec4b6; --teal-dk: #168479; --orange: #ff8a1e; --orange-dk: #b9580a; --gold: #ffd23f; --red: #d93a3a;
+    --navy: #1a2257; --sky: #4aa8e0; --violet: #8a5ccc; --walnut: #7a4a2a;
+    --pix: "Silkscreen", "Courier New", monospace;
+    --body: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { overflow: hidden; color: var(--ink); font-family: var(--body); background: #5d3a22; -webkit-tap-highlight-color: transparent; }
+  body::before { content: ''; position: fixed; inset: 0; z-index: 0;
+    background:
+      radial-gradient(110% 85% at 50% 40%, rgba(255, 214, 160, 0.26), rgba(0, 0, 0, 0) 60%),
+      repeating-linear-gradient(91deg, rgba(0, 0, 0, 0.055) 0 3px, rgba(0, 0, 0, 0) 3px 12px),
+      repeating-linear-gradient(89deg, rgba(255, 235, 200, 0.035) 0 1px, rgba(0, 0, 0, 0) 1px 31px),
+      linear-gradient(180deg, #7b4c2c 0%, #5a3720 100%); }
+  body::after { content: ''; position: fixed; inset: 0; z-index: 2; pointer-events: none; box-shadow: inset 0 0 160px rgba(0, 0, 0, 0.5); }
+
+  /* ---------- the bars ---------- */
+  .bar { position: fixed; top: 0; left: 0; right: 0; z-index: 3; height: calc(48px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) 12px 0;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; font-family: var(--pix); font-size: 11px; letter-spacing: 0.06em; color: #f3e7cf; }
+  .bar a, .ctrl button { font: inherit; color: #f6ecd8; background: rgba(22, 12, 6, 0.5); border: 0; border-radius: 999px; padding: 8px 13px; text-decoration: none; cursor: pointer; }
+  .bar a:hover, .ctrl button:hover:not(:disabled) { background: rgba(22, 12, 6, 0.72); }
+  .bar .ttl { opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ctrl { position: fixed; left: 0; right: 0; bottom: 0; z-index: 3; height: calc(58px + env(safe-area-inset-bottom)); padding: 0 10px env(safe-area-inset-bottom);
+    display: flex; align-items: center; justify-content: center; gap: 8px; font-family: var(--pix); font-size: 11px; letter-spacing: 0.05em; color: #f3e7cf; }
+  .ctrl button:disabled { opacity: 0.35; cursor: default; }
+  .ctrl .where { min-width: 132px; text-align: center; white-space: nowrap; }
+  @media (max-width: 520px) { .bar .ttl { display: none; } .ctrl { gap: 5px; } .ctrl button { padding: 8px 10px; } .ctrl .where { min-width: 96px; font-size: 10px; } }
+  @media (max-height: 480px) and (orientation: landscape) { .bar, .ctrl { opacity: 0.85; } }
+  .hint { position: fixed; left: 0; right: 0; bottom: calc(66px + env(safe-area-inset-bottom)); z-index: 3; text-align: center; pointer-events: none;
+    font-family: var(--pix); font-size: 12px; letter-spacing: 0.08em; color: #ffe9b8; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45); transition: opacity 0.4s; }
+  .hint.off { opacity: 0; }
+  .turnme { display: none; }
+  @media (max-height: 480px) and (orientation: landscape) and (pointer: coarse) { .turnme { display: block; } }
+
+  /* ---------- the stage, the book and its leaves ---------- */
+  .stage { position: fixed; left: 0; right: 0; top: calc(48px + env(safe-area-inset-top)); bottom: calc(58px + env(safe-area-inset-bottom)); z-index: 1;
+    display: grid; place-items: center; overflow: hidden; perspective: calc(2600 * var(--u)); perspective-origin: 50% 38%; touch-action: pan-y pinch-zoom; user-select: none; -webkit-user-select: none; }
+  .book { position: relative; width: calc(var(--bw, 880) * var(--u)); height: calc(var(--ph) * var(--u)); perspective: calc(2300 * var(--u));
+    transform-origin: 50% 50%; transition: transform 0.75s cubic-bezier(0.3, 0.1, 0.2, 1), transform-origin 0.75s cubic-bezier(0.3, 0.1, 0.2, 1), opacity 0.4s; opacity: 0; }
+  body.ready .book { opacity: 1; }
+  .book.spread.at-front { transform-origin: 75% 50%; transform: translateX(calc(-220 * var(--u))) rotateX(24deg) rotateZ(-7deg) scale(0.9); cursor: pointer; }
+  .book.spread.at-back { transform-origin: 25% 50%; transform: translateX(calc(220 * var(--u))) rotateX(24deg) rotateZ(6deg) scale(0.9); cursor: pointer; }
+  .book.single.at-front { transform: rotateX(20deg) rotateZ(-5deg) scale(0.88); cursor: pointer; }
+  .book.single.at-back { transform: rotateX(20deg) rotateZ(5deg) scale(0.88); cursor: pointer; }
+  .bshadow { position: absolute; top: calc(4 * var(--u)); height: 100%; left: 0; width: 100%; z-index: 0; background: rgba(40, 20, 8, 0.35); border-radius: calc(4 * var(--u));
+    box-shadow: 0 calc(16 * var(--u)) calc(38 * var(--u)) rgba(0, 0, 0, 0.5); transition: left 0.75s, width 0.75s; }
+  .book.spread.at-front .bshadow { left: 50%; width: 50%; }
+  .book.spread.at-back .bshadow { left: 0; width: 50%; }
+  .edge { position: absolute; top: 0; height: 100%; width: calc(var(--pw) * var(--u)); z-index: 1; background: #e6dbc2; border-radius: calc(3 * var(--u)); transition: box-shadow 0.5s; }
+  .edge.r { left: 50%; } .edge.l { left: 0; }
+  .book.single .edge.r { left: 0; } .book.single .edge.l { display: none; }
+  .leaf { position: absolute; top: 0; left: 50%; width: calc(var(--pw) * var(--u)); height: 100%; transform-origin: 0 50%; transform-style: preserve-3d;
+    transition: transform var(--dur, 850ms) cubic-bezier(0.45, 0.05, 0.3, 1); }
+  .book.single .leaf { left: 0; }
+  .leaf.turned { transform: rotateY(-180deg); }
+  .leaf.gone { visibility: hidden; }
+  /* Memory: every drawn page is a picture the browser keeps, and on a phone each is about 6 MB. All 28 at once (about 480 MB, measured in Chromium
+     at 393 by 659 at 3 times) crashed Safari on an iPhone, so only the leaves beside the open pages are drawn, and at rest the side of a leaf that
+     faces away is not drawn at all. */
+  .leaf.far { display: none; }
+  .leaf.still:not(.turned) > .back, .leaf.still.turned > .front { visibility: hidden; }
+  .face { position: absolute; inset: 0; overflow: hidden; backface-visibility: hidden; -webkit-backface-visibility: hidden; background: var(--paper); }
+  .face.back { transform: rotateY(180deg); }
+  .shade { position: absolute; inset: 0; z-index: 9; pointer-events: none; background: #1a1006; opacity: 0; }
+  .leaf.fwd .front .shade { animation: shadeOut calc(var(--dur, 850ms) / 2) ease-in forwards; }
+  .leaf.fwd .back .shade { animation: shadeIn calc(var(--dur, 850ms) / 2) ease-out calc(var(--dur, 850ms) / 2) both; }
+  .leaf.bwd .back .shade { animation: shadeOut calc(var(--dur, 850ms) / 2) ease-in forwards; }
+  .leaf.bwd .front .shade { animation: shadeIn calc(var(--dur, 850ms) / 2) ease-out calc(var(--dur, 850ms) / 2) both; }
+  @keyframes shadeOut { from { opacity: 0; } to { opacity: 0.42; } }
+  @keyframes shadeIn { from { opacity: 0.42; } to { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .book, .bshadow { transition: none; } .float { animation: none !important; } }
+
+  /* ---------- a page ---------- */
+  .page { position: absolute; inset: 0; padding: calc(28 * var(--u)) calc(30 * var(--u)) calc(40 * var(--u)); font-size: calc(14.5 * var(--u)); line-height: 1.32;
+    background-color: var(--paper); background-image: radial-gradient(rgba(120, 90, 40, 0.07) calc(0.7 * var(--u)), rgba(0, 0, 0, 0) calc(0.9 * var(--u)));
+    background-size: calc(5 * var(--u)) calc(5 * var(--u)); overflow: hidden; }
+  .page::after { content: ''; position: absolute; top: 0; bottom: 0; width: calc(24 * var(--u)); pointer-events: none; z-index: 8; }
+  .front .page::after { left: 0; background: linear-gradient(90deg, rgba(70, 45, 10, 0.2), rgba(70, 45, 10, 0)); }
+  .back .page::after { right: 0; background: linear-gradient(270deg, rgba(70, 45, 10, 0.2), rgba(70, 45, 10, 0)); }
+  .page.blank::after { display: none; }
+  .page p { margin: 0 0 calc(9 * var(--u)); }
+  .page h2 { position: relative; margin: 0 calc(-30 * var(--u)) calc(15 * var(--u)); padding: calc(10 * var(--u)) calc(30 * var(--u)) calc(9 * var(--u));
+    background: var(--sec, var(--teal)); color: #fff; font-family: var(--pix); font-weight: 700; font-size: calc(19 * var(--u)); letter-spacing: 0.03em; line-height: 1.1;
+    text-shadow: 0 calc(2 * var(--u)) 0 rgba(0, 0, 0, 0.2); box-shadow: 0 calc(3 * var(--u)) 0 rgba(0, 0, 0, 0.12); }
+  .page h2 small { display: block; font-size: calc(9.5 * var(--u)); letter-spacing: 0.1em; opacity: 0.8; margin-bottom: calc(3 * var(--u)); }
+  .page h3 { font-family: var(--pix); font-weight: 700; font-size: calc(15 * var(--u)); letter-spacing: 0.02em; margin: 0 0 calc(5 * var(--u)); line-height: 1.15; }
+  .page h4 { font-family: var(--pix); font-weight: 700; font-size: calc(12 * var(--u)); letter-spacing: 0.02em; margin: 0 0 calc(2 * var(--u)); }
+  .lead { font-size: calc(16.5 * var(--u)); font-weight: 600; line-height: 1.27; }
+  .small { font-size: calc(12.5 * var(--u)); color: var(--muted); }
+  .pix { font-family: var(--pix); letter-spacing: 0.02em; }
+  .folio { position: absolute; bottom: calc(13 * var(--u)); z-index: 7; display: flex; align-items: center; gap: calc(6 * var(--u));
+    font-family: var(--pix); font-size: calc(10 * var(--u)); letter-spacing: 0.08em; color: var(--muted); }
+  .folio b { display: inline-grid; place-items: center; min-width: calc(22 * var(--u)); height: calc(22 * var(--u)); border-radius: 50%; background: var(--ink); color: #fff; font-size: calc(10.5 * var(--u)); }
+  .front .folio { right: calc(26 * var(--u)); } .back .folio { left: calc(26 * var(--u)); flex-direction: row-reverse; }
+  img.px { display: inline-block; width: calc(var(--iw) * var(--u)); height: calc(var(--ih) * var(--u)); image-rendering: pixelated; image-rendering: crisp-edges; vertical-align: middle; }
+  img.shot { display: block; box-sizing: content-box; width: calc(var(--sw, 380) * var(--u)); height: calc(var(--sw, 380) * 0.625 * var(--u)); image-rendering: pixelated;
+    border: calc(3 * var(--u)) solid #23202a; border-radius: calc(4 * var(--u)); box-shadow: 0 calc(3 * var(--u)) 0 rgba(0, 0, 0, 0.18); }
+  figure { margin: calc(10 * var(--u)) 0; }
+  figcaption { font-family: var(--pix); font-size: calc(9.5 * var(--u)); letter-spacing: 0.04em; color: var(--muted); margin-top: calc(6 * var(--u)); }
+  .say { position: relative; margin: calc(16 * var(--u)) 0 calc(12 * var(--u)); padding: calc(14 * var(--u)) calc(12 * var(--u)) calc(10 * var(--u));
+    background: #101626; color: #eaf2ff; border: calc(3 * var(--u)) solid #2f3f80; border-radius: calc(5 * var(--u));
+    font-family: var(--pix); font-size: calc(11.5 * var(--u)); line-height: 1.5; letter-spacing: 0.02em; box-shadow: 0 calc(3 * var(--u)) 0 rgba(0, 0, 0, 0.22); }
+  .say b { position: absolute; top: calc(-11 * var(--u)); left: calc(10 * var(--u)); padding: calc(2 * var(--u)) calc(7 * var(--u)); border-radius: calc(3 * var(--u));
+    background: var(--teal); color: #0b1416; font-size: calc(9.5 * var(--u)); letter-spacing: 0.06em; }
+  .say.creep b { background: #7bd35a; } .say.c1 b { background: #4f8be8; color: #fff; } .say.c2 b { background: #3fae68; color: #fff; } .say.c3 b { background: #e877ab; color: #fff; }
+  .term { display: inline-block; white-space: nowrap; background: #07080b; color: #6dfc9a; font-family: var(--pix); font-size: calc(13 * var(--u)); padding: calc(7 * var(--u)) calc(12 * var(--u)); border-radius: calc(4 * var(--u)); }
+  .box { background: var(--paper2); border-radius: calc(6 * var(--u)); padding: calc(11 * var(--u)) calc(13 * var(--u)); margin: calc(10 * var(--u)) 0; box-shadow: inset 0 0 0 calc(2 * var(--u)) var(--rule); }
+  .box > h4:first-child { margin-bottom: calc(6 * var(--u)); }
+  .tip { position: relative; background: #fff7d6; border-radius: calc(6 * var(--u)); padding: calc(10 * var(--u)) calc(12 * var(--u)) calc(10 * var(--u)) calc(44 * var(--u));
+    box-shadow: inset 0 0 0 calc(2 * var(--u)) #ecd98f; font-size: calc(13.5 * var(--u)); margin: calc(10 * var(--u)) 0; }
+  .tip img { position: absolute; left: calc(10 * var(--u)); top: calc(10 * var(--u)); }
+  .tip h4 { color: var(--teal-dk); }
+  ul.dots { margin: 0; padding: 0; list-style: none; }
+  ul.dots li { position: relative; padding-left: calc(16 * var(--u)); margin: 0 0 calc(6 * var(--u)); }
+  ul.dots li::before { content: ''; position: absolute; left: 0; top: calc(6 * var(--u)); width: calc(7 * var(--u)); height: calc(7 * var(--u)); background: var(--sec, var(--teal)); }
+  kbd { font-family: var(--pix); font-size: calc(10 * var(--u)); background: #fff; border: calc(1 * var(--u)) solid #cdbf9f; border-bottom-width: calc(3 * var(--u));
+    border-radius: calc(4 * var(--u)); padding: calc(1 * var(--u)) calc(5 * var(--u)); white-space: nowrap; }
+  .pic { display: grid; place-items: center; background: var(--paper2); border-radius: calc(6 * var(--u)); box-shadow: inset 0 0 0 calc(2 * var(--u)) var(--rule); }
+  .row { display: flex; gap: calc(12 * var(--u)); align-items: flex-start; }
+  .row > .grow { flex: 1; min-width: 0; }
+  .float { animation: bob 2.6s ease-in-out infinite; }
+  @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(calc(-5 * var(--u))); } }
+
+  /* ---------- the covers ---------- */
+  .page.cover, .page.cover-back { padding: 0; color: #fff; background: radial-gradient(130% 90% at 50% 0%, #2d3c8f 0%, #1a2257 56%, #0f1538 100%); }
+  .page.cover::before, .page.cover-back::before { content: ''; position: absolute; inset: calc(12 * var(--u)); border: calc(2 * var(--u)) solid rgba(255, 210, 63, 0.55); border-radius: calc(10 * var(--u)); pointer-events: none; z-index: 3; }
+  .stars { position: absolute; inset: 0; opacity: 0.75;
+    background-image: radial-gradient(circle, rgba(255, 255, 255, 0.95) calc(1 * var(--u)), rgba(255, 255, 255, 0) calc(1.6 * var(--u))),
+      radial-gradient(circle, rgba(200, 215, 255, 0.7) calc(0.8 * var(--u)), rgba(255, 255, 255, 0) calc(1.3 * var(--u)));
+    background-size: calc(89 * var(--u)) calc(71 * var(--u)), calc(53 * var(--u)) calc(43 * var(--u));
+    background-position: calc(13 * var(--u)) calc(9 * var(--u)), calc(31 * var(--u)) calc(24 * var(--u)); }
+  .gloss { position: absolute; inset: 0; z-index: 4; pointer-events: none;
+    background: linear-gradient(118deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0) 32%, rgba(255, 255, 255, 0) 72%, rgba(255, 255, 255, 0.07) 100%); }
+  .abs { position: absolute; }
+  .badge9 { display: inline-grid; place-items: center; width: calc(30 * var(--u)); height: calc(30 * var(--u)); border-radius: 50%; background: var(--orange); color: #fff;
+    font-family: var(--pix); font-weight: 700; font-size: calc(12 * var(--u)); box-shadow: 0 calc(2 * var(--u)) 0 rgba(0, 0, 0, 0.3); }
+  .cover .tag { top: calc(30 * var(--u)); left: calc(32 * var(--u)); display: flex; align-items: center; gap: calc(8 * var(--u)); font-family: var(--pix); font-size: calc(12 * var(--u)); letter-spacing: 0.12em; color: #f1e6cc; }
+  .cover .players { top: calc(34 * var(--u)); right: calc(32 * var(--u)); font-family: var(--pix); font-size: calc(10 * var(--u)); letter-spacing: 0.1em;
+    color: #1a2257; background: var(--gold); border-radius: 999px; padding: calc(4 * var(--u)) calc(10 * var(--u)); }
+  .cover .logo { top: calc(78 * var(--u)); left: 50%; transform: translateX(-50%); filter: drop-shadow(0 calc(5 * var(--u)) 0 rgba(0, 0, 0, 0.35)); }
+  .cover .podium { left: calc(60 * var(--u)); top: calc(466 * var(--u)); width: calc(160 * var(--u)); height: calc(26 * var(--u)); background: #7a4a2a;
+    border-top: calc(5 * var(--u)) solid #9b6a40; box-shadow: 0 calc(5 * var(--u)) 0 #4e2d18; }
+  .cover .band { left: 0; right: 0; top: calc(540 * var(--u)); height: calc(82 * var(--u)); background: rgba(0, 0, 0, 0.32); display: grid; place-items: center; align-content: center; gap: calc(6 * var(--u)); }
+  .cover .band b { font-family: var(--pix); font-size: calc(21 * var(--u)); letter-spacing: 0.08em; color: var(--gold); text-shadow: 0 calc(3 * var(--u)) 0 rgba(0, 0, 0, 0.4); }
+  .cover .band span { font-family: var(--pix); font-size: calc(10 * var(--u)); letter-spacing: 0.16em; color: #e7dcc4; }
+  .cover-back .in { position: absolute; inset: calc(36 * var(--u)) calc(34 * var(--u)) calc(30 * var(--u)); z-index: 2; }
+  .cover-back h3 { color: var(--gold); font-size: calc(16 * var(--u)); text-align: center; margin: 0 0 calc(14 * var(--u)); line-height: 1.35; }
+  .cover-back p { color: #e9e4f7; font-size: calc(15 * var(--u)); text-align: center; }
+  .cover-back .shots { display: flex; gap: calc(8 * var(--u)); justify-content: center; margin: calc(16 * var(--u)) 0; }
+  .cover-back .shots img.shot { --sw: 118; border-color: #0b0f26; }
+  .cover-back .feats { display: grid; grid-template-columns: 1fr 1fr; gap: calc(7 * var(--u)) calc(14 * var(--u)); font-family: var(--pix); font-size: calc(10 * var(--u)); letter-spacing: 0.05em; color: #f1e6cc; margin: calc(14 * var(--u)) 0 0; }
+  .cover-back .feats span::before { content: ''; display: inline-block; width: calc(7 * var(--u)); height: calc(7 * var(--u)); background: var(--teal); margin-right: calc(7 * var(--u)); }
+  .cover-back .foot { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: flex-end; justify-content: space-between; }
+  .cover-back .agents { display: flex; flex-wrap: wrap; justify-content: center; gap: calc(26 * var(--u)); margin: calc(18 * var(--u)) 0 calc(4 * var(--u)); }
+  .cover-back .agents div { display: grid; justify-items: center; gap: calc(5 * var(--u)); font-family: var(--pix); font-size: calc(10 * var(--u)); color: #f1e6cc; }
+  .cover-back .agents p { flex-basis: 100%; text-align: center; margin: calc(2 * var(--u)) 0 0; font-family: var(--pix); font-size: calc(11 * var(--u)); letter-spacing: 0.08em; color: var(--gold); }
+  .barcode { background: #fff; padding: calc(6 * var(--u)) calc(8 * var(--u)) calc(4 * var(--u)); border-radius: calc(3 * var(--u)); }
+  .barcode svg { display: block; width: calc(120 * var(--u)); height: calc(40 * var(--u)); }
+  .barcode i { display: block; font-style: normal; font-family: var(--pix); font-size: calc(8 * var(--u)); color: #111; text-align: center; letter-spacing: 0.2em; margin-top: calc(2 * var(--u)); }
+  .madewith { text-align: right; font-family: var(--pix); font-size: calc(10 * var(--u)); letter-spacing: 0.08em; color: #e7dcc4; line-height: 1.7; }
+
+  /* ---------- page parts ---------- */
+  .toc { list-style: none; margin: 0; padding: 0; }
+  .toc li { margin: 0; }
+  .toc button { display: flex; width: 100%; align-items: baseline; gap: calc(6 * var(--u)); background: none; border: 0; padding: calc(4.6 * var(--u)) 0; cursor: pointer; color: var(--ink);
+    font-family: var(--pix); font-size: calc(12.5 * var(--u)); letter-spacing: 0.03em; text-align: left; }
+  .toc button:hover span:first-child { color: var(--orange-dk); }
+  .toc .lead-dots { flex: 1; border-bottom: calc(2 * var(--u)) dotted #b9a983; transform: translateY(calc(-3 * var(--u))); }
+  .cast { display: flex; gap: calc(14 * var(--u)); align-items: center; margin: 0 0 calc(12 * var(--u)); }
+  .cast .pic { flex: none; width: calc(124 * var(--u)); height: calc(124 * var(--u)); }
+  .cast .pic.tall { height: calc(160 * var(--u)); }
+  .cast .pic.small { width: calc(92 * var(--u)); height: calc(92 * var(--u)); }
+  .cast p { margin: 0 0 calc(6 * var(--u)); font-size: calc(14 * var(--u)); }
+  .stat { font-family: var(--pix); font-size: calc(9.5 * var(--u)); letter-spacing: 0.06em; color: var(--teal-dk); }
+  .poses { display: flex; justify-content: space-between; margin: calc(4 * var(--u)) 0 calc(14 * var(--u)); }
+  .poses div { text-align: center; font-family: var(--pix); font-size: calc(9 * var(--u)); color: var(--muted); }
+  .poses .pic { width: calc(72 * var(--u)); height: calc(76 * var(--u)); margin-bottom: calc(4 * var(--u)); }
+  .missing { display: flex; gap: calc(10 * var(--u)); margin-top: calc(12 * var(--u)); }
+  .missing div { flex: 1; text-align: center; background: #fff; padding: calc(8 * var(--u)) calc(4 * var(--u)) calc(7 * var(--u)); border-radius: calc(3 * var(--u));
+    box-shadow: 0 calc(2 * var(--u)) calc(4 * var(--u)) rgba(0, 0, 0, 0.18); transform: rotate(var(--r, -2deg)); font-family: var(--pix); font-size: calc(9 * var(--u)); line-height: 1.5; color: var(--muted); }
+  .missing b { display: block; font-size: calc(11 * var(--u)); color: var(--red); letter-spacing: 0.1em; }
+  .legend { list-style: none; margin: calc(8 * var(--u)) 0 0; padding: 0; }
+  .legend li { display: grid; grid-template-columns: calc(26 * var(--u)) 1fr; gap: calc(8 * var(--u)); align-items: start; margin-bottom: calc(8 * var(--u)); font-size: calc(14 * var(--u)); }
+  .num { display: inline-grid; place-items: center; width: calc(22 * var(--u)); height: calc(22 * var(--u)); border-radius: 50%; background: var(--ink); color: #fff; font-family: var(--pix); font-weight: 700; font-size: calc(11 * var(--u)); }
+  .hudwrap { position: relative; width: calc(386 * var(--u)); }
+  .hudwrap .num { position: absolute; transform: translate(-50%, 0); box-shadow: 0 0 0 calc(2 * var(--u)) #fff; }
+  table.keys { width: 100%; border-collapse: collapse; font-size: calc(13.5 * var(--u)); }
+  table.keys th { font-family: var(--pix); font-size: calc(9.5 * var(--u)); letter-spacing: 0.05em; text-align: left; background: var(--ink); color: #fff; padding: calc(6 * var(--u)) calc(7 * var(--u)); }
+  table.keys td { padding: calc(6 * var(--u)) calc(7 * var(--u)); border-bottom: calc(1 * var(--u)) solid var(--rule); vertical-align: top; line-height: 1.55; }
+  table.keys td:first-child { font-weight: 700; width: 30%; }
+  .moves { display: grid; grid-template-columns: 1fr 1fr; gap: calc(10 * var(--u)); }
+  .move { display: flex; gap: calc(9 * var(--u)); align-items: center; }
+  .move .pic { flex: none; width: calc(66 * var(--u)); height: calc(72 * var(--u)); }
+  .move p { margin: 0; font-size: calc(13 * var(--u)); line-height: 1.25; }
+  .learn { display: flex; gap: calc(12 * var(--u)); align-items: center; margin: 0 0 calc(12 * var(--u)); padding: calc(10 * var(--u)); background: var(--paper2); border-radius: calc(8 * var(--u));
+    box-shadow: inset 0 0 0 calc(2 * var(--u)) var(--rule); }
+  .learn .pic { flex: none; width: calc(84 * var(--u)); height: calc(96 * var(--u)); background: #fff; }
+  .learn .how { display: inline-block; font-family: var(--pix); font-size: calc(10 * var(--u)); background: var(--ink); color: #fff; padding: calc(3 * var(--u)) calc(7 * var(--u)); border-radius: calc(3 * var(--u)); margin: calc(2 * var(--u)) 0 calc(6 * var(--u)); }
+  .learn .from { float: right; display: flex; align-items: center; gap: calc(4 * var(--u)); font-family: var(--pix); font-size: calc(9 * var(--u)); color: var(--muted); }
+  .items .it { display: grid; grid-template-columns: calc(62 * var(--u)) 1fr; gap: calc(12 * var(--u)); align-items: center; padding: calc(7 * var(--u)) 0; border-bottom: calc(1 * var(--u)) dashed var(--rule); }
+  .items .pic { height: calc(56 * var(--u)); }
+  .items p { margin: 0; font-size: calc(13.5 * var(--u)); }
+  .shop li { display: grid; grid-template-columns: calc(44 * var(--u)) 1fr; gap: calc(10 * var(--u)); align-items: center; margin: 0 0 calc(9 * var(--u)); }
+  .shop .pic { width: calc(44 * var(--u)); height: calc(44 * var(--u)); background: #fff; }
+  .shop .line { display: flex; align-items: baseline; gap: calc(6 * var(--u)); font-family: var(--pix); font-size: calc(12 * var(--u)); letter-spacing: 0.02em; }
+  .shop .line .lead-dots { flex: 1; border-bottom: calc(2 * var(--u)) dotted #b9a983; transform: translateY(calc(-3 * var(--u))); }
+  .shop .line i { font-style: normal; display: flex; align-items: center; gap: calc(3 * var(--u)); }
+  .shop .blurb { font-family: var(--pix); font-size: calc(9 * var(--u)); letter-spacing: 0.03em; color: var(--muted); margin-top: calc(2 * var(--u)); }
+  .vend-say { position: relative; background: #fff; border-radius: calc(8 * var(--u)); padding: calc(9 * var(--u)) calc(11 * var(--u)); font-family: var(--pix); font-size: calc(11 * var(--u)); line-height: 1.45;
+    box-shadow: 0 calc(2 * var(--u)) calc(4 * var(--u)) rgba(0, 0, 0, 0.15); }
+  .vend-say::before { content: ''; position: absolute; left: calc(-9 * var(--u)); top: calc(18 * var(--u)); border: calc(9 * var(--u)) solid transparent; border-right-color: #fff; border-left: 0; }
+  .menu-list { margin: 0; padding: 0; list-style: none; }
+  .menu-list li { display: grid; grid-template-columns: calc(78 * var(--u)) 1fr; gap: calc(8 * var(--u)); margin: 0 0 calc(5 * var(--u)); font-size: calc(13 * var(--u)); line-height: 1.25; }
+  .menu-list b { font-family: var(--pix); font-size: calc(10.5 * var(--u)); padding-top: calc(2 * var(--u)); }
+  .world { margin: 0 0 calc(14 * var(--u)); }
+  .world .wband { display: flex; justify-content: space-between; align-items: baseline; padding: calc(7 * var(--u)) calc(10 * var(--u)); background: var(--wc); color: #fff; border-radius: calc(5 * var(--u)) calc(5 * var(--u)) 0 0;
+    font-family: var(--pix); font-weight: 700; font-size: calc(15 * var(--u)); letter-spacing: 0.03em; }
+  .world .wband small { font-size: calc(9.5 * var(--u)); opacity: 0.85; letter-spacing: 0.1em; }
+  .world .wbody { display: grid; grid-template-columns: auto 1fr; gap: calc(11 * var(--u)); padding: calc(9 * var(--u)); background: var(--paper2); border-radius: 0 0 calc(5 * var(--u)) calc(5 * var(--u)); }
+  .world .wbody img.shot { --sw: 196; }
+  .world ol { margin: 0; padding: 0; list-style: none; font-family: var(--pix); font-size: calc(9.5 * var(--u)); line-height: 1.35; }
+  .world ol li { margin-bottom: calc(6 * var(--u)); }
+  .world ol li span { display: block; color: var(--muted); font-size: calc(8.5 * var(--u)); }
+  .world .flav { margin: calc(8 * var(--u)) calc(2 * var(--u)) 0; font-size: calc(13.5 * var(--u)); font-style: italic; font-weight: 500; }
+  .bosses { display: grid; grid-template-columns: 1fr 1fr; gap: calc(10 * var(--u)); }
+  .boss { background: #191c2e; color: #e8ecff; border-radius: calc(7 * var(--u)); padding: calc(10 * var(--u)) calc(11 * var(--u)) calc(12 * var(--u)); min-height: calc(150 * var(--u)); position: relative; overflow: hidden; }
+  .boss .q { font-family: var(--pix); font-weight: 700; font-size: calc(44 * var(--u)); color: var(--wc); line-height: 1; text-shadow: 0 calc(3 * var(--u)) 0 rgba(0, 0, 0, 0.4); }
+  .boss h4 { color: #fff; margin-top: calc(6 * var(--u)); font-size: calc(11 * var(--u)); }
+  .boss h4 small { display: block; color: var(--wc); font-size: calc(8.5 * var(--u)); letter-spacing: 0.1em; margin-bottom: calc(2 * var(--u)); }
+  .boss p { margin: calc(4 * var(--u)) 0 0; font-size: calc(13 * var(--u)); color: #c9cfee; line-height: 1.25; }
+  .foes h5 { margin: calc(2 * var(--u)) 0 calc(3 * var(--u)); font-family: var(--pix); font-size: calc(10 * var(--u)); letter-spacing: 0.1em; color: #fff; background: var(--wc); display: inline-block; padding: calc(3 * var(--u)) calc(8 * var(--u)); border-radius: calc(3 * var(--u)); }
+  .foe { display: grid; grid-template-columns: calc(58 * var(--u)) 1fr; gap: calc(10 * var(--u)); align-items: center; padding: calc(3 * var(--u)) 0; border-bottom: calc(1 * var(--u)) dashed var(--rule); }
+  .foe .pic { height: calc(46 * var(--u)); }
+  .foe p { margin: 0; font-size: calc(12.5 * var(--u)); line-height: 1.22; }
+  .foe h4 { font-size: calc(11 * var(--u)); margin: 0 0 calc(1 * var(--u)); }
+  .lines { position: relative; height: calc(408 * var(--u)); margin-top: calc(4 * var(--u));
+    background: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0) 0 calc(29 * var(--u)), #b7cbe0 calc(29 * var(--u)) calc(30 * var(--u)));
+    border-left: calc(2 * var(--u)) solid #e59a9a; }
+  .sticky { position: absolute; right: calc(34 * var(--u)); bottom: calc(52 * var(--u)); width: calc(188 * var(--u)); height: calc(172 * var(--u)); perspective: calc(900 * var(--u));
+    transform: rotate(-4deg); cursor: pointer; z-index: 6; }
+  .sticky .in { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 0.7s cubic-bezier(0.4, 0.1, 0.2, 1); }
+  .sticky.open .in { transform: rotateY(180deg); }
+  .sticky .s { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; background: #ffe680; padding: calc(13 * var(--u)) calc(13 * var(--u));
+    box-shadow: 0 calc(5 * var(--u)) calc(9 * var(--u)) rgba(0, 0, 0, 0.25); font-family: var(--pix); font-size: calc(10 * var(--u)); line-height: 1.5; letter-spacing: 0.02em; color: #3b3320; }
+  .sticky .s.b { transform: rotateY(180deg); background: #ffef9e; }
+  .sticky .s.f { display: grid; place-items: center; text-align: center; font-size: calc(13 * var(--u)); }
+  .sticky .s.f small { display: block; font-size: calc(9 * var(--u)); color: #7a6a3a; margin-top: calc(6 * var(--u)); }
+  .sticky .code { display: block; margin: calc(6 * var(--u)) 0; color: #b22d2d; font-size: calc(10.5 * var(--u)); }
+  .book.spread .page.staples::before { content: ''; position: absolute; top: calc(190 * var(--u)); width: calc(3 * var(--u)); height: calc(36 * var(--u)); z-index: 9;
+    background: linear-gradient(90deg, #8c929b, #d4d8de, #8c929b); box-shadow: 0 calc(240 * var(--u)) 0 #a2a8b0; border-radius: calc(1 * var(--u)); }
+  .front .page.staples::before { left: 0; } .back .page.staples::before { right: 0; }
+  .pups { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: calc(8 * var(--u)) calc(6 * var(--u)); }
+  .pups span { display: grid; justify-items: center; text-align: center; gap: calc(3 * var(--u)); font-family: var(--pix); font-size: calc(9.5 * var(--u)); letter-spacing: 0.02em; }
+  .pups i { font-style: normal; font-size: calc(8 * var(--u)); color: var(--muted); }
+  .turnme { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 4; background: rgba(20, 12, 6, 0.85); color: #ffe9b8; font-family: var(--pix); font-size: 12px;
+    padding: 12px 16px; border-radius: 10px; text-align: center; pointer-events: none; letter-spacing: 0.06em; }
+</style>
+</head>
+<body>
+<header class="bar">
+  <a href="./" id="backToGame">&larr; BACK TO THE GAME</a>
+  <span class="ttl">BATON QUEST &middot; INSTRUCTION BOOKLET</span>
+  <span style="width:1px"></span>
+</header>
+
+<main class="stage" id="stage" aria-label="The instruction booklet">
+  <div class="book spread at-front" id="book">
+    <div class="bshadow"></div><div class="edge l" id="edgeL"></div><div class="edge r" id="edgeR"></div>
+  </div>
+</main>
+<p class="hint" id="hint">CLICK THE BOOKLET TO OPEN IT</p>
+<p class="turnme" id="turnme">TURN YOUR PHONE UPRIGHT<br>TO READ THE BOOKLET</p>
+
+<nav class="ctrl" aria-label="Pages">
+  <button type="button" id="prev" aria-label="Previous page">&#9664; BACK</button>
+  <span class="where" id="where" aria-live="polite">COVER</span>
+  <button type="button" id="next" aria-label="Next page">NEXT &#9654;</button>
+  <button type="button" id="toc">CONTENTS</button>
+</nav>
+
+<div id="pages" hidden>
+
+<!-- 0: the front cover -->
+<section class="page cover" data-label="COVER">
+  <div class="stars"></div>
+  <div class="abs tag"><span class="badge9">9F</span>POCKET</div>
+  <div class="abs players">1 PLAYER</div>
+  <img class="abs logo" data-px="logo" data-s="2" alt="Baton Quest">
+  <img class="abs float" data-px="spam" data-s="3" style="left:calc(286*var(--u));top:calc(330*var(--u));animation-delay:-0.4s" alt="">
+  <img class="abs float" data-px="spam" data-s="3" style="left:calc(352*var(--u));top:calc(398*var(--u));animation-delay:-1.3s" alt="">
+  <img class="abs float" data-px="spam" data-s="2" style="left:calc(300*var(--u));top:calc(452*var(--u));animation-delay:-2s" alt="">
+  <img class="abs float" data-px="note" data-s="3" style="left:calc(214*var(--u));top:calc(304*var(--u));animation-delay:-0.8s" alt="">
+  <img class="abs float" data-px="note" data-s="3" style="left:calc(250*var(--u));top:calc(276*var(--u));animation-delay:-1.7s" alt="">
+  <img class="abs" data-px="hero-swing" data-s="7" style="left:calc(84*var(--u));top:calc(326*var(--u))" alt="The conductor, baton raised">
+  <div class="abs podium"></div>
+  <div class="abs band"><b>INSTRUCTION BOOKLET</b><span>FOR THE 9F POCKET</span></div>
+  <div class="gloss"></div>
+</section>
+
+<!-- 1: inside the front cover -->
+<section class="page" style="--sec:var(--ink)" data-label="BEFORE YOU PLAY">
+  <h2>BEFORE YOU PLAY</h2>
+  <p class="lead">Thank you for picking up BATON QUEST for the 9F POCKET. Please read this booklet before you play, then keep it somewhere safe. A drawer nobody opens is ideal.</p>
+  <div class="box" style="--sec:var(--red)">
+    <h4>A FEW PRECAUTIONS</h4>
+    <ul class="dots">
+      <li>Play in a well-lit room, a sensible distance from the screen.</li>
+      <li>Take a short break every hour. The facilitator insists.</li>
+      <li>Never point the baton at a colleague.</li>
+      <li>The conductor's head is a computer. Please do not type on it.</li>
+      <li>If anything in the game asks you to do everything, forever, say no. Politely.</li>
+    </ul>
+  </div>
+  <div class="box">
+    <h4>READING THIS BOOKLET</h4>
+    <p style="margin:0">Turn pages with the arrow keys, a swipe, a click on either page, or a controller. CONTENTS jumps straight to a page. Esc closes the booklet.</p>
+  </div>
+  <p class="small" style="position:absolute;left:calc(30*var(--u));right:calc(30*var(--u));bottom:calc(30*var(--u));margin:0">BATON QUEST, the 9F POCKET and everyone in this booklet were made up for this game. Any resemblance to your own inbox is a coincidence.</p>
+</section>
+
+<!-- 2: contents -->
+<section class="page" style="--sec:var(--ink)" data-label="CONTENTS">
+  <h2>CONTENTS</h2>
+  <ul class="toc">
+    <li><button type="button" data-go="3"><span>GETTING STARTED</span><span class="lead-dots"></span><span>4</span></button></li>
+    <li><button type="button" data-go="5"><span>THE STORY</span><span class="lead-dots"></span><span>6</span></button></li>
+    <li><button type="button" data-go="7"><span>THE CAST</span><span class="lead-dots"></span><span>8</span></button></li>
+    <li><button type="button" data-go="10"><span>THE 9F POCKET</span><span class="lead-dots"></span><span>11</span></button></li>
+    <li><button type="button" data-go="11"><span>KEYS AND CONTROLLERS</span><span class="lead-dots"></span><span>12</span></button></li>
+    <li><button type="button" data-go="12"><span>THE SCREEN</span><span class="lead-dots"></span><span>13</span></button></li>
+    <li><button type="button" data-go="13"><span>MOVES</span><span class="lead-dots"></span><span>14</span></button></li>
+    <li><button type="button" data-go="15"><span>ITEMS</span><span class="lead-dots"></span><span>16</span></button></li>
+    <li><button type="button" data-go="16"><span>VEND-9'S SHOP</span><span class="lead-dots"></span><span>17</span></button></li>
+    <li><button type="button" data-go="17"><span>THE MAP AND THE PAUSE MENU</span><span class="lead-dots"></span><span>18</span></button></li>
+    <li><button type="button" data-go="18"><span>THE FOUR FLOORS</span><span class="lead-dots"></span><span>19</span></button></li>
+    <li><button type="button" data-go="20"><span>AT THE TOP OF EACH FLOOR</span><span class="lead-dots"></span><span>21</span></button></li>
+    <li><button type="button" data-go="21"><span>FOES</span><span class="lead-dots"></span><span>22</span></button></li>
+    <li><button type="button" data-go="23"><span>SAVING AND SECRETS</span><span class="lead-dots"></span><span>24</span></button></li>
+    <li><button type="button" data-go="24"><span>GAME MODES</span><span class="lead-dots"></span><span>25</span></button></li>
+    <li><button type="button" data-go="25"><span>BATTLE</span><span class="lead-dots"></span><span>26</span></button></li>
+    <li><button type="button" data-go="26"><span>NOTES</span><span class="lead-dots"></span><span>27</span></button></li>
+  </ul>
+  <div class="tip"><img data-px="hero-cheer" data-s="1.5" alt=""><h4>TIP</h4><span class="clicktap">Click</span> any line to turn straight to it.</div>
+</section>
+
+<!-- 3: getting started (version 118's front end) -->
+<section class="page" style="--sec:var(--teal)" data-label="GETTING STARTED">
+  <h2><small>FIRST THINGS FIRST</small>GETTING STARTED</h2>
+  <p class="lead">Switch on and the 9F POCKET says hello. Any button skips it. At the title, press START or A for the main menu.</p>
+  <figure style="margin-top:0"><img class="shot" data-shot="menu" style="--sw:268" alt="The main menu: NEW GAME, GAME MODES, OPTIONS, EXTRAS"><figcaption>THE MAIN MENU, ON A NEW GAME.</figcaption></figure>
+  <div class="box">
+    <ul class="menu-list">
+      <li><b>CONTINUE</b><span>Back where you saved, on the file you played last. Its gold stars are counted beside it.</span></li>
+      <li><b>NEW GAME</b><span>From the very top. Over a saved game, it asks first.</span></li>
+      <li><b>FILE</b><span>Pick one of three files. It shows once a file has a save.</span></li>
+      <li><b>GAME MODES</b><span>BATTLE, with more on the way. Page 25.</span></li>
+      <li><b>OPTIONS</b><span>Music, text speed and the controls. Next page.</span></li>
+      <li><b>EXTRAS</b><span>The codex, your gold stars and the credits.</span></li>
+    </ul>
+  </div>
+  <div class="tip"><img data-px="facil" data-s="2" alt=""><h4>FACILITATOR'S TIP</h4>B goes back on every screen. Nothing is lost by looking around.</div>
+</section>
+
+<!-- 4: options and extras -->
+<section class="page" style="--sec:var(--teal)" data-label="OPTIONS AND EXTRAS">
+  <h2><small>THE MAIN MENU, CONTINUED</small>OPTIONS AND EXTRAS</h2>
+  <figure style="margin-top:0"><img class="shot" data-shot="options" style="--sw:300" alt="OPTIONS: MUSIC, TEXT and CONTROLS"></figure>
+  <div class="box">
+    <h4>OPTIONS</h4>
+    <ul class="menu-list">
+      <li><b>MUSIC</b><span>FULL, LOW or OFF. The pause menu has it too.</span></li>
+      <li><b>TEXT</b><span>NORMAL or FAST, for the chattier characters.</span></li>
+      <li><b>BOW TIE</b><span>Once you own the gold one.</span></li>
+      <li><b>CONTROLS</b><span>Every button, for KEYS, TOUCH and CONTROLLER.</span></li>
+    </ul>
+  </div>
+  <div class="box" style="--sec:var(--orange)">
+    <h4>EXTRAS</h4>
+    <ul class="menu-list">
+      <li><b>CODEX</b><span>Memos, foes you have met, gold stars, codes and best times.</span></li>
+      <li><b>STARS</b><span>Straight to your gold stars.</span></li>
+      <li><b>CREDITS</b><span>Who made what, with the band playing.</span></li>
+      <li><b>LATER</b><span>Finish the game and THE ENDING and HOLD MUSIC join them.</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- 5: the story, part 1 -->
+<section class="page" style="--sec:var(--orange)" data-label="THE STORY">
+  <h2><small>CHAPTER ONE</small>THE STORY</h2>
+  <p class="lead">It is late on the ninth floor. The boss has gone home. C1, C2 and C3 are still typing, and the conductor, as always, keeps time.</p>
+  <p>Then the little 9F computer on the boss's desk flickers. Deep in its backlog, something has woken up.</p>
+  <div class="say creep"><b>???</b>QUICK ASK! WHILE YOU'RE ALL STILL HERE... COULD YOU JUST DO EVERYTHING? FOREVER? SMALL CHANGE, BIG IMPACT.</div>
+  <p>Vines of sticky notes creep out of the screen, down the desk and across the carpet...</p>
+  <figure><img class="shot" data-shot="title" style="--sw:318" alt="The title screen: the conductor on its podium beside the words Baton Quest"><figcaption>ON THE 9F COMPUTER: THE CONDUCTOR, KEEPING TIME.</figcaption></figure>
+</section>
+
+<!-- 4: the story, part 2 -->
+<section class="page" style="--sec:var(--orange)" data-label="THE STORY">
+  <h2><small>CHAPTER ONE, CONTINUED</small>THE STORY</h2>
+  <p>...and before anyone can say "let's take this offline," the vines wrap up all three agents.</p>
+  <div class="say c1"><b>C1</b>HEY! I WAS IN THE MIDDLE OF A SENT-</div>
+  <div class="say c2"><b>C2</b>AH... HM... THIS IS... NOT... IDEAL.</div>
+  <div class="say c3"><b>C3</b>PUT. ME. DOWN.</div>
+  <div class="say creep"><b>???</b>ONE OF YOU IN THE INBOX. ONE IN THE SERVER ROOM. ONE IN THE CLOUD. AND ME? THE BACKLOG. LET'S CIRCLE BACK... NEVER!</div>
+  <p>The screen goes quiet. Three empty chairs. Three mugs, still warm.</p>
+  <div class="say facil"><b>FACILITATOR</b>OH DEAR. CONDUCTOR? FACILITATOR HERE. I SAW THAT. I WOULD GO MYSELF, BUT I AM ONLY A VOICE IN A BUBBLE.</div>
+  <p style="display:flex;align-items:center;gap:calc(10*var(--u))"><span class="term">&gt; GOING IN.</span><span>The conductor taps its baton twice, and jumps in after them.</span></p>
+</section>
+
+<!-- 5: the cast, 1 -->
+<section class="page" style="--sec:var(--teal)" data-label="THE CAST">
+  <h2><small>WHO'S WHO</small>THE CAST</h2>
+  <div class="cast">
+    <div class="pic tall"><img data-px="hero" data-s="7" alt="The conductor"></div>
+    <div>
+      <h3>THE CONDUCTOR</h3>
+      <p>Keeps the ninth floor in time: who does what, and when. A terminal for a head, a white bow tie, white gloves and a baton. Says very little. Means all of it.</p>
+      <div class="stat">STARTS WITH 3 HEARTS, 3 NOTES, LV 1</div>
+    </div>
+  </div>
+  <div class="poses">
+    <div><div class="pic"><img data-px="hero-run" data-s="3" alt=""></div>RUN</div>
+    <div><div class="pic"><img data-px="hero-jump" data-s="3" alt=""></div>JUMP</div>
+    <div><div class="pic"><img data-px="hero-swing" data-s="3" alt=""></div>SWING</div>
+    <div><div class="pic"><img data-px="hero-charge" data-s="3" alt=""></div>CHARGE</div>
+    <div><div class="pic"><img data-px="hero-cheer" data-s="3" alt=""></div>CHEER</div>
+  </div>
+  <div class="cast">
+    <div class="pic small"><img data-px="facil" data-s="6" alt="The facilitator's speech bubble"></div>
+    <div>
+      <h3>THE FACILITATOR</h3>
+      <p>A helpful voice in a speech bubble. Knows where everything is and how everything works, and will happily tell you. Press A to move a chat along, or set TEXT to FAST in the pause menu.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 6: the cast, 2 -->
+<section class="page" style="--sec:var(--teal)" data-label="THE CAST">
+  <h2><small>WHO'S WHO</small>THE AGENTS</h2>
+  <p class="lead">Three agents, the busiest desks on the ninth floor. Each one is stuck somewhere in the 9F computer, wrapped in sticky notes. Free them, and each one teaches you a move of their own.</p>
+  <div class="cast">
+    <div class="pic small"><img data-px="c1-cheer" data-s="4" alt="C1"></div>
+    <div><h3>C1</h3><p>Fast hands. Answers an email before it has finished arriving.</p><div class="stat">LAST SEEN IN THE INBOX</div></div>
+  </div>
+  <div class="cast">
+    <div class="pic small"><img data-px="c2-cheer" data-s="4" alt="C2"></div>
+    <div><h3>C2</h3><p>Thinks before acting, every single time. Has never once replied all by mistake.</p><div class="stat">LAST SEEN IN THE SERVER ROOM</div></div>
+  </div>
+  <div class="cast">
+    <div class="pic small"><img data-px="c3-cheer" data-s="4" alt="C3"></div>
+    <div><h3>C3</h3><p>Firm, fair, and will not take "later" for an answer.</p><div class="stat">LAST SEEN IN THE CLOUD</div></div>
+  </div>
+</section>
+
+<!-- 7: the cast, 3 -->
+<section class="page" style="--sec:var(--teal)" data-label="THE CAST">
+  <h2><small>WHO'S WHO</small>AND THE REST</h2>
+  <div class="cast">
+    <div class="pic tall"><img data-px="vend" data-s="3" alt="VEND-9, a vending machine"></div>
+    <div><h3>VEND-9</h3><p>A vending machine with opinions. It waits on the map once the first floor is clear and takes TOKENS for coffee, hearts, a bigger baton and more.</p><div class="stat">NO REFUNDS. NO, REALLY.</div></div>
+  </div>
+  <div class="cast">
+    <div class="pic small"><img data-px="cat" data-s="5" alt="The office cat"></div>
+    <div><h3>THE CAT</h3><p>The office cat. Nobody knows whose it is. It hides once on every floor, and if you find it, it leaves you something shiny.</p></div>
+  </div>
+  <div class="cast">
+    <div class="pic small" style="background:#20283a"><img data-px="face-creep" data-s="5" alt="Scope Creep"></div>
+    <div><h3>SCOPE CREEP</h3><p>Ticket #1 in the backlog. It started as one small change. Then one more thing. And one more. Now it is mostly sticky notes, and it would like everyone to do everything, forever.</p></div>
+  </div>
+</section>
+
+<!-- 8: the 9F POCKET -->
+<section class="page" style="--sec:var(--ink)" data-label="THE 9F POCKET">
+  <h2><small>THE HANDHELD</small>THE 9F POCKET</h2>
+  <svg viewBox="0 0 428 250" style="display:block;width:calc(380*var(--u));height:calc(222*var(--u))" role="img" aria-label="The 9F POCKET handheld, turned sideways, with its controls numbered">
+    <path d="M40 8 H388 Q424 8 424 44 V188 Q424 242 370 242 H40 Q4 242 4 206 V44 Q4 8 40 8 Z" fill="#efe6d2" stroke="#d3c6ac" stroke-width="3"/>
+    <rect x="110" y="20" width="208" height="152" rx="10" fill="#2a2622"/>
+    <circle cx="122" cy="31" r="2.6" fill="#6dfc9a"/>
+    <text x="130" y="34" font-family="Silkscreen" font-size="7" fill="#8d867b" letter-spacing="0.6">BATON QUEST</text>
+    <image href="manual/shot-w2-1.png" x="122" y="42" width="184" height="115" preserveAspectRatio="none" style="image-rendering:pixelated"/>
+    <circle cx="124" cy="196" r="8" fill="#ff8a1e"/><text x="124" y="199" font-family="Silkscreen" font-size="6.5" fill="#fff" text-anchor="middle" font-weight="700">9F</text>
+    <text x="137" y="199.5" font-family="Silkscreen" font-size="8.5" fill="#8a7d66" letter-spacing="1">POCKET</text>
+    <rect x="184" y="188" width="60" height="16" rx="8" fill="#4a4640"/><text x="214" y="199" font-family="Silkscreen" font-size="7" fill="#fbf6ea" text-anchor="middle">START</text>
+    <rect x="47" y="93" width="22" height="64" rx="4" fill="#2b2b33"/><rect x="26" y="114" width="64" height="22" rx="4" fill="#2b2b33"/><circle cx="58" cy="125" r="6" fill="#3d3d47"/>
+    <circle cx="346" cy="140" r="19" fill="#2ec4b6"/><text x="346" y="146" font-family="Silkscreen" font-size="15" fill="#fff" text-anchor="middle" font-weight="700">B</text>
+    <circle cx="390" cy="100" r="19" fill="#ff8a1e"/><text x="390" y="106" font-family="Silkscreen" font-size="15" fill="#fff" text-anchor="middle" font-weight="700">A</text>
+    <circle cx="392" cy="178" r="14" fill="#7a4a2a"/><text x="392" y="183" font-family="Silkscreen" font-size="12" fill="#fbf6ea" text-anchor="middle" font-weight="700">C</text>
+    <path d="M22 224 l10 -14 M33 228 l10 -14 M44 232 l10 -14" stroke="#cdbf9f" stroke-width="4" stroke-linecap="round"/>
+    <g font-family="Silkscreen" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">
+      <circle cx="58" cy="76" r="9" fill="#1d1d24"/><text x="58" y="79.5">1</text>
+      <circle cx="390" cy="68" r="9" fill="#1d1d24"/><text x="390" y="71.5">2</text>
+      <circle cx="346" cy="176" r="9" fill="#1d1d24"/><text x="346" y="179.5">3</text>
+      <circle cx="392" cy="210" r="9" fill="#1d1d24"/><text x="392" y="213.5">4</text>
+      <circle cx="214" cy="224" r="9" fill="#1d1d24"/><text x="214" y="227.5">5</text>
+    </g>
+  </svg>
+  <ol class="legend">
+    <li><span class="num">1</span><span><b class="pix">D-PAD.</b> Move. Up opens a door. Down drops you through a thin shelf.</span></li>
+    <li><span class="num">2</span><span><b class="pix">A.</b> Jump. Hold it longer to jump higher.</span></li>
+    <li><span class="num">3</span><span><b class="pix">B.</b> Swing the baton. Hold it until the baton glows, then let go: a note.</span></li>
+    <li><span class="num">4</span><span><b class="pix">C.</b> Dash, once C1 has shown you how.</span></li>
+    <li><span class="num">5</span><span><b class="pix">START.</b> Pause: the codex, the music, the codes and the map.</span></li>
+  </ol>
+  <p class="small">On a phone, turn the 9F POCKET sideways for a bigger picture: the switch at the top right shows just the buttons (PLAIN) or the whole handheld. "Add to Home Screen" opens it full screen, and a controller fills the screen with the game.</p>
+</section>
+
+<!-- 9: keys and controllers -->
+<section class="page" style="--sec:var(--ink)" data-label="KEYS AND CONTROLLERS">
+  <h2><small>ON A COMPUTER</small>KEYS AND CONTROLLERS</h2>
+  <table class="keys">
+    <tr><th></th><th>KEYBOARD</th><th>CONTROLLER</th></tr>
+    <tr><td>Move</td><td><kbd>ARROWS</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></td><td>D-pad or left stick</td></tr>
+    <tr><td>Jump (A)</td><td><kbd>SPACE</kbd>, <kbd>Z</kbd> or <kbd>K</kbd></td><td>Bottom button</td></tr>
+    <tr><td>Baton (B)</td><td><kbd>X</kbd> or <kbd>J</kbd></td><td>Right button</td></tr>
+    <tr><td>A note</td><td>Hold the baton key, let go</td><td>Hold, let go</td></tr>
+    <tr><td>Dash (C)</td><td><kbd>C</kbd> or <kbd>L</kbd></td><td>Left or top button, or a bumper</td></tr>
+    <tr><td>Drop through a shelf</td><td><kbd>DOWN</kbd></td><td>Down</td></tr>
+    <tr><td>Open a door</td><td><kbd>UP</kbd></td><td>Up</td></tr>
+    <tr><td>Pause</td><td><kbd>ENTER</kbd> or <kbd>P</kbd></td><td>Start</td></tr>
+  </table>
+  <div class="box">
+    <h4>THE PAGE'S MENU</h4>
+    <p style="margin:0">On a computer the game fills the window. MENU, at the top right, has the settings: how the picture fills the screen, button sizes, vibration, and your saves. They stay in your browser.</p>
+  </div>
+</section>
+
+<!-- 10: the screen -->
+<section class="page" style="--sec:var(--sky)" data-label="THE SCREEN">
+  <h2><small>WHAT YOU SEE</small>THE SCREEN</h2>
+  <div class="hudwrap">
+    <img class="shot" data-shot="w2-1" alt="A level in the Server Room, with hearts, notes, tokens and LV along the top">
+    <span class="num" style="left:7%;top:calc(30*var(--u))">1</span>
+    <span class="num" style="left:15%;top:calc(30*var(--u))">2</span>
+    <span class="num" style="left:40.5%;top:calc(30*var(--u))">3</span>
+    <span class="num" style="left:59%;top:calc(30*var(--u))">4</span>
+  </div>
+  <ol class="legend" style="margin-top:calc(12*var(--u))">
+    <li><span class="num">1</span><span><b class="pix">HEARTS.</b> A hit costs one. Lose them all and it is BACK IN A BEAT: CONTINUE puts you at your last coffee mug with every heart back. You start with 3 and can have up to 8.</span></li>
+    <li><span class="num">2</span><span><b class="pix">NOTES.</b> Each note you throw uses one. They come back on their own, one every two seconds.</span></li>
+    <li><span class="num">3</span><span><b class="pix">TOKENS.</b> The ninth floor's coins. Spend them at VEND-9.</span></li>
+    <li><span class="num">4</span><span><b class="pix">LV.</b> Beating foes fills the bar. Each LV up (to LV 10) is a small fanfare, and some give you a heart or a harder baton.</span></li>
+  </ol>
+</section>
+
+<!-- 11: moves (the middle of the booklet: the staples) -->
+<section class="page staples" style="--sec:var(--orange)" data-label="MOVES">
+  <h2><small>THE BASICS</small>MOVES</h2>
+  <div class="moves">
+    <div class="move"><div class="pic"><img data-px="hero-run" data-s="3" alt=""></div><p><b class="pix">RUN.</b> Left or right on the D-pad.</p></div>
+    <div class="move"><div class="pic"><img data-px="hero-jump" data-s="3" alt=""></div><p><b class="pix">JUMP.</b> A. Hold it longer to jump higher.</p></div>
+    <div class="move"><div class="pic"><img data-px="hero-swing" data-s="3" alt=""></div><p><b class="pix">BATON.</b> B. Most foes do not care for it.</p></div>
+    <div class="move"><div class="pic"><img data-px="hero-charge" data-s="3" alt=""></div><p><b class="pix">NOTE.</b> Hold B until the baton glows, then let go: a note flies straight ahead.</p></div>
+    <div class="move"><div class="pic"><img data-px="spam" data-s="3" alt=""></div><p><b class="pix">STOMP.</b> Land on some foes and they will regret it.</p></div>
+    <div class="move"><div class="pic"><img data-px="hero" data-s="3" alt=""></div><p><b class="pix">DROP.</b> On a thin shelf, press Down to drop through.</p></div>
+    <div class="move"><div class="pic"><img data-px="door" data-s="2" alt=""></div><p><b class="pix">DOORS.</b> Stand at a door and press Up.</p></div>
+    <div class="move"><div class="pic"><img data-px="mug" data-s="3" alt=""></div><p><b class="pix">COFFEE.</b> Touch a mug: your hearts refill and the game saves.</p></div>
+  </div>
+  <div class="tip"><img data-px="facil" data-s="2" alt=""><h4>FACILITATOR'S TIP</h4>A note goes through things your baton cannot reach. Count your notes before a big fight.</div>
+</section>
+
+<!-- 12: moves you learn -->
+<section class="page staples" style="--sec:var(--orange)" data-label="MOVES">
+  <h2><small>FROM THE AGENTS</small>MOVES YOU'LL PICK UP</h2>
+  <p class="lead">Every agent you free teaches you one move, for good.</p>
+  <div class="learn">
+    <div class="pic"><img data-px="hero-dash" data-s="4" alt=""></div>
+    <div class="grow">
+      <span class="from"><img data-px="ic-dash" data-s="2" alt="">FROM C1</span>
+      <h3>QUICK KEYS</h3><span class="how">PRESS C TO DASH (OR TAP TWICE)</span>
+      <p style="margin:0">A quick burst along the ground or through the air. Gaps get shorter. Foes get surprised.</p>
+    </div>
+  </div>
+  <div class="learn">
+    <div class="pic"><img data-px="hero-hover" data-s="4" alt=""></div>
+    <div class="grow">
+      <span class="from"><img data-px="ic-hover" data-s="2" alt="">FROM C2</span>
+      <h3>PAUSE TO THINK</h3><span class="how">HOLD A WHILE FALLING TO HOVER</span>
+      <p style="margin:0">Float for a moment, look around, and pick your landing.</p>
+    </div>
+  </div>
+  <div class="learn">
+    <div class="pic"><img data-px="hero-pound" data-s="4" alt=""></div>
+    <div class="grow">
+      <span class="from"><img data-px="ic-pound" data-s="2" alt="">FROM C3</span>
+      <h3>FIRM HAND</h3><span class="how">IN THE AIR, DOWN AND B TO POUND</span>
+      <p style="margin:0">Come straight down, hard, on whatever is underneath.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 13: items -->
+<section class="page" style="--sec:#c9970b" data-label="ITEMS">
+  <h2><small>PICK THEM UP</small>ITEMS</h2>
+  <div class="items">
+    <div class="it"><div class="pic"><img data-px="token" data-s="4" alt=""></div><p><b class="pix">TOKEN.</b> A coin. Worth one.</p></div>
+    <div class="it"><div class="pic"><img data-px="bigtoken" data-s="4" alt=""></div><p><b class="pix">BIG TOKEN.</b> Worth five.</p></div>
+    <div class="it"><div class="pic"><img data-px="heart" data-s="5" alt=""></div><p><b class="pix">HEART.</b> One heart back. If yours are full, it waits for you.</p></div>
+    <div class="it"><div class="pic"><img data-px="mug" data-s="3" alt=""></div><p><b class="pix">COFFEE MUG.</b> A save point: every heart refilled, the game saved, and the place you start again from.</p></div>
+    <div class="it"><div class="pic"><img data-px="memo" data-s="4" alt=""></div><p><b class="pix">MEMO.</b> Lost paperwork. Six hide on every floor. Read the ones you find in the CODEX.</p></div>
+    <div class="it"><div class="pic"><img data-px="sign" data-s="3" alt=""></div><p><b class="pix">SIGN.</b> Walk up to one to read it. Signs mostly mean well.</p></div>
+  </div>
+</section>
+
+<!-- 14: VEND-9's shop -->
+<section class="page" style="--sec:#c9970b" data-label="VEND-9'S SHOP">
+  <h2><small>ON THE MAP</small>VEND-9'S SHOP</h2>
+  <div class="row" style="margin-bottom:calc(14*var(--u))">
+    <img data-px="vend" data-s="2" alt="VEND-9">
+    <div class="vend-say grow">INSERT TOKENS! EVERYTHING MUST GO! EXCEPT ME. I STAY.</div>
+  </div>
+  <ul class="shop" style="list-style:none;margin:0;padding:0">
+    <li><div class="pic"><img data-px="mug" data-s="2" alt=""></div><div><div class="line"><span>COFFEE</span><span class="lead-dots"></span><i><img data-px="token" data-s="2" alt="">10</i></div><div class="blurb">ALL YOUR HEARTS, FULL AGAIN! MOSTLY HOT!</div></div></li>
+    <li><div class="pic"><img data-px="heart" data-s="4" alt=""></div><div><div class="line"><span>EXTRA HEART</span><span class="lead-dots"></span><i><img data-px="token" data-s="2" alt="">60</i></div><div class="blurb">ONE MORE HEART TO KEEP! ONE PER CUSTOMER!</div></div></li>
+    <li><div class="pic"><img data-px="ic-baton" data-s="3" alt=""></div><div><div class="line"><span>BIGGER BATON</span><span class="lead-dots"></span><i><img data-px="token" data-s="2" alt="">80</i></div><div class="blurb">POWER +1. EVERY HIT HITS HARDER! CLUNK!</div></div></li>
+    <li><div class="pic"><img data-px="ic-note" data-s="3" alt=""></div><div><div class="line"><span>METRONOME</span><span class="lead-dots"></span><i><img data-px="token" data-s="2" alt="">50</i></div><div class="blurb">RHYTHM +1: ONE MORE NOTE TO THROW! TICK!</div></div></li>
+    <li><div class="pic"><img data-px="ic-memofinder" data-s="3" alt=""></div><div><div class="line"><span>MEMO FINDER</span><span class="lead-dots"></span><i><img data-px="token" data-s="2" alt="">120</i></div><div class="blurb">THE CODEX WILL SHOW WHERE MEMOS STILL HIDE!</div></div></li>
+    <li><div class="pic"><img data-px="hero-gold" data-s="2" alt=""></div><div><div class="line"><span>GOLD BOW TIE</span><span class="lead-dots"></span><i><img data-px="token" data-s="2" alt="">250</i></div><div class="blurb">PURE STYLE! SWITCH IT IN THE PAUSE MENU!</div></div></li>
+  </ul>
+</section>
+
+<!-- 15: the map and the pause menu -->
+<section class="page" style="--sec:var(--teal)" data-label="THE MAP">
+  <h2><small>BETWEEN LEVELS</small>THE MAP</h2>
+  <figure style="margin-top:0"><img class="shot" data-shot="map" style="--sw:300" alt="The map: a circuit board with levels, VEND-9 and locked floors"></figure>
+  <p>Walk the map with the D-pad and press A to go in. Cleared levels light up, and each floor shows how many of its six memos you have found. Once you finish a level, its card shows your BEST time and the PAR to beat.</p>
+  <div class="box">
+    <h4>PRESS START TO PAUSE</h4>
+    <ul class="menu-list">
+      <li><b>RESUME</b><span>Back to it.</span></li>
+      <li><b>CODEX</b><span>Memos, foes you have met, gold stars and best times.</span></li>
+      <li><b>MUSIC</b><span>FULL, LOW or OFF.</span></li>
+      <li><b>TEXT</b><span>NORMAL or FAST.</span></li>
+      <li><b>CODES</b><span>Shh. See page 27.</span></li>
+      <li><b>MAP, TITLE</b><span>Leave the level. It asks first.</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- 16: the four floors, 1 -->
+<section class="page" style="--sec:#3d4fb0" data-label="THE FOUR FLOORS">
+  <h2><small>INSIDE THE 9F COMPUTER</small>THE FOUR FLOORS</h2>
+  <div class="world" style="--wc:#d93a3a">
+    <div class="wband"><span>THE INBOX</span><small>FLOOR 1</small></div>
+    <div class="wbody"><img class="shot" data-shot="w1-1" alt="The Inbox"><ol>
+      <li>1-1<span>THE LOBBY OF UNREAD</span></li><li>1-2<span>THE SORTING FLOOR</span></li><li>1-3<span>SPAM TOWER</span></li><li>TOP<span>THE REPLY-ALL HALL</span></li></ol></div>
+    <p class="flav">Where every email ends up, eventually. Mind the spam, and the flags.</p>
+  </div>
+  <div class="world" style="--wc:#1f9c90">
+    <div class="wband"><span>THE SERVER ROOM</span><small>FLOOR 2</small></div>
+    <div class="wbody"><img class="shot" data-shot="w2-1" alt="The Server Room"><ol>
+      <li>2-1<span>THE COLD AISLE</span></li><li>2-2<span>CABLE CANYON</span></li><li>2-3<span>THE FAN STACKS</span></li><li>TOP<span>THE HOT AISLE</span></li></ol></div>
+    <p class="flav">Cold aisles, warm racks and a lot of cable. Something down here is running hot.</p>
+  </div>
+</section>
+
+<!-- 17: the four floors, 2 -->
+<section class="page" style="--sec:#3d4fb0" data-label="THE FOUR FLOORS">
+  <h2><small>INSIDE THE 9F COMPUTER</small>THE FOUR FLOORS</h2>
+  <div class="world" style="--wc:#3d9bd6">
+    <div class="wband"><span>THE CLOUD</span><small>FLOOR 3</small></div>
+    <div class="wbody"><img class="shot" data-shot="w3-1" alt="The Cloud"><ol>
+      <li>3-1<span>UPLOAD MEADOWS</span></li><li>3-2<span>THE WINDY BUCKET</span></li><li>3-3<span>THE SYNC STORM</span></li><li>TOP<span>THE LOOP</span></li></ol></div>
+    <p class="flav">High above the office, where the files go to float. Watch the wind.</p>
+  </div>
+  <div class="world" style="--wc:#8a5ccc">
+    <div class="wband"><span>THE BACKLOG</span><small>FLOOR 4</small></div>
+    <div class="wbody"><img class="shot" data-shot="w4-1" alt="The Backlog"><ol>
+      <li>4-1<span>THE LATER PILE</span></li><li>4-2<span>THE SPRINT STAIRS</span></li><li>4-3<span>THE TOWER OF TICKETS</span></li><li>TOP<span>THE ROOT TICKET</span></li></ol></div>
+    <p class="flav">Everything anyone ever said they would do later. All of it is still here.</p>
+  </div>
+</section>
+
+<!-- 18: the bosses, kept secret -->
+<section class="page" style="--sec:var(--red)" data-label="AT THE TOP OF EACH FLOOR">
+  <h2><small>NO SPOILERS</small>AT THE TOP OF EACH FLOOR</h2>
+  <p class="lead">Every floor ends with something big standing between you and an agent. This booklet will not spoil who. It will only say this:</p>
+  <div class="bosses">
+    <div class="boss" style="--wc:#ff6b6b"><div class="q">?</div><h4><small>THE INBOX</small>THE REPLY-ALL HALL</h4><p>One email went out. Everyone answered. Then everyone answered that.</p></div>
+    <div class="boss" style="--wc:#46e0d2"><div class="q">?</div><h4><small>THE SERVER ROOM</small>THE HOT AISLE</h4><p>Something in rack 7 has not had a break in years, and it is very warm about it.</p></div>
+    <div class="boss" style="--wc:#7cc6ff"><div class="q">?</div><h4><small>THE CLOUD</small>THE LOOP</h4><p>It is almost done. It has been almost done for quite a while.</p></div>
+    <div class="boss" style="--wc:#c29bff"><div class="q">?</div><h4><small>THE BACKLOG</small>THE ROOT TICKET</h4><p>Ticket #1. It started small. They always do.</p></div>
+  </div>
+  <div class="tip"><img data-px="facil" data-s="2" alt=""><h4>FACILITATOR'S TIP</h4>Watch first, swing second. Every big thing has a rhythm, and you are the one with the baton.</div>
+</section>
+
+<!-- 19: foes, 1 -->
+<section class="page foes" style="--sec:#5a3f8f" data-label="FOES">
+  <h2><small>KNOW YOUR WORK</small>FOES</h2>
+  <h5 style="--wc:#d93a3a">THE INBOX</h5>
+  <div class="foe"><div class="pic"><img data-px="spam" data-s="3" alt=""></div><div><h4>SPAM</h4><p>A bouncing envelope, very pleased with itself. You have won nothing. Again.</p></div></div>
+  <div class="foe"><div class="pic"><img data-px="unsub" data-s="3" alt=""></div><div><h4>UNSUB BOT</h4><p>A little robot with one job: unsubscribing. It has unsubscribed from itself twice.</p></div></div>
+  <div class="foe"><div class="pic"><img data-px="ooo" data-s="3" alt=""></div><div><h4>OUT OF OFFICE</h4><p>An auto-reply left on years ago. It answers everything and is never really there.</p></div></div>
+  <div class="foe"><div class="pic"><img data-px="flag" data-s="2" alt=""></div><div><h4>FLAGGED</h4><p>A red flag that pops up out of the floor. Everything is urgent, so nothing is.</p></div></div>
+  <h5 style="--wc:#1f9c90;margin-top:calc(7*var(--u))">THE SERVER ROOM</h5>
+  <div class="foe"><div class="pic"><img data-px="bug" data-s="3" alt=""></div><div><h4>BUG</h4><p>A beetle on the walls. Nobody knows who let the first one in. It says it is a feature.</p></div></div>
+  <div class="foe"><div class="pic"><img data-px="timeout" data-s="3" alt=""></div><div><h4>TIMEOUT</h4><p>A clock that took too long and takes it out on you: one touch and you freeze. Please wait.</p></div></div>
+  <div class="foe"><div class="pic"><img data-px="ping" data-s="3" alt=""></div><div><h4>PING</h4><p>A packet that bounces back and forth, checking if you are there. You are. It checks again.</p></div></div>
+  <div class="foe"><div class="pic"><img data-px="spark" data-s="4" alt=""></div><div><h4>SPARK</h4><p>A loose connection running along the cables. Not evil, just loose. Do not hug the cables.</p></div></div>
+</section>
+
+<!-- 20: foes, 2 -->
+<section class="page foes" style="--sec:#5a3f8f" data-label="FOES">
+  <h2><small>KNOW YOUR WORK</small>FOES</h2>
+  <h5 style="--wc:#3d9bd6">THE CLOUD</h5>
+  <div class="foe"><div class="pic"><img data-px="spinner" data-s="3" alt=""></div><div><h4>LOADING SPINNER</h4><p>A ring that spins and throws dots. It promised it was almost done. It was not.</p></div></div>
+  <div class="foe"><div class="pic"><img data-px="limiter" data-s="3" alt=""></div><div><h4>RATE LIMITER</h4><p>A gate that shuts on the beat: too many requests. Keep time and walk straight through.</p></div></div>
+  <div class="foe"><div class="pic"><img data-px="miss" data-s="3" alt=""></div><div><h4>CACHE MISS</h4><p>A ghost that should have been there, wasn't, then was. Hit one and it is a cache hit.</p></div></div>
+  <div class="foe"><div class="pic"><img data-px="push" data-s="3" alt=""></div><div><h4>PUSH NOTIFICATION</h4><p>A little bell with a red badge. Ding! It needs your attention right now. It always does.</p></div></div>
+  <h5 style="--wc:#8a5ccc;margin-top:calc(7*var(--u))">THE BACKLOG</h5>
+  <div class="foe"><div class="pic"><img data-px="ticket" data-s="3" alt=""></div><div><h4>TICKET</h4><p>A hopping ticket with big eyes. All it wants is to be picked up and done. One day.</p></div></div>
+  <div class="foe"><div class="pic"><img data-px="urgent" data-s="3" alt=""></div><div><h4>URGENT</h4><p>Low priority, high urgency. It charges the moment it sees you, then forgets why.</p></div></div>
+  <div class="foe"><div class="pic"><img data-px="nice" data-s="4" alt=""></div><div><h4>NICE TO HAVE</h4><p>Tiny sticky notes that multiply when nobody says no. Each one wants to be a big one.</p></div></div>
+  <div class="foe"><div class="pic"><img data-px="invite" data-s="3" alt=""></div><div><h4>MEETING INVITE</h4><p>A calendar page that pulls you in. This meeting could have been an email. Decline it.</p></div></div>
+</section>
+
+<!-- 21: saving and secrets -->
+<section class="page" style="--sec:var(--teal)" data-label="SAVING AND SECRETS">
+  <h2><small>KEEP WHAT YOU EARN</small>SAVING AND SECRETS</h2>
+  <div class="box">
+    <h4>SAVING</h4>
+    <ul class="dots">
+      <li>Touch a coffee mug and the game saves.</li>
+      <li>There are three files. Pick one with FILE on the title screen. Each keeps its own levels, tokens, moves and stars.</li>
+      <li>On the web page your saves live in your browser, and updates to the game keep them. To be extra safe: MENU, then SAVES. Save a backup file or copy a code, and restore it on any phone or computer.</li>
+    </ul>
+  </div>
+  <div class="box" style="--sec:var(--orange)">
+    <h4>SECRETS (A FEW HINTS, NO MORE)</h4>
+    <ul class="dots">
+      <li>The office cat hides once on every floor.</li>
+      <li>Six memos hide on every floor. VEND-9's MEMO FINDER helps.</li>
+      <li>Some walls are not walls. Look for something a little off: a crack, a loose vent, an odd cloud.</li>
+      <li>There are 32 GOLD STARS. Some are for doing things well. Some are for doing things oddly.</li>
+      <li>Finish a level fast enough and you beat its PAR.</li>
+      <li>Every boss you beat teaches you a cheat code. The codex's CODES page keeps every one you know.</li>
+      <li>The show does not end at the credits.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 24: game modes -->
+<section class="page" style="--sec:var(--violet)" data-label="GAME MODES">
+  <h2><small>MORE WAYS TO PLAY</small>GAME MODES</h2>
+  <figure style="margin-top:0"><img class="shot" data-shot="modes" style="--sw:268" alt="GAME MODES: BATTLE, then HIGH SCORE and SPEED RUN under COMING SOON ribbons"><figcaption>FROM THE MAIN MENU: GAME MODES.</figcaption></figure>
+  <p><b class="pix">BATTLE.</b> Up to four conductors in one arena, last one standing. The next page has the rules.</p>
+  <p><b class="pix">HIGH SCORE</b> and <b class="pix">SPEED RUN</b> are coming soon. The ribbons come off when they are ready.</p>
+  <div class="box">
+    <h4>SETTING UP A BATTLE</h4>
+    <ul class="menu-list">
+      <li><b>PLAYERS</b><span>Each of four slots: you, a CPU, or nobody, with a colour (ORANGE, TEAL, BERRY, VIOLET) and a name of our own, like TEMPO or FORTE.</span></li>
+      <li><b>RULES</b><span>ROUNDS (best of 1, 3 or 5), HEARTS (1 to 5), ITEMS (on or off), CPU (EASY, NORMAL, HARD).</span></li>
+      <li><b>ARENA</b><span>One from each floor: REPLY ALL, HOT SPARE, SYNC OR SWIM, STAND-UP.</span></li>
+    </ul>
+  </div>
+  <p class="small">Four controllers can share one screen (A on each joins). Online: HOST ONLINE gives a 4-letter code and a link; friends pick JOIN ONLINE or open the link.</p>
+</section>
+
+<!-- 25: battle -->
+<section class="page" style="--sec:var(--red)" data-label="BATTLE">
+  <h2><small>LAST ONE STANDING</small>BATTLE</h2>
+  <figure style="margin-top:0"><img class="shot" data-shot="battle" style="--sw:268" alt="Four CPU conductors fighting in STAND-UP, THE BACKLOG's arena"></figure>
+  <ul class="dots" style="--sec:var(--red)">
+    <li>Everyone has hearts, and only a fall off the arena costs one.</li>
+    <li>Every hit adds WOBBLE, the pips by your name. The more WOBBLE, the further the next hit sends you.</li>
+    <li>A fall resets your WOBBLE. You drop back in blinking, and nobody can hit you while you blink.</li>
+    <li>Last one with hearts wins the round. After 100 seconds it is OVERTIME, and WOBBLE grows twice as fast.</li>
+  </ul>
+  <div class="box">
+    <h4>POWER-UPS (THEY FLOAT IN; GRAB ONE)</h4>
+    <div class="pups">
+      <span><img data-px="mug" data-s="2" alt="">COFFEE<i>A HEART BACK</i></span>
+      <span><img data-px="ic-baton" data-s="2" alt="">BIGGER BATON<i>HARDER KNOCKS</i></span>
+      <span><img data-px="ic-note" data-s="2" alt="">METRONOME<i>NOTES, FULL</i></span>
+      <span><img data-px="ic-dash" data-s="2" alt="">QUICK KEYS<i>DASH, 15 S</i></span>
+      <span><img data-px="ic-hover" data-s="2" alt="">PAUSE TO THINK<i>HOVER, 15 S</i></span>
+      <span><img data-px="ic-pound" data-s="2" alt="">FIRM HAND<i>POUND, 15 S</i></span>
+    </div>
+  </div>
+</section>
+
+<!-- 26: notes, with a sticky note -->
+<section class="page" style="--sec:var(--ink)" data-label="NOTES">
+  <h2>NOTES</h2>
+  <div class="lines"></div>
+  <div class="sticky" id="sticky" role="button" tabindex="0" aria-label="A sticky note. Turn it over.">
+    <div class="in">
+      <div class="s f">PSST!<small><span class="clicktap">CLICK</span> TO TURN ME OVER</small></div>
+      <div class="s b">THE CODES SCREEN: PAUSE, THEN CODES, THEN EIGHT PRESSES. TRY THIS ONE:<span class="code">DOWN UP DOWN UP<br>B B B B</span>GREEN SCREEN. SEVEN MORE ARE OUT THERE: EACH BOSS KNOWS ONE.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 23: the back cover -->
+<section class="page cover-back" data-label="BACK COVER">
+  <div class="stars"></div>
+  <div class="in">
+    <h3 class="pix">THE NINTH FLOOR NEEDS<br>ITS AGENTS BACK.</h3>
+    <p>SCOPE CREEP has pulled C1, C2 and C3 into the 9F computer. Grab your baton and go after them: four floors, twelve levels, four very big problems, a vending machine with opinions, and one cat.</p>
+    <div class="shots"><img class="shot" data-shot="w1-1" alt=""><img class="shot" data-shot="w3-1" alt=""><img class="shot" data-shot="w4-1" alt=""></div>
+    <div class="agents"><div><img data-px="c1-trapped" data-s="3" alt="C1, wrapped in sticky notes"><span>C1</span></div><div><img data-px="c2-trapped" data-s="3" alt="C2, wrapped in sticky notes"><span>C2</span></div><div><img data-px="c3-trapped" data-s="3" alt="C3, wrapped in sticky notes"><span>C3</span></div><p>THEY ARE COUNTING ON YOU.</p></div>
+    <div class="feats"><span>3 SAVE FILES</span><span>32 GOLD STARS</span><span>24 MEMOS</span><span>8 CHEAT CODES</span><span>BATTLE MODE</span><span>KEYS, TOUCH OR PAD</span></div>
+    <div class="foot">
+      <div class="barcode"><svg id="barcode" viewBox="0 0 120 40" preserveAspectRatio="none" aria-hidden="true"></svg><i>9 F 0 0 0 1 1 6</i></div>
+      <div class="madewith"><span class="badge9" style="width:calc(26*var(--u));height:calc(26*var(--u));font-size:calc(10*var(--u))">9F</span><br>MADE WITH CLAUDE.</div>
+    </div>
+  </div>
+  <div class="gloss"></div>
+</section>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var SIZES = {"bigtoken":[12,12],"bug":[12,12],"c1-cheer":[16,20],"c1-trapped":[16,20],"c2-cheer":[16,20],"c2-trapped":[16,20],"c3-cheer":[16,20],"c3-trapped":[16,20],"cat":[16,12],"door":[16,24],"face-creep":[16,16],"facil":[12,12],"flag":[14,18],"heart":[8,8],"hero":[16,20],"hero-charge":[16,20],"hero-cheer":[16,20],"hero-dash":[16,20],"hero-gold":[16,20],"hero-hover":[16,20],"hero-jump":[16,20],"hero-pound":[16,20],"hero-run":[16,20],"hero-swing":[16,20],"ic-baton":[12,12],"ic-dash":[12,12],"ic-hover":[12,12],"ic-memofinder":[12,12],"ic-note":[12,12],"ic-pound":[12,12],"invite":[16,16],"limiter":[16,16],"logo":[196,98],"memo":[8,10],"miss":[14,14],"mug":[16,16],"nice":[10,10],"note":[8,8],"ooo":[16,14],"ping":[12,12],"push":[12,12],"shot-battle":[320,200],"shot-map":[320,200],"shot-menu":[320,200],"shot-modes":[320,200],"shot-options":[320,200],"shot-title":[320,200],"shot-w1-1":[320,200],"shot-w2-1":[320,200],"shot-w3-1":[320,200],"shot-w4-1":[320,200],"sign":[16,16],"spam":[14,12],"spark":[10,10],"spinner":[14,14],"ticket":[14,12],"timeout":[14,14],"token":[8,8],"unsub":[14,16],"urgent":[14,12],"vend":[32,48]};
+  var root = document.documentElement, book = document.getElementById('book'), stage = document.getElementById('stage');
+  var pages = [].slice.call(document.querySelectorAll('#pages > .page')), N = pages.length;
+  var hint = document.getElementById('hint'), where = document.getElementById('where');
+  var prevB = document.getElementById('prev'), nextB = document.getElementById('next'), tocB = document.getElementById('toc');
+  var coarse = matchMedia('(pointer: coarse)').matches, reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var DUR = 850, mode = '', leaves = [], blanks = [], t = 0, uPx = 1, normT = 0;
+
+  // ---------- the pictures: each at whole steps of its own pixels ----------
+  [].forEach.call(document.querySelectorAll('img[data-px]'), function (im) {
+    var n = im.getAttribute('data-px'), s = +im.getAttribute('data-s') || 1, z = SIZES[n] || [16, 16];
+    im.className += ' px'; im.src = 'manual/' + n + '.png'; im.style.setProperty('--iw', z[0] * s); im.style.setProperty('--ih', z[1] * s); im.draggable = false;
+  });
+  [].forEach.call(document.querySelectorAll('img[data-shot]'), function (im) { im.src = 'manual/shot-' + im.getAttribute('data-shot') + '.png'; im.draggable = false; });
+  if (coarse) [].forEach.call(document.querySelectorAll('.clicktap'), function (e) { e.textContent = e.textContent === 'CLICK' ? 'TAP' : 'Tap'; });
+  if (coarse) hint.textContent = 'TAP THE BOOKLET TO OPEN IT';
+  // the page numbers, at the outer corner of every page but the covers and the inside cover
+  pages.forEach(function (p, i) { if (i >= 2 && i <= N - 2) { var f = document.createElement('div'); f.className = 'folio'; f.innerHTML = '<b>' + (i + 1) + '</b><span>BATON QUEST</span>'; p.appendChild(f); } });
+  // a barcode of our own (bars from a fixed pattern, so it is the same every time)
+  (function () { var svg = document.getElementById('barcode'), x = 2, seed = 9, h = ''; while (x < 118) { seed = (seed * 37 + 11) % 101; var w = 1 + seed % 3; if (seed % 2) h += '<rect x="' + x + '" y="0" width="' + w + '" height="40" fill="#111"/>'; x += w + 1; } svg.innerHTML = h; })();
+
+  // ---------- the leaves: two pages on each in a spread, one in single-page view ----------
+  function maxT() { return mode === 'spread' ? leaves.length : leaves.length - 1; }
+  function pageNow() { return mode === 'spread' ? (t === 0 ? 0 : t >= leaves.length ? N - 1 : 2 * t - 1) : t; }
+  function tFor(p) { p = Math.max(0, Math.min(N - 1, p | 0)); return mode === 'spread' ? Math.ceil(p / 2) : p; }
+  function face(cls, page) { var f = document.createElement('div'); f.className = 'face ' + cls; f.appendChild(page); var s = document.createElement('div'); s.className = 'shade'; f.appendChild(s); return f; }
+  function blank() { var b = document.createElement('section'); b.className = 'page blank'; return b; }
+  function build(m, keepPage) {
+    leaves.forEach(function (l) { l.remove(); }); leaves = [];
+    mode = m; book.classList.toggle('spread', m === 'spread'); book.classList.toggle('single', m !== 'spread');
+    root.style.setProperty('--bw', m === 'spread' ? 880 : 440);
+    var L = m === 'spread' ? N / 2 : N, i, lf;
+    for (i = 0; i < L; i++) {
+      lf = document.createElement('div'); lf.className = 'leaf';
+      lf.appendChild(face('front', m === 'spread' ? pages[2 * i] : pages[i]));
+      lf.appendChild(face('back', m === 'spread' ? pages[2 * i + 1] : blank()));
+      book.appendChild(lf); leaves.push(lf);
+    }
+    t = tFor(keepPage); place(true);
+  }
+  function zNorm() {   // at rest: the stacking order from t; only the leaves beside the open pages drawn (the next turn either way is ready); each one's far side hidden
+    var L = leaves.length, lo = mode === 'spread' ? t - 2 : t - 1, hi = t + 1;
+    leaves.forEach(function (lf, i) {
+      var on = i < t; lf.classList.remove('fwd', 'bwd'); lf.style.zIndex = on ? 10 + i : 10 + (L - i);
+      lf.classList.toggle('gone', mode !== 'spread' && on && i < t);   // single-page view: a turned page is out of sight
+      lf.classList.toggle('far', i < lo || i > hi); lf.classList.add('still');
+    });
+    void book.offsetWidth; leaves.forEach(function (lf) { lf.style.transition = ''; });   // leaves moved out of sight in a long jump turn again next time
+  }
+  function bookState(tt) {
+    var mt = maxT(); book.classList.toggle('at-front', tt === 0); book.classList.toggle('at-back', tt === mt); book.classList.toggle('open', tt > 0 && tt < mt);
+    var L = leaves.length, right = mode === 'spread' ? L - tt : L - tt - 1, left = mode === 'spread' ? tt : 0;
+    edge('edgeR', right, 1); edge('edgeL', left, -1);
+  }
+  function edge(id, n, dir) {   // the stack of pages under the open ones: thicker the more pages are on that side
+    var e = document.getElementById(id), k = Math.min(6, n), sh = [], j;
+    for (j = 1; j <= k; j++) sh.push((dir * j * 0.9 * uPx).toFixed(2) + 'px ' + (j * 0.8 * uPx).toFixed(2) + 'px 0 ' + (j % 2 ? '#e2d5b9' : '#cfc0a0'));
+    e.style.boxShadow = sh.join(', ') || 'none'; e.style.visibility = n > 0 ? 'visible' : 'hidden';
+  }
+  function place(instant) {   // no animation: everything straight to where t says
+    leaves.forEach(function (lf, i) { lf.style.transition = 'none'; lf.classList.toggle('turned', i < t); });
+    zNorm(); bookState(t); void book.offsetWidth; leaves.forEach(function (lf) { lf.style.transition = ''; }); ui();
+  }
+  function go(t2) {
+    var mt = maxT(); t2 = Math.max(0, Math.min(mt, t2)); if (t2 === t) return;
+    var dir = t2 > t ? 1 : -1, list = [], i, L = leaves.length;
+    if (dir > 0) for (i = t; i < t2; i++) list.push(i); else for (i = t - 1; i >= t2; i--) list.push(i);
+    var skip = list.length > 3 ? list.splice(1, list.length - 3) : [];   // a long jump turns the first leaf and the last two; the ones between move at once, out of sight
+    skip.forEach(function (li) { var lf = leaves[li]; lf.classList.add('far'); lf.classList.remove('fwd', 'bwd'); lf.style.transition = 'none'; lf.classList.toggle('turned', dir > 0); });
+    [t - 1, t, t2 - 1, t2].concat(list).forEach(function (li) { if (leaves[li]) leaves[li].classList.remove('far'); });   // drawn while the pages turn: the open pages, the turning leaves, what lies under the last
+    var n = list.length, step = n > 1 ? Math.min(110, 520 / n) : 0, dur = reduce ? 1 : n > 1 ? 560 : DUR;
+    var fromEnd = t === 0 || t === mt, toEnd = t2 === 0 || t2 === mt, d0 = 0;
+    if (fromEnd && !reduce) { bookState(Math.max(1, Math.min(mt - 1, t2))); d0 = 280; } else if (!toEnd) bookState(t2);
+    list.forEach(function (li, k) {
+      var lf = leaves[li]; lf.style.setProperty('--dur', dur + 'ms'); lf.style.zIndex = 500 + (dir > 0 ? li : L - li); lf.classList.remove('gone', 'still');
+      setTimeout(function () { lf.classList.remove('fwd', 'bwd'); void lf.offsetWidth; lf.classList.add(dir > 0 ? 'fwd' : 'bwd'); lf.classList.toggle('turned', dir > 0); }, d0 + k * step);
+    });
+    var end = d0 + (n - 1) * step + dur;
+    if (toEnd) setTimeout(function () { if (t === t2) bookState(t2); }, reduce ? 0 : end * 0.62);
+    t = t2; clearTimeout(normT); normT = setTimeout(zNorm, end + 60); ui();
+  }
+  function ui() {
+    var mt = maxT(), p = pageNow();
+    prevB.disabled = t === 0; nextB.disabled = t === mt; hint.classList.toggle('off', t !== 0);
+    if (p === 0) where.textContent = 'COVER';
+    else if (p === N - 1) where.textContent = 'BACK COVER';
+    else if (mode === 'spread') where.textContent = 'PAGES ' + (2 * t) + ' AND ' + (2 * t + 1);
+    else where.textContent = 'PAGE ' + (p + 1) + ' OF ' + N;
+    try { history.replaceState(null, '', p ? '#p' + (p + 1) : location.pathname + location.search); } catch (e) {}
+  }
+
+  // ---------- size: the biggest that fits; two pages if they fit at a readable size ----------
+  function layout() {
+    var bar = document.querySelector('.bar').offsetHeight, ctl = document.querySelector('.ctrl').offsetHeight;
+    var aw = innerWidth - 20, ah = innerHeight - bar - ctl - 18;
+    var ks = Math.min(aw / 880, ah / 660), k1 = Math.min(aw / 440, ah / 660);
+    var spread = ks >= 0.7 && ks >= k1 * 0.62, k = Math.max(0.2, Math.min(spread ? ks : k1, 2.6) * 0.97);
+    uPx = k; root.style.setProperty('--u', k.toFixed(4) + 'px');
+    var m = spread ? 'spread' : 'single';
+    if (m !== mode) build(m, mode ? pageNow() : startPage); else bookState(t);
+  }
+  var startPage = 0, hm = /^#p(\d+)$/.exec(location.hash); if (hm) startPage = Math.max(0, Math.min(N - 1, (+hm[1]) - 1));
+  addEventListener('resize', layout);
+
+  // ---------- turning pages: clicks, swipes, keys, a controller ----------
+  function next() { go(t + 1); } function prev() { go(t - 1); }
+  prevB.addEventListener('click', prev); nextB.addEventListener('click', next);
+  tocB.addEventListener('click', function () { go(tFor(2)); });
+  document.getElementById('pages').hidden = false;   // the pages now live inside the leaves
+  [].forEach.call(document.querySelectorAll('[data-go]'), function (b) { b.addEventListener('click', function (e) { e.stopPropagation(); if (Date.now() < quietUntil) return; go(tFor(+b.getAttribute('data-go'))); }); });
+  var sticky = document.getElementById('sticky');
+  function flipSticky(e) { e.stopPropagation(); if (Date.now() < quietUntil) return; sticky.classList.toggle('open'); }
+  sticky.addEventListener('click', flipSticky);
+  sticky.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flipSticky(e); } });
+  var down = null, quietUntil = 0;
+  stage.addEventListener('pointerdown', function (e) { if (e.button) return; down = { x: e.clientX, y: e.clientY, skip: !!e.target.closest('[data-go], a, button, .sticky') }; });
+  stage.addEventListener('pointercancel', function () { down = null; });
+  stage.addEventListener('pointerup', function (e) {
+    var d = down; down = null;
+    if (!d) return;
+    var dx = e.clientX - d.x, dy = e.clientY - d.y;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.2) { quietUntil = Date.now() + 450; if (dx < 0) next(); else prev(); return; }
+    if (Math.abs(dx) > 10 || Math.abs(dy) > 10 || d.skip) return;
+    var mt = maxT(); if (t === 0) { next(); return; } if (t === mt) { prev(); return; }
+    var r = book.getBoundingClientRect(), mid = mode === 'spread' ? r.left + r.width / 2 : r.left + r.width * 0.3;
+    if (e.clientX < mid) prev(); else next();
+  });
+  addEventListener('keydown', function (e) {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    var k = e.key;
+    if (k === 'ArrowRight' || k === 'PageDown' || (k === ' ' && !e.target.closest('button, [role=button]'))) { e.preventDefault(); next(); }
+    else if (k === 'ArrowLeft' || k === 'PageUp') { e.preventDefault(); prev(); }
+    else if (k === 'Home') { e.preventDefault(); go(0); }
+    else if (k === 'End') { e.preventDefault(); go(maxT()); }
+    else if (k === 'Escape') { go(0); }
+  });
+  var padOn = false, was = {};
+  function poll() {
+    var ps = navigator.getGamepads ? navigator.getGamepads() : [], p = null, i;
+    for (i = 0; i < ps.length; i++) if (ps[i] && ps[i].connected) { p = ps[i]; break; }
+    if (p) {
+      var b = function (n) { return !!(p.buttons[n] && p.buttons[n].pressed); }, ax = p.axes[0] || 0;
+      var now = { r: b(15) || b(5) || b(0) || ax > 0.6, l: b(14) || b(4) || ax < -0.6, x: b(1) };
+      if (now.r && !was.r) next(); if (now.l && !was.l) prev(); if (now.x && !was.x) go(0); was = now;
+    }
+    requestAnimationFrame(poll);
+  }
+  addEventListener('gamepadconnected', function () { if (!padOn) { padOn = true; requestAnimationFrame(poll); } });
+
+  // ---------- start ----------
+  layout();
+  var shown = false; function show() { if (!shown) { shown = true; document.body.classList.add('ready'); } }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(show, show);
+  setTimeout(show, 1500);
+  window.BQ_BOOK = { go: go, next: next, prev: prev, jump: function (tt) { t = Math.max(0, Math.min(maxT(), tt)); place(true); }, state: function () { return { mode: mode, t: t, maxT: maxT(), page: pageNow(), leaves: leaves.length, u: uPx }; } };   // for checks
+})();
+</script>
+</body>
+</html>
