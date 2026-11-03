@@ -873,12 +873,15 @@
     }
     t = tFor(keepPage); place(true);
   }
-  function zNorm() {   // at rest: the stacking order from t; only the leaves beside the open pages drawn (the next turn either way is ready); each one's far side hidden
-    var L = leaves.length, lo = mode === 'spread' ? t - 2 : t - 1, hi = t + 1;
+  function zNorm() {   // at rest: the stacking order from t; only the leaves beside the open pages drawn (the next turn either way is ready); far sides hidden on the others
+    var L = leaves.length, lo = mode === 'spread' ? t - 2 : t - 1, hi = t + 1, shut = t === maxT();
     leaves.forEach(function (lf, i) {
       var on = i < t; lf.classList.remove('fwd', 'bwd'); lf.style.zIndex = on ? 10 + i : 10 + (L - i);
-      lf.classList.toggle('gone', mode !== 'spread' && on && i < t);   // single-page view: a turned page is out of sight
-      lf.classList.toggle('far', i < lo || i > hi); lf.classList.add('still');
+      // single-page view: the page just turned stays on the left, its blank back showing, so a turned page never flashes out (Michael, 2 Nov, 23:53);
+      // older ones lie under it out of sight, and all of them go once the booklet is shut at the back
+      lf.classList.toggle('gone', mode !== 'spread' && on && (i < t - 1 || shut));
+      lf.classList.toggle('far', i < lo || i > hi);
+      lf.classList.toggle('still', i !== t && i !== t - 1);   // the two leaves the next turn uses keep both sides drawn, so no side is painted for the first time mid-turn
     });
     void book.offsetWidth; leaves.forEach(function (lf) { lf.style.transition = ''; });   // leaves moved out of sight in a long jump turn again next time
   }
@@ -903,6 +906,7 @@
     var skip = list.length > 3 ? list.splice(1, list.length - 3) : [];   // a long jump turns the first leaf and the last two; the ones between move at once, out of sight
     skip.forEach(function (li) { var lf = leaves[li]; lf.classList.add('far'); lf.classList.remove('fwd', 'bwd'); lf.style.transition = 'none'; lf.classList.toggle('turned', dir > 0); });
     [t - 1, t, t2 - 1, t2].concat(list).forEach(function (li) { if (leaves[li]) leaves[li].classList.remove('far'); });   // drawn while the pages turn: the open pages, the turning leaves, what lies under the last
+    if (mode !== 'spread' && leaves[t2 - 1] && t2 < maxT()) leaves[t2 - 1].classList.remove('gone', 'still');   // single-page view: the page that lies on the left after this turn shows from its start
     var n = list.length, step = n > 1 ? Math.min(110, 520 / n) : 0, dur = reduce ? 1 : n > 1 ? 560 : DUR;
     var fromEnd = t === 0 || t === mt, toEnd = t2 === 0 || t2 === mt, d0 = 0;
     if (fromEnd && !reduce) { bookState(Math.max(1, Math.min(mt - 1, t2))); d0 = 280; } else if (!toEnd) bookState(t2);
