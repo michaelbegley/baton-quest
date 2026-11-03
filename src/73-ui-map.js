@@ -160,6 +160,11 @@
           drawInfo(g, t);
           if (M.going) { g.globalAlpha = Q.clamp(M.fade, 0, 1); U.fill(g, 0, 0, 320, 200, '#000000'); g.globalAlpha = 1; }
           U.drawTalk(g);
+        },
+        sides: function (g) {   // a wide screen's sides (the engine clips to them): more board, the HUD's band carried across, and the same fade
+          U.boardSides(g);
+          U.fill(g, 0, 0, Q.W, 15, '#121318'); U.fill(g, 0, 15, Q.W, 1, '#3a3d52');
+          if (M.going) { g.globalAlpha = Q.clamp(M.fade, 0, 1); U.fill(g, 0, 0, Q.W, 200, '#000000'); g.globalAlpha = 1; }
         }
       });
       function drawInfo(g, t) {   // the bar at the bottom: where he stands and what he can do there

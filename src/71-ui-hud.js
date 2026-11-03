@@ -54,28 +54,32 @@
         if (fw > 0) U.fill(g, x + 1, 11, fw, 3, '#ffd9b0');
         if (hw > 0) { U.fill(g, x + 1, 11, hw, 3, H.hitT > 0 ? '#ffffff' : '#e0443a'); U.fill(g, x + 1, 11, hw, 1, H.hitT > 0 ? '#ffffff' : '#ff8a7a'); }
       }
+      U.hudBand = function () {   // where the HUD's items go: the whole screen up to 16:9 (Q.HUDW), centred on a wider one, so they never sit at the far edges of a 32:9 screen
+        var w = Math.min(Q.W, Q.HUDW || 356);
+        return { x: (Q.W - w) >> 1, w: w };
+      };
       Q.ui.hud = function (g) {
-        var s = U.stat(), now = U.now(), i, x, hearts, full, y, iw;
+        var s = U.stat(), now = U.now(), i, x, hearts, full, y, iw, hb = U.hudBand(), L = hb.x, R = hb.x + hb.w;   // L and R: the band's sides (0 and 320 on a 320 screen)
         bookkeep(s, now);
         if (Q.level && Q.level.world) U.lastWorld = Q.level.world;   // the map stands him by the world he was last in (the level is gone when the map opens)
         if (Q.level) U.lastStop = Q.level.root ? 'root' : typeof Q.encoreOn === 'function' && Q.encoreOn() ? 'encore' : '';   // or by THE ROOT FOLDER, or THE ENCORE's stage
-        U.fill(g, 0, 0, 320, 15, '#121318'); U.fill(g, 0, 15, 320, 1, '#3a3d52');
+        U.fill(g, 0, 0, Q.W, 15, '#121318'); U.fill(g, 0, 15, Q.W, 1, '#3a3d52');   // the dark band spans the whole screen
         hearts = Q.clamp(Math.round(s.maxHp), 1, 8);
         for (i = 0; i < hearts; i++) {
           full = i < Math.round(s.hp); y = 4;
           if (full && s.hp <= 1 && Math.floor(now * 4) % 2) y = 3;   // the last heart beats
-          Q.spr(g, 'ui-heart', full ? 0 : 1, 4 + i * 9, y);
+          Q.spr(g, 'ui-heart', full ? 0 : 1, L + 4 + i * 9, y);
         }
-        x = 8 + hearts * 9;
+        x = L + 8 + hearts * 9;
         for (i = 0; i < Q.clamp(Math.round(s.rhythmMax), 0, 6); i++) Q.spr(g, 'ui-note', i < Math.floor(s.rhythm + 0.001) ? 0 : 1, x + i * 7, 4);
         iw = U.iconCount() * 13 - 1;
-        if (iw > 0) U.icons(g, 316 - iw, 2, 13); else iw = 0;
-        if (Q.boss) { bossBar(g, 118, 316 - (iw ? iw + 6 : 0) - 118, now); }
+        if (iw > 0) U.icons(g, R - 4 - iw, 2, 13); else iw = 0;
+        if (Q.boss) { bossBar(g, L + 118, R - 4 - (iw ? iw + 6 : 0) - (L + 118), now); }
         else {
-          Q.spr(g, 'token', H.tokT > 0 ? Math.floor(now * 16) % 4 : 0, 120, 4);
-          U.text(String(Math.floor(s.tokens)), 131, 5, H.tokT > 0 ? '#ffd23f' : '#f6efe2');
-          U.text('LV', 166, 5, '#8a8fa3'); U.text(String(s.lv), 179, 5, H.lvT > 0 && Math.floor(now * 8) % 2 ? '#ffd23f' : '#ffffff');
-          x = 179 + U.width(String(s.lv)) + 5;
+          Q.spr(g, 'token', H.tokT > 0 ? Math.floor(now * 16) % 4 : 0, L + 120, 4);
+          U.text(String(Math.floor(s.tokens)), L + 131, 5, H.tokT > 0 ? '#ffd23f' : '#f6efe2');
+          U.text('LV', L + 166, 5, '#8a8fa3'); U.text(String(s.lv), L + 179, 5, H.lvT > 0 && Math.floor(now * 8) % 2 ? '#ffd23f' : '#ffffff');
+          x = L + 179 + U.width(String(s.lv)) + 5;
           U.fill(g, x, 6, 38, 5, '#000000'); U.fill(g, x + 1, 7, 36, 3, '#2a2c3a');
           if (s.part > 0) { U.fill(g, x + 1, 7, Math.max(1, Math.round(36 * s.part)), 3, '#2ec4b6'); U.fill(g, x + 1, 7, Math.max(1, Math.round(36 * s.part)), 1, '#8ff0e6'); }
         }

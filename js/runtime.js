@@ -1,5 +1,5 @@
   // ---------- the 9F computer's runtime: what its games run on (version 113; the same file runs the builders' test page) ----------
-  // A game draws into a screen of 320 by 200 pixels and reads six buttons; the runtime gives it our own pixel font, our own sounds, a save of its own in this browser, and
+  // A game draws into a screen of 320 by 200 pixels (a page on a wide window may widen it up to 712 with resize, and api.W says how wide) and reads six buttons; the runtime gives it our own pixel font, our own sounds, a save of its own in this browser, and
   // a line in the logbook for its big moments. It knows nothing of the office: the office's own part (or the test page) makes the runtime, feeds it keys, taps and the
   // controller, shows its screen and closes it.
   function makeArcade(o) {   // o: { canvas, audio: function () -> an AudioContext or null, keep: function (key, value), jot: function (text), close: function () }
@@ -71,11 +71,11 @@
       g.fillStyle = '#123b3f'; g.fillRect(0, 0, W, H);
       for (var y = 0; y < H; y += 8) { g.fillStyle = (y / 8) % 2 ? '#14423f' : '#123b3f'; g.fillRect(0, y, W, 8); }   // a quiet striped wallpaper
       g.fillStyle = '#0b2427'; g.fillRect(0, 0, W, 14); text('9F OS', 6, 4, '#ff8a1e'); var d = new Date(), hh = d.getHours(), mm = d.getMinutes(); text((hh < 10 ? '0' : '') + hh + ':' + (mm < 10 ? '0' : '') + mm, W - 6, 4, '#e6f2ef', 1, 'right');
-      if (!games.length) { text('NO GAMES YET', W / 2, H / 2 - 4, '#e6f2ef', 1, 'center'); return; }
+      if (!games.length) { text('NO GAMES YET', W >> 1, H / 2 - 4, '#e6f2ef', 1, 'center'); return; }
       if (edge.left) pick = (pick + games.length - 1) % games.length; if (edge.right) pick = (pick + 1) % games.length;
       if (edge.up) pick = Math.max(0, pick - 4); if (edge.down) pick = Math.min(games.length - 1, pick + 4);
       for (var i = 0; i < games.length; i++) {
-        var gx = 20 + (i % 4) * 76, gy = 30 + Math.floor(i / 4) * 70, on = i === pick;
+        var gx = 20 + ((W - 320) >> 1) + (i % 4) * 76, gy = 30 + Math.floor(i / 4) * 70, on = i === pick;   // on a wider screen the icons keep to a centred 320
         if (on) { g.fillStyle = 'rgba(255,138,30,0.25)'; g.fillRect(gx - 4, gy - 4, 64, 60); g.fillStyle = '#ff8a1e'; g.fillRect(gx - 4, gy - 4, 64, 1); g.fillRect(gx - 4, gy + 55, 64, 1); g.fillRect(gx - 4, gy - 4, 1, 60); g.fillRect(gx + 59, gy - 4, 1, 60); }
         g.fillStyle = '#0b2427'; g.fillRect(gx + 12, gy, 32, 32);
         try { if (games[i].icon) games[i].icon(g, gx + 12, gy, 32); } catch (e) {}
@@ -83,16 +83,22 @@
         words.forEach(function (w) { if ((l1 + ' ' + w).trim().length <= 10 && !l2) l1 = (l1 + ' ' + w).trim(); else l2 = (l2 + ' ' + w).trim(); });
         text(l1, gx + 28, gy + 37, on ? '#ffffff' : '#bcd3ce', 1, 'center'); if (l2) text(l2.slice(0, 10), gx + 28, gy + 46, on ? '#ffffff' : '#bcd3ce', 1, 'center');
       }
-      text('ARROWS PICK  -  A OPENS  -  ESC STANDS UP', W / 2, H - 12, '#7fa8a1', 1, 'center');
+      text('ARROWS PICK  -  A OPENS  -  ESC STANDS UP', W >> 1, H - 12, '#7fa8a1', 1, 'center');
       if (edge.a || edge.start) open(games[pick].id);
     }
     function frame(dt) {   // one frame: the buttons' edges, then the game or the desktop
       dt = Math.max(0, Math.min(dt || 0, 0.05)); life += dt;
       NAMES.forEach(function (n) { edge[n] = tapped[n] || (held[n] && !was[n]); was[n] = held[n]; tapped[n] = false; });
-      if (cur) { cur.api._tick(dt); try { if (cur.run.frame) cur.run.frame(dt); } catch (e) { var bad = cur; stop(); setTimeout(function () { throw e; }); g.fillStyle = '#300'; g.fillRect(0, 0, W, H); text('THAT GAME STOPPED: ' + (bad && bad.game.name), W / 2, H / 2, '#fff', 1, 'center'); } }
+      if (cur) { cur.api._tick(dt); try { if (cur.run.frame) cur.run.frame(dt); } catch (e) { var bad = cur; stop(); setTimeout(function () { throw e; }); g.fillStyle = '#300'; g.fillRect(0, 0, W, H); text('THAT GAME STOPPED: ' + (bad && bad.game.name), W >> 1, H / 2, '#fff', 1, 'center'); } }
       else desktop(dt);
     }
     function back() { if (cur) { stop(); return true; } if (o.close) o.close(); return false; }   // Esc: out of a game to the desktop, or up from the desk
-    return { add: add, open: open, stop: stop, back: back, frame: frame, setKey: setKey, release: release, games: games, current: function () { return cur ? cur.game.id : ''; },
-             run: function () { return cur ? cur.run : null; }, text: text, width: width, W: W, H: H, g: g, canvas: cv, held: held, pick: function (i) { if (i !== undefined) pick = i; return pick; } };
+    function resize(w) {   // a page on a wide window asks for a wider screen: 320 (the default) to 712 game pixels (32 by 9), the height stays 200; the open game reads it as api.W
+      w = Math.round(+w); if (!(w >= 320)) w = 320; if (w > 712) w = 712;
+      if (w !== W) { W = w; cv.width = W; g.imageSmoothingEnabled = false; arc.W = W; if (cur) cur.api.W = W; }   // a new width clears the canvas and its settings, so smoothing goes off again
+      return W;
+    }
+    var arc = { add: add, open: open, stop: stop, back: back, frame: frame, setKey: setKey, release: release, games: games, current: function () { return cur ? cur.game.id : ''; },
+             run: function () { return cur ? cur.run : null; }, text: text, width: width, W: W, H: H, g: g, canvas: cv, held: held, pick: function (i) { if (i !== undefined) pick = i; return pick; }, resize: resize };
+    return arc;
   }

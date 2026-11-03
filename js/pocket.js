@@ -1,6 +1,7 @@
 // Baton Quest on the web, around the 9F computer's runtime (js/runtime.js) and the game (js/game.js).
 // Two looks: with a mouse, the game fills the window (whole-number pixel steps when that still fills most of it, MDN's advice for crisp pixel art),
-// its sides lit by a blurred copy of the game; on a phone or tablet, the 9F POCKET handheld, filling the screen. Every way in feeds the same eight
+// and with WIDESCREEN AUTO a wide window gets a wider game (200 tall, 320 to 712 wide: more of each level, never stretched), any border lit by a blurred
+// copy of the game; on a phone or tablet, the 9F POCKET handheld, filling the screen, always the classic 320 by 200. Every way in feeds the same eight
 // buttons (left, right, up, down, a, b, start, c): the keyboard, the touch buttons (the D-pad is one pad a thumb can slide round, diagonals too), the
 // mouse on the same buttons, and a controller (the Gamepad API). A button is down while any of them holds it. Settings and saves stay in this browser.
 (function () {
@@ -13,7 +14,7 @@
   var A = window.NFX.arcade = makeArcade({ canvas: cv, audio: audio, keep: keep, jot: function () {}, close: function () { A.open('quest'); } });
 
   // ---------- settings (kept in this browser) ----------
-  var DEF = { view: 'auto', pixels: 'auto', glow: 'on', buttons: 'm', buzz: 'on' }, SET = {};
+  var DEF = { view: 'auto', pixels: 'auto', glow: 'on', buttons: 'm', buzz: 'on', wide: 'auto' }, SET = {};
   try { SET = JSON.parse(localStorage.getItem('bq-settings') || '{}') || {}; } catch (e) { SET = {}; }
   Object.keys(DEF).forEach(function (k) { if (typeof SET[k] !== 'string') SET[k] = DEF[k]; });
   var askView = location.search.match(/[?&]view=(desk|pocket)/); if (askView) SET.view = askView[1];   // a link can ask for one look (handy to show the handheld on a computer)
@@ -31,12 +32,19 @@
     });
     size();
   }
+  function gameW() {   // the game's width: on a computer with WIDESCREEN AUTO, the window's own shape at 200 tall (round(200 x width / height), 320 to 712); else the classic 320
+    var w = innerWidth, h = innerHeight;
+    if (!body.classList.contains('desk') || SET.wide === 'off' || !A.resize || !(w > 0 && h > 0)) return 320;
+    return Math.max(320, Math.min(712, Math.round(200 * w / h)));
+  }
   function size() {   // a computer: the screen as big as the window allows, in whole steps of device pixels when that fills at least 90% of it
+    var gw = A.resize ? A.resize(gameW()) : 320;   // the runtime widens (or narrows) the game's screen first; the game reads it on its next frame
     if (!body.classList.contains('desk')) { cv.style.width = ''; cv.style.height = ''; return; }
-    var w = innerWidth, h = innerHeight, k = Math.min(w / 320, h / 200), dpr = window.devicePixelRatio || 1, kd = Math.floor(k * dpr) / dpr;
+    var w = innerWidth, h = innerHeight, k = Math.min(w / gw, h / 200), dpr = window.devicePixelRatio || 1, kd = Math.floor(k * dpr) / dpr;
     var sharp = SET.pixels === 'sharp' || (SET.pixels === 'auto' && kd >= 1 && kd / k >= 0.9);
-    var use = sharp && kd >= 1 ? kd : k;
-    cv.style.width = Math.floor(320 * use) + 'px'; cv.style.height = Math.floor(200 * use) + 'px';
+    var use = sharp && kd >= 1 ? kd : k, sw = Math.floor(gw * use), sh = Math.floor(200 * use);
+    cv.style.width = sw + 'px'; cv.style.height = sh + 'px';
+    amb.style.display = gw > 320 && sw >= 0.9 * w && sh >= 0.9 * h ? 'none' : '';   // a wide game that fills the window leaves only thin borders: no glow behind it (measured headless at 5120 by 1440: 21 frames a second with it, 48 without)
   }
   if (touchy.addEventListener) touchy.addEventListener('change', apply);
   window.addEventListener('resize', size);
@@ -141,11 +149,11 @@
   window.addEventListener('mousemove', awake); window.addEventListener('mousedown', awake); awake();
   setTimeout(function () { body.classList.add('hint-off'); }, 9000);
 
-  // ---------- PHOTO: the screen at four times its size, as a picture to keep ----------
+  // ---------- PHOTO: the screen at four times its size (a wide screen too), as a picture to keep ----------
   function stamp() { var d = new Date(), p = function (n) { return (n < 10 ? '0' : '') + n; }; return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds()); }
   $('shot').addEventListener('click', function () {
-    var big = document.createElement('canvas'); big.width = 1280; big.height = 800;
-    var g = big.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(cv, 0, 0, 1280, 800);
+    var big = document.createElement('canvas'); big.width = cv.width * 4; big.height = cv.height * 4;
+    var g = big.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(cv, 0, 0, big.width, big.height);
     big.toBlob(function (blob) {
       if (!blob) { note('NO PHOTO'); return; }
       var name = 'baton-quest-' + stamp() + '.png';
@@ -191,9 +199,9 @@
     requestAnimationFrame(loop);
     var dt = (now - last) / 1000; last = now;
     pollPad(); A.frame(dt);
-    if (body.classList.contains('desk') && SET.glow !== 'off' && (++tick % 6) === 0) {   // the screen squeezed into 16 by 9 (its middle third stretched across), dimmed
+    if (body.classList.contains('desk') && SET.glow !== 'off' && amb.style.display !== 'none' && (++tick % 6) === 0) {   // the screen squeezed into 16 by 9 (its middle third stretched across), dimmed
       try {   // 16 by 9, then softened into 96 by 54 with a small blur (cheap at that size), then the browser stretches it smoothly
-        tg.drawImage(cv, 40, 10, 240, 180, 0, 0, 16, 9);
+        tg.drawImage(cv, (cv.width - 240) >> 1, 10, 240, 180, 0, 0, 16, 9);   // the middle of the screen, however wide it is
         ag.filter = 'blur(5px)'; ag.drawImage(tiny, -8, -8, amb.width + 16, amb.height + 16); ag.filter = 'none';
         ag.fillStyle = 'rgba(0, 0, 0, 0.5)'; ag.fillRect(0, 0, amb.width, amb.height);
       } catch (e) {}

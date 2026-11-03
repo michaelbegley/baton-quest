@@ -5,14 +5,16 @@
     // storm), 4 THE SPAM FOLDER (junk-mail pink).
     var w1Bg = null;
     function w1Lcg(seed) { var s = seed >>> 0; return function () { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
-    function w1BgSky() {
-      var cv = Q.canvas(320, 200), g = cv.getContext('2d'), bands = ['#0b1128', '#0d142e', '#101834', '#121c3b', '#152042', '#18244a', '#1b2952', '#1f2e5b', '#233364', '#27386c'];
-      var i, x, y, r = w1Lcg(91), counts = ['12', '3', '99+', '1K', '7', '404', '58', '2', '640', '31', '9', '1,204', '88', '5', '17', '256'];
+    function w1BgSky() {   // Q.WMAX wide (712): the first 320 as it always was, the rest more of the same sky for a wide screen (stars and counts of its own seed)
+      var cv = Q.canvas(Q.WMAX, 200), g = cv.getContext('2d'), bands = ['#0b1128', '#0d142e', '#101834', '#121c3b', '#152042', '#18244a', '#1b2952', '#1f2e5b', '#233364', '#27386c'];
+      var i, x, y, r = w1Lcg(91), counts = ['12', '3', '99+', '1K', '7', '404', '58', '2', '640', '31', '9', '1,204', '88', '5', '17', '256'], r2 = w1Lcg(191), xw = Q.WMAX - 320;
       for (i = 0; i < bands.length; i++) {
-        g.fillStyle = bands[i]; g.fillRect(0, i * 20, 320, 20);
-        if (i) for (x = (i % 2); x < 320; x += 2) g.fillRect(x, i * 20 - 1, 1, 1);   // a dithered seam between bands
+        g.fillStyle = bands[i]; g.fillRect(0, i * 20, Q.WMAX, 20);
+        if (i) for (x = (i % 2); x < Q.WMAX; x += 2) g.fillRect(x, i * 20 - 1, 1, 1);   // a dithered seam between bands
       }
       for (i = 0; i < 40; i++) { g.fillStyle = r() < 0.5 ? '#3a4a86' : '#55669f'; g.fillRect(Math.floor(r() * 320), Math.floor(r() * 150), 1, 1); }
+      for (i = 0; i < 49; i++) { g.fillStyle = r2() < 0.5 ? '#3a4a86' : '#55669f'; g.fillRect(320 + Math.floor(r2() * xw), Math.floor(r2() * 150), 1, 1); }   // the wide part's stars
+      for (i = 0; i < 20; i++) Q.w1.tiny(g, counts[(i * 7 + 3) % counts.length], 324 + Math.floor(r2() * (xw - 30)), 6 + Math.floor(r2() * 120), i % 3 ? '#3f5194' : '#6274b8');   // and its unread counts
       for (i = 0; i < counts.length; i++) {   // the stars are unread counts
         x = 8 + Math.floor(r() * 290); y = 6 + Math.floor(r() * 120);
         if (x > 216 && x < 290 && y < 72) continue;
@@ -65,11 +67,12 @@
       if (sky === 2 || sky === 3) { g.fillStyle = 'rgba(6,6,24,0.28)'; g.fillRect(0, 0, Q.W, Q.H); }
       if (Q.api) Q.api.text('99+', 251, 34, '#fffdf7', 1, 'center');
       fx = ((Math.floor(camX * 0.15) % 640) + 640) % 640; oy = Math.round(low * 0.1);
-      g.drawImage(w1Bg.far, -fx, oy); g.drawImage(w1Bg.far, 640 - fx, oy);
+      g.drawImage(w1Bg.far, -fx, oy); g.drawImage(w1Bg.far, 640 - fx, oy); if (1280 - fx < Q.W) g.drawImage(w1Bg.far, 1280 - fx, oy);   // a third copy only on a wide screen
       mx = ((Math.floor(camX * 0.35) % 640) + 640) % 640; oy = Math.round(low * 0.22);
-      g.drawImage(w1Bg.mid, -mx, oy); g.drawImage(w1Bg.mid, 640 - mx, oy);
-      for (i = 0; i < 16; i++) {   // letters falling like slow snow
-        x = (((i * 97 + 13) - camX * 0.3 + Math.sin(t * 0.7 + i) * 6) % 330 + 330) % 330 - 5;
+      g.drawImage(w1Bg.mid, -mx, oy); g.drawImage(w1Bg.mid, 640 - mx, oy); if (1280 - mx < Q.W) g.drawImage(w1Bg.mid, 1280 - mx, oy);
+      var snow = Math.round(16 * (Q.W + 10) / 330), span = Q.W + 10;   // 16 letters over 330 px on a 320 screen, as many again for each 330 more
+      for (i = 0; i < snow; i++) {   // letters falling like slow snow
+        x = (((i * 97 + 13) - camX * 0.3 + Math.sin(t * 0.7 + i) * 6) % span + span) % span - 5;
         y = ((t * (9 + (i % 5) * 3) + i * 41) % 215) - 10;
         g.fillStyle = i % 4 ? '#aeb8d6' : '#e6e9f2'; g.fillRect(Math.round(x), Math.round(y), 3, 2);
         g.fillStyle = '#5d6a96'; g.fillRect(Math.round(x), Math.round(y) + 2, 3, 1);

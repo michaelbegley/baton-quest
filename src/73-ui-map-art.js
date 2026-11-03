@@ -22,6 +22,24 @@
         for (i = 0; i < 26; i++) { x = Math.floor(rnd() * 316); y = Math.floor(rnd() * 196); f(g, x, y, 3, 3, '#2e7a62'); f(g, x + 1, y + 1, 1, 1, '#0b241e'); }   // little rings
         for (i = 0; i < 16; i++) { x = Math.floor(rnd() * 300); y = Math.floor(rnd() * 190); f(g, x, y, 4 + Math.floor(rnd() * 8), 1, '#3f7f6b'); }   // marks printed on the board
       } });
+      Q.defSprite('u5-board-side', { w: 400, h: 200, n: 1, draw: function (g) {   // more of the same board for a wide screen's sides (its own seed): its right part shows left of the map, its left part right of it
+        var seed = 23, i, x, y, w, h, k;
+        function rnd() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
+        f(g, 0, 0, 400, 200, '#0b241e');
+        for (y = 0; y < 200; y += 10) f(g, 0, y, 400, 1, '#0d2a23');
+        for (x = 0; x < 400; x += 10) f(g, x, 0, 1, 200, '#0d2a23');
+        for (i = 0; i < 57; i++) { x = Math.floor(rnd() * 40) * 10; y = Math.floor(rnd() * 20) * 10; w = 20 + Math.floor(rnd() * 8) * 10; h = 10 + Math.floor(rnd() * 5) * 10; f(g, x, y, w, 1, '#174a3d'); f(g, x + w, y, 1, h, '#174a3d'); f(g, x + w - 1, y + h - 1, 3, 3, '#1f5f4e'); }
+        for (i = 0; i < 11; i++) {
+          x = 8 + Math.floor(rnd() * 370); y = 20 + Math.floor(rnd() * 150); w = 14 + Math.floor(rnd() * 3) * 6; h = 8 + Math.floor(rnd() * 2) * 4;
+          for (k = 2; k < w - 1; k += 3) { f(g, x + k, y - 2, 1, 2, '#8f9aa8'); f(g, x + k, y + h, 1, 2, '#8f9aa8'); }
+          f(g, x, y, w, h, '#14171f'); f(g, x, y, w, 1, '#2a2f3d'); f(g, x + 2, y + 2, 2, 2, '#2a2f3d');
+        }
+        for (i = 0; i < 32; i++) { x = Math.floor(rnd() * 396); y = Math.floor(rnd() * 196); f(g, x, y, 3, 3, '#2e7a62'); f(g, x + 1, y + 1, 1, 1, '#0b241e'); }
+        for (i = 0; i < 20; i++) { x = Math.floor(rnd() * 380); y = Math.floor(rnd() * 190); f(g, x, y, 4 + Math.floor(rnd() * 8), 1, '#3f7f6b'); }
+      } });
+      U.boardSides = function (g) {   // a wide screen's sides of the map and the shop: the board carried on, its grid in step with the map's (both at multiples of 10 from the column)
+        Q.spr(g, 'u5-board-side', 0, Q.OX - 400, 0); Q.spr(g, 'u5-board-side', 0, Q.OX + 320, 0);
+      };
       U.WORLDCOL = { 1: '#2f7de1', 2: '#2ec4b6', 3: '#6fb8ff', 4: '#a070e0' };
       U.WORLDNAME = { 1: 'THE INBOX', 2: 'THE SERVER ROOM', 3: 'THE CLOUD', 4: 'THE BACKLOG' };
       U.worldName = function (n) { var w = Q.WORLD[n]; return w && w.name ? String(w.name) : U.WORLDNAME[n] || 'WORLD ' + n; };

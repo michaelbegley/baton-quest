@@ -7,6 +7,17 @@
     // The numbers every part designs for, the registries every part fills when it loads, and safe stand-ins for the runtime functions the other parts make:
     // a missing part never stops the game (no sound, no text box, a magenta box where a sprite is missing). QUEST-API.md says what each one does and who makes it.
     Q.W = 320; Q.H = 200; Q.TILE = 16; Q.DT = 1 / 60; Q.HUD = 16;
+    Q.OX = 0; Q.WMAX = 712; Q.HUDW = 356;   // widescreen (WIDESCREEN.md): Q.W follows the runtime's api.W, 320 to 712; Q.OX is the left of the centred 320 column; the HUD keeps to a centred 16:9 band of Q.HUDW at most
+    Q.setW = function (w) {   // the screen's width (the engine sets it from api.W at the start of each frame); everything else follows it
+      w = Math.round(+w); if (!(w >= 320)) w = 320; if (w > Q.WMAX) w = Q.WMAX;
+      Q.W = w; Q.OX = (w - 320) >> 1; return w;
+    };
+    Q.col = function (g, fn) {   // draws fn(g) in the centred 320 column: inside, Q.W is 320 and x 0 is the column's left (on a 320 screen it only calls fn)
+      var w = Q.W, ox = Q.OX;
+      if (!(w > 320)) { fn(g); return; }
+      g.save(); g.translate(ox, 0); Q.W = 320; Q.OX = 0;
+      try { fn(g); } finally { Q.W = w; Q.OX = ox; g.restore(); }
+    };
     Q.HERO = {
       W: 10, H: 14, SPR_W: 16, SPR_H: 20,
       RUN: 110, ACC: 1000, AIRACC: 700, STOP: 1400,                       // px/s and px/s per second
@@ -1182,18 +1193,18 @@
           '.kkkkkkkkkk. .kkkkkkkkkk. .kkkkkkkkkk. .kkkkkkkkkk. .kkkkkkkkkk.'
         ]
       ]);
-      var R = { base: null, grid: null, tried: false, clock: 0, last: -1, icons: null };
+      var R = { base: null, grid: null, tried: false, clock: 0, last: -1, icons: null, w: 320 };   // w: the screen width its canvases and icons were made for (320, or wider)
       var BAND = ['#191d2c', '#171b29', '#151826', '#131623', '#111420', '#0f121c', '#0d1019', '#0c0e16'];
       var MINOR = 'rgba(160,180,232,0.11)', MAJOR = 'rgba(170,190,240,0.09)', CROSS = 'rgba(46,196,182,0.32)';
       var GRID = 32, BIG = 128, PAR = 0.5;   // as the grid of the other four rooms (85-root-kit.js), so all five read as one old folder
       function rootHash(i) { var v = Math.sin(i * 91.7 + 47.3) * 43758.5453; return v - Math.floor(v); }
       function rootMod(a, n) { return ((a % n) + n) % n; }
-      function rootBase(g) {   // the light: diagonal bands, lightest at the top left, one run of a colour at a time
+      function rootBase(g, W) {   // the light: diagonal bands, lightest at the top left, one run of a colour at a time, across a screen W wide
         var y, x, x0, c, last, n = BAND.length;
         for (y = 0; y < 200; y++) {
           x0 = 0; last = '';
-          for (x = 0; x <= 320; x++) {
-            c = x < 320 ? BAND[Math.min(n - 1, Math.floor((x + y * 1.6) / (320 + 200 * 1.6) * n))] : '';
+          for (x = 0; x <= W; x++) {
+            c = x < W ? BAND[Math.min(n - 1, Math.floor((x + y * 1.6) / (W + 200 * 1.6) * n))] : '';
             if (c !== last) { if (last) { g.fillStyle = last; g.fillRect(x0, y, x - x0, 1); } x0 = x; last = c; }
           }
         }
@@ -1209,20 +1220,20 @@
         g.fillStyle = CROSS;
         for (i = 0; i < w; i += BIG) for (j = 0; j < h; j += BIG) { g.fillRect(i - 2, j, 2, 1); g.fillRect(i + 1, j, 2, 1); g.fillRect(i, j - 2, 1, 2); g.fillRect(i, j + 1, 1, 2); }
       }
-      function rootReady() {   // the two canvases, once; false (and the plain way each frame) if a canvas cannot be had
-        if (R.tried) return !!R.base;
-        R.tried = true;
+      function rootReady() {   // the two canvases, once for each screen width; false (and the plain way each frame) if a canvas cannot be had
+        if (R.tried && R.w === Q.W) return !!R.base;
+        R.tried = true; R.w = Q.W; R.icons = null;
         try {
-          R.base = Q.canvas(320, 200); rootBase(R.base.getContext('2d'));
-          R.grid = Q.canvas(320 + BIG, 200 + BIG); rootGrid(R.grid.getContext('2d'), 320 + BIG, 200 + BIG);
+          R.base = Q.canvas(Q.W, 200); rootBase(R.base.getContext('2d'), Q.W);
+          R.grid = Q.canvas(Q.W + BIG, 200 + BIG); rootGrid(R.grid.getContext('2d'), Q.W + BIG, 200 + BIG);
         } catch (e) { R.base = R.grid = null; Q.warn('background root: no canvas (' + e.message + '), drawn the plain way'); }
         return !!R.base;
       }
-      function rootIcons() {   // fourteen icons, each its own place, depth, speed and sway, worked out once
-        var a = [], i, near;
-        for (i = 0; i < 14; i++) {
+      function rootIcons() {   // fourteen icons across 352 px (a 320 screen and a margin), more across a wider one, each its own place, depth, speed and sway
+        var a = [], i, near, span = Q.W + 32, n = Math.round(14 * span / 352);
+        for (i = 0; i < n; i++) {
           near = i % 2 === 1;
-          a.push({ x: (i + rootHash(i) * 0.8) * 352 / 14, y: rootHash(i + 20) * 232, f: (i * 3) % 5, near: near, par: near ? 0.6 : 0.25,
+          a.push({ x: (i + rootHash(i) * 0.8) * span / n, y: rootHash(i + 20) * 232, f: (i * 3) % 5, near: near, par: near ? 0.6 : 0.25,
                    sp: near ? 4 + rootHash(i + 40) * 3 : 1.5 + rootHash(i + 40) * 1.5, sw: 1.5 + rootHash(i + 60) * 2.5, ws: 0.25 + rootHash(i + 80) * 0.3, ph: i * 1.7 });
         }
         return a;
@@ -1232,7 +1243,7 @@
         g.globalAlpha = near ? 0.5 : 0.3;
         for (i = 0; i < R.icons.length; i++) {
           o = R.icons[i]; if (o.near !== near) continue;
-          x = rootMod(o.x - camX * o.par + Math.sin(R.clock * o.ws + o.ph) * o.sw, 352) - 16;
+          x = rootMod(o.x - camX * o.par + Math.sin(R.clock * o.ws + o.ph) * o.sw, R.w + 32) - 16;
           y = rootMod(o.y - R.clock * o.sp - camY * o.par, 232) - 16;
           Q.spr(g, 'a3-oldfile', o.f, x, y);
         }
@@ -1241,12 +1252,12 @@
       Q.defBg('root', function (g, camX, camY, t, Q) {
         var d = t - R.last, i, px, py, ready;
         R.last = t; if (d > 0 && d < 0.25) R.clock += d;   // its own clock: a pause (or the first frame) adds nothing
-        if (!R.icons) R.icons = rootIcons();
         px = Math.floor(rootMod(camX * PAR, BIG)); py = Math.floor(rootMod(camY * PAR, BIG)); ready = rootReady();
-        if (ready) g.drawImage(R.base, 0, 0); else { g.fillStyle = BAND[4]; g.fillRect(0, 0, 320, 200); }
+        if (!R.icons) R.icons = rootIcons();
+        if (ready) g.drawImage(R.base, 0, 0); else { g.fillStyle = BAND[4]; g.fillRect(0, 0, Q.W, 200); }
         rootIconsDraw(g, false, camX, camY);   // the far ones, behind the grid: dimmer and slower
         if (ready) g.drawImage(R.grid, -px, -py);
-        else { g.fillStyle = MINOR; for (i = GRID - px % GRID; i < 320; i += GRID) g.fillRect(i, 0, 1, 200); for (i = GRID - py % GRID; i < 200; i += GRID) g.fillRect(0, i, 320, 1); }
+        else { g.fillStyle = MINOR; for (i = GRID - px % GRID; i < Q.W; i += GRID) g.fillRect(i, 0, 1, 200); for (i = GRID - py % GRID; i < 200; i += GRID) g.fillRect(0, i, Q.W, 1); }
         rootIconsDraw(g, true, camX, camY);    // the near ones, in front of it
       });
     })();
@@ -1264,7 +1275,7 @@
     //   bar: 8,          steps a bar (default div * 4; 6 with div 2 is 3/4). A '|' in a voice marks a bar, and Q.au.check() counts every bar.
     //   loop: true,      false: plays once (a jingle), then nothing until the next Q.music
     //   from: 0,         the step a loop goes back to: the steps before it are an intro, played once
-    //   swing: 0,        0 to 0.4: every second step comes that part of a step late (a lounge feel)
+    //   swing: 0,        0 to 0.45: every second step comes that part of a step late, and each note is held on that swung grid (the long eighth long, the short one short)
     //   vol: 1,          the whole song's level (times Q.au.MUSIC)
     //   join: 'final',   songs with the same join name and as many bars take over from each other at the next bar line, at the same bar (each at its own tempo)
     //   parts: 8,        a song in parts (one a world, 8 bars each here): started while a level of world n (1 to 4) is loaded, it starts at part n's first bar
@@ -1279,7 +1290,8 @@
     // The notes: one token a step, spaces between.
     //   C4 F#3 Bb5  a note (letter, # or b, octave; A4 is 440 Hz)    -  the note before holds one more step    .  a rest    |  a bar line (not a step)
     //   C4>G4       a note sliding to G4 over its length              C5!  louder     C5_  softer
-    // Drum tokens (a drum voice's vol is a level: 1 is the kit as made): k kick, s snare, h hat, o open hat, t tick, c clap, x crash, p paper, b blip, w wind.
+    // Drum tokens (a drum voice's vol is a level: 1 is the kit as made): k kick, s snare, h hat, o open hat, t tick, c clap, x crash, p paper, b blip, w wind,
+    // and the swing kit (builder 14, 2 Nov): r ride, f the hat's foot chick (beats 2 and 4), q ride and chick at once, u a brush swish.
     // For example, a song of one bar: bpm 120, a square voice with notes 'C4 E4 G4 - C5 . . . |' and a triangle voice (vol 0.035) with 'C2 - - - G2 - - - |'.
     // Helpers for writing songs: Q.au.rep('A2 A2 E3 A2', 4) repeats a run; Q.au.shift('C4 E4 G4', 2) moves a run up two semitones.
 
@@ -1333,7 +1345,11 @@
       x: function (api, v, at) { api.noise(0.7, 6500, 3000, 'highpass', 0.5, 0.014 * v, at); },
       p: function (api, v, at) { api.noise(0.05, 2200, 4200, 'bandpass', 0.9, 0.016 * v, at); },
       b: function (api, v, at) { api.tone(1760, 1760, 0.03, 'sine', 0.012 * v, at); },
-      w: function (api, v, at) { api.noise(0.9, 350, 1400, 'bandpass', 0.6, 0.01 * v, at); }
+      w: function (api, v, at) { api.noise(0.9, 350, 1400, 'bandpass', 0.6, 0.01 * v, at); },
+      r: function (api, v, at) { api.noise(0.22, 6400, 5600, 'bandpass', 3.5, 0.016 * v, at); api.noise(0.02, 9800, 9000, 'highpass', 0.7, 0.005 * v, at); },   // the ride: a metallic ping and the stick
+      f: function (api, v, at) { api.noise(0.03, 5200, 4600, 'bandpass', 1.8, 0.012 * v, at); },   // the hat's foot chick
+      q: function (api, v, at) { AU_DRUM.r(api, v, at); AU_DRUM.f(api, v, at); },   // ride and chick together, on 2 and 4
+      u: function (api, v, at) { api.noise(0.24, 2400, 5200, 'bandpass', 0.7, 0.008 * v, at); }   // a brush swish
     };
     Q.au.DRUM = AU_DRUM;
 
@@ -1418,15 +1434,17 @@
     }
     Q.au.duckAt = function (t) { return auDuckAt(Q.au, t); };
     function auStep(api, c, p, tick, abs, duck) {   // every voice's note that falls on this tick of a song, at the time abs on the audio clock
-      var k = Q.au.MUSIC * p.vol * duck, i, v, e, every, at;
+      var k = Q.au.MUSIC * p.vol * duck, i, v, e, every, at, len, s0;
       if (!(k > 0)) return;
       for (i = 0; i < p.voices.length; i++) {
         v = p.voices[i]; every = p.T / v.sub;
         if (tick % every) continue;
         e = v.ev[(tick / every) % v.n]; if (!e) continue;
         at = Math.max(0, auSnap(abs) - c.currentTime);   // its own time put between two samples (the same whatever the frame), then the clock read again just before
-        if (v.drum) e.d(api, v.vol * e.a * k, at);
-        else api.tone(e.f0, e.f1, Math.min(e.n * p.st / v.sub * v.gate, v.max), v.wave, v.vol * e.a * k, at);
+        if (v.drum) { e.d(api, v.vol * e.a * k, at); continue; }
+        len = e.n * p.st / v.sub;
+        if (p.swing && v.sub === 1) { s0 = tick / p.T; len += (((s0 + e.n) & 1) - (s0 & 1)) * p.swing * p.st; }   // swung: measured on the swung grid, so a long eighth rings long and a short one short
+        api.tone(e.f0, e.f1, Math.min(len * v.gate, v.max), v.wave, v.vol * e.a * k, at);
       }
     }
     function auSwap(A, p) {   // a joined song takes over on a bar line, at the same bar of the tune, at its own tempo from there
@@ -1671,418 +1689,485 @@
     Q.defSfx('type-cat', function (api) { api.tone(1500, 2100, 0.025, 'triangle', 0.033); });                                                   // a tiny chirp
     Q.defSfx('type-boss', function (api) { api.tone(150, 115, 0.055, 'sawtooth', 0.04); api.noise(0.035, 600, 300, 'lowpass', 1, 0.04); });     // gruff
     // ===== 32-audio-songs-a.js =====
-    // ---------- 32-audio-songs-a.js: the title, the map and world 1 (AUDIO, builder 4): our own tunes, the format at the top of 30-audio-engine.js ----------
-    // The conductor's motif runs through the game: one note tapped twice (the baton's two taps), then a leap up a fourth (title, rescue, end).
-    var AU_R = Q.au.rep;
+    // ---------- 32-audio-songs-a.js: THE BATON (the main theme), the helpers every song file uses, the title, the map and world 1 (AUDIO, builder 14) ----------
+    // One style for the whole game, 8-bit big band (lab/quest/MUSIC-NOTES.md): two squares (the lead and the section), the triangle walking the bass, a noise kit
+    // swinging, a soft sawtooth for the brass, a high triangle for a world's own colour. Every song swings its eighths (its swing: heavier when slow).
+    // The conductor's motif runs through the game: one note tapped twice (the baton's two taps), then a leap up a fourth. THE BATON, below, grows from it.
+    var AU_R = Q.au.rep, AU_SH = Q.au.shift;
+    var AU_PC = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }, AU_NM = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+    var AU_MAJ = [0, 2, 4, 5, 7, 9, 11], AU_MIN = [0, 2, 3, 5, 7, 8, 10], AU_HMIN = [0, 2, 3, 5, 7, 8, 11], AU_LYD = [0, 2, 4, 6, 7, 9, 11];   // scales from the key note
+    var AU_Q = { '': [0, 4, 7], '6': [0, 4, 7, 9], maj7: [0, 4, 7, 11], '7': [0, 4, 7, 10], m: [0, 3, 7], m6: [0, 3, 7, 9], m7: [0, 3, 7, 10],
+      m7b5: [0, 3, 6, 10], dim: [0, 3, 6, 9], aug: [0, 4, 8], sus: [0, 5, 7, 10] };
+    function auPcOf(nm) { return AU_PC[nm.charAt(0)] + (nm.charAt(1) === '#' ? 1 : nm.charAt(1) === 'b' ? -1 : 0); }
+    function auMidi(nt) { var m = /^([A-G][#b]?)([0-8])$/.exec(nt); return m ? auPcOf(m[1]) + 12 * (+m[2] + 1) : null; }   // a note name as a number (C4 is 60)
+    function auName(n) { return AU_NM[((n % 12) + 12) % 12] + (Math.floor(n / 12) - 1); }
+    function auMap(s, fn) {   // every note of a run through fn (a number in, a number out); accents, slides, rests, holds and bar lines kept
+      return String(s).split(/\s+/).map(function (tk) {
+        var end = '', ch = tk.charAt(tk.length - 1);
+        if (!tk) return tk;
+        if (ch === '!' || ch === '_') { end = ch; tk = tk.slice(0, -1); }
+        return tk.split('>').map(function (nt) { var n = auMidi(nt); return n === null ? nt : auName(fn(n)); }).join('>') + end;
+      }).join(' ');
+    }
+    function auDia(s, key, steps, sc) {   // a run moved by steps of a key's scale (a third under it: -2; minor keys use the harmonic minor, AU_HMIN). A note outside
+      // the scale (a blue note, a raised sixth) moves by the step of the scale note below it or above it, whichever lands in the scale; else onto the plain one
+      var t = auPcOf(key), S = sc || AU_MAJ;
+      function inS(m) { return S.indexOf((((m - t) % 12) + 12) % 12) >= 0; }
+      function iv(d) { var e = d + steps, oc = Math.floor(e / 7); return S[e - oc * 7] + 12 * oc - S[d]; }   // scale degree d to the one steps away, in semitones
+      return auMap(s, function (n) {
+        var rel = (((n - t) % 12) + 12) % 12, d = 0, i, lo, up, plain;
+        for (i = 0; i < 7; i++) if (S[i] <= rel) d = i;
+        lo = n + iv(d);
+        if (rel === S[d]) return lo;
+        up = n + iv(d + 1 < 7 ? d + 1 : 0); plain = lo - (rel - S[d]);
+        if (S[2] === 3) { i = up; up = lo; lo = i; }   // in a minor scale a note outside it is a raised one: try the scale note above it first
+        return inS(lo) ? lo : inS(up) ? up : Math.abs(Math.abs(n - plain) - Math.abs(n - lo)) <= 1 ? plain : lo;
+      });
+    }
+    function auChord(c) { var m = /^([A-G][#b]?)(.*)$/.exec(c); return { r: auPcOf(m[1]), iv: AU_Q[m[2]] || AU_Q[''] }; }   // 'Dm7' as its root and its notes
+    function auChords(ch, by) {   // chord symbols ('C6 Am7 Dm7.G7') moved by semitones
+      return String(ch).replace(/([A-G][#b]?)(m7b5|maj7|m6|m7|dim|aug|sus|m|6|7)?/g, function (all, r, q) { return AU_NM[(((auPcOf(r) + by) % 12) + 12) % 12] + (q || ''); });
+    }
+    function auNear(pc, ref, lo, hi) {   // the note of a pitch class nearest ref, inside lo to hi
+      var best = null, n;
+      for (n = lo; n <= hi; n++) if ((((n - pc) % 12) + 12) % 12 === 0 && (best === null || Math.abs(n - ref) < Math.abs(best - ref))) best = n;
+      return best === null ? ref : best;
+    }
+    function auTone(c, from, dir) { var n = from + dir; while (c.iv.indexOf((((n - c.r) % 12) + 12) % 12) < 0) n += dir; return n; }   // the next chord tone up or down
+    function auWalk(chords, lo, hi, from, beats, per) {   // a walking bass (MUSIC-NOTES.md A2): the root on beat 1, chord tones toward the next root, a half step into it last
+      if (!from) { var w0 = auWalk(chords, lo, hi, auName(Math.round((auMidi(lo) + auMidi(hi)) / 2)), beats, per).split(/\s+/).filter(function (x) { return auMidi(x) !== null; }); from = w0[w0.length - 1]; }   // a loop: start where it ends
+      var B = beats || 4, P = per || 2, L = auMidi(lo), H = auMidi(hi), sp = [], out = '', prev = auMidi(from), i, j, k, s, nx, r, tg, dir, ns, cur, ap, fit;
+      String(chords).split(/\s+/).forEach(function (bar) {
+        if (!bar || bar === '|') return;
+        var ps = bar.split('.');
+        ps.forEach(function (c, q) { sp.push({ c: auChord(c), b: ps.length === 1 ? B : q ? Math.floor(B / 2) : Math.ceil(B / 2), bar: q === ps.length - 1 }); });
+      });
+      for (i = 0; i < sp.length; i++) {
+        s = sp[i]; nx = sp[(i + 1) % sp.length].c; r = auNear(s.c.r, prev, L, H);
+        for (k = 0; k < 2; k++) {   // the next root nearest first; if that walks out of range, the next root in the other octave
+          tg = auNear(nx.r, r, L, H); if (tg === r) tg += r - L > H - r ? -12 : 12;   // the same root again: walk to its octave, where there is room
+          if (k) tg += tg >= r ? -12 : 12;
+          dir = tg >= r ? 1 : -1; ns = [r]; cur = r;
+          for (j = 1; j < s.b - 1; j++) { cur = auTone(s.c, cur, dir); ns.push(cur); }
+          if (s.b > 1 && B === 2 && P >= 4) ns.push(tg >= r ? r + 7 : r - 5);   // a bass in two (half notes): the root, then its fifth toward the next root, never a long half step
+          else if (s.b > 1) { ap = tg > cur ? tg - 1 : tg < cur ? tg + 1 : tg + 7; if (ap === cur) ap = tg + (tg > cur ? 1 : -1); ns.push(ap); }
+          fit = ns.every(function (n) { return n >= L && n <= H; });
+          if (fit) break;
+        }
+        for (j = 0; j < ns.length; j++) { while (ns[j] < L) ns[j] += 12; while (ns[j] > H) ns[j] -= 12; out += ' ' + auName(ns[j]) + AU_R('-', P - 1); }
+        if (s.bar) out += ' |';
+        prev = ns[ns.length - 1];
+      }
+      return out;
+    }
+    function auGuide(chords, pat, lo, hi) {   // backgrounds on the guide tones (a chord's third or its sixth or seventh, whichever is nearer the last one), in a rhythm of
+      // one or more bars cycled ('X' a hit, 'X!' a loud one, 'X_' a soft one; the second half of a two-chord bar takes the second chord)
+      var L = auMidi(lo), H = auMidi(hi), prev = Math.round((L + H) / 2), out = '', pats = String(pat).split('|').map(function (b) { return b.split(/\s+/).filter(function (x) { return !!x; }); }).filter(function (b) { return b.length; });
+      String(chords).split(/\s+/).filter(function (x) { return x && x !== '|'; }).forEach(function (bar, bi) {
+        var ps = bar.split('.').map(auChord), cells = pats[bi % pats.length], k, c, best, n, iv, acc;
+        for (k = 0; k < cells.length; k++) {
+          if (cells[k].charAt(0) !== 'X') { out += ' ' + cells[k]; continue; }
+          c = ps[ps.length > 1 && k >= cells.length / 2 ? 1 : 0]; acc = cells[k].slice(1); best = null;
+          [c.iv[1], c.iv[c.iv.length - 1]].forEach(function (g) { for (n = L; n <= H; n++) if ((((n - c.r - g) % 12) + 12) % 12 === 0 && (best === null || Math.abs(n - prev) < Math.abs(best - prev))) best = n; });
+          if (best === null) best = prev;
+          prev = best; out += ' ' + auName(best) + acc;
+        }
+        out += ' |';
+      });
+      return out;
+    }
+    function auSome(ch, a, b) { return String(ch).split(/\s+/).filter(function (x) { return !!x; }).slice(a - 1, b).join(' '); }   // chords a to b of a list (one a bar)
+    function auCut(s, a, b) { var p = String(s).split('|'), out = '', i; for (i = a - 1; i < b && i < p.length; i++) out += ' ' + p[i].replace(/^\s+|\s+$/g, '') + ' |'; return out; }   // bars a to b
 
-    // TITLE: G major, 132 bpm, a bright brave march. Two baton taps and a run up (once), then the conductor's theme (A: the motif; B: wider and singing).
-    Q.defSong('title', { bpm: 132, from: 16, vol: 0.91, voices: [
-      { wave: 'square', vol: 0.02, gate: 0.8, notes:
-        '. . . . . . . . | . . . . G4 A4 B4 C5 |' +
-        ' D5 . D5 . G5 - - D5 | F#5 - E5 - D5 - A4 - | B4 . B4 . E5 - - D5 | C5 - B4 - G4 - - - |' +
-        ' D5 . D5 . G5 - A5 - | B5 - A5 - G5 - E5 - | F#5 - - E5 D5 - E5 - | F#5 - - - D5 . E5 F#5 |' +
-        ' G5 - - - E5 - C5 - | D5 - - - F#5 - A5 - | B5 - - A5 F#5 - D5 - | E5 - - - . . E5 F#5 |' +
-        ' G5 - - - E5 - C5 - | A5 - - - F#5 - D5 - | G5 . G5 . D5 . B4 . | G4 - - - G4 A4 B4 C5 |' },
-      { wave: 'triangle', vol: 0.035, gate: 0.7, notes:
-        '. . . . . . . . | G2 - - - . . . . |' +
-        ' G2 - D3 - G2 - D3 - | F#2 - D3 - F#2 - A2 - | E2 - B2 - E2 - B2 - | C3 - G2 - C3 - G2 - |' +
-        ' G2 - D3 - G2 - D3 - | A2 - E3 - A2 - E3 - | D3 - A2 - D3 - A2 - | D3 - A2 - F#2 - A2 - |' +
-        ' C3 - G2 - C3 - G2 - | D3 - A2 - D3 - A2 - | B2 - F#2 - B2 - F#2 - | E2 - B2 - E2 - B2 - |' +
-        ' C3 - G2 - C3 - G2 - | D3 - A2 - D3 - A2 - | G2 - D3 - G2 - B2 - | G2 - D3 - G2 . . . |' },
-      { wave: 'square', vol: 0.011, gate: 0.4, notes:
-        '. . . . . . . . | . . . . . . . . |' +
-        ' . B3 . D4 . B3 . D4 | . A3 . D4 . A3 . D4 | . B3 . E4 . B3 . E4 | . C4 . E4 . C4 . E4 |' +
-        ' . B3 . D4 . B3 . D4 | . C4 . E4 . C4 . E4 | . A3 . D4 . A3 . D4 | . A3 . D4 . A3 . D4 |' +
-        ' . C4 . E4 . C4 . E4 | . A3 . D4 . A3 . D4 | . B3 . D4 . B3 . D4 | . B3 . E4 . B3 . E4 |' +
-        ' . C4 . E4 . C4 . E4 | . A3 . D4 . A3 . D4 | . B3 . D4 . B3 . D4 | . B3 . D4 . . . . |' },
-      { drum: true, vol: 0.8, notes: 't! . t! . . . . . | . . . . s_ s_ s s! |' + AU_R('k h s h k h s h |', 15) + ' k h s h k s s s |' }
+    // THE BATON in C (4/4, swung eighths, 8 steps a bar), MUSIC-NOTES.md part A4: two-bar cells, each the motif (tap, tap, the leap on beat 3) with a blue note
+    // leaning into the next bar, then a swinging answer. A: the motif on G, on A, on G. B: moved up a fourth, then home. Under it, its chords.
+    var AU_BATON_A =
+      ' G4 . G4 . C5 - - Eb5 | E5 - G5 - E5 C5 - . | A4 . A4 . D5 - - E5 | F5 - D5 - B4 D5 - . |' +
+      ' G4 . G4 . C5 - - Eb5 | E5 - G5 - A5 G5 E5 C5 | D5 - - Eb5 E5 - D5 - | C5 - - - . . . . |';
+    var AU_BATON_B =
+      ' C5 . C5 . F5 - - Ab5 | A5 - C6 - A5 F5 - . | B4 . B4 . E5 - - F#5 | G5 - F5 - E5 C#5 - . |' +
+      ' A4 . A4 . D5 - - E5 | F5 - D5 - B4 D5 - . | G4 . G4 . C5 - - Eb5 | E5 - G5 - E5 C5 - . |';
+    var AU_BATON_CH = 'C6 Am7 Dm7 G7 C6 Am7 Dm7.G7 C6 F6 F6 Em7 A7 Dm7 G7 C6 C6';
+    // Its minor face, for the bosses (SCOPE CREEP has the tune now): the same rhythm in C minor, the second chord half-diminished, so bar 3's leap is a tritone.
+    var AU_BATON_MA =
+      ' G4 . G4 . C5 - - D5 | Eb5 - G5 - Eb5 C5 - . | Ab4 . Ab4 . D5 - - E5 | F5 - D5 - B4 D5 - . |' +
+      ' G4 . G4 . C5 - - D5 | Eb5 - G5 - Ab5 G5 Eb5 C5 | F5 - - D5 Eb5 - B4 - | C5 - - - . . . . |';
+    var AU_BATON_MB =
+      ' C5 . C5 . F5 - - G5 | Ab5 - C6 - Ab5 F5 - . | Bb4 . Bb4 . Eb5 - - F#5 | G5 - F#5 - Eb5 C5 - . |' +
+      ' Ab4 . Ab4 . D5 - - E5 | F5 - D5 - B4 D5 - . | G4 . G4 . C5 - - D5 | Eb5 - G5 - Eb5 C5 - . |';
+    var AU_BATON_MCH = 'Cm6 Cm6 Dm7b5 G7 Cm6 Abmaj7 Dm7b5.G7 Cm6 Fm6 Fm6 Ebmaj7 D7 Dm7b5 G7 Cm6 Cm6';
+    var AU_RIDE = ' r . q r_ r . q r_ |';   // the swing ride: quarters, the skip on the and of 2 and 4, the hat's chick on 2 and 4
+    var AU_KA = ' k_ . . . k_ . . s_ |', AU_KB = ' k_ . . s_ k_ . . . |', AU_KF = ' k_ . s_ s . s s s! |', AU_KX = ' x . . . k_ . . . |';   // kicks feathered on 1 and 3, a ghost snare, a fill, a crash
+
+    // TITLE, OVERTURE: G major, 138 bpm, swung 0.32. Once: the conductor taps twice and the band hits the leap (the motif itself, D D G), then a fill. Then THE
+    // BATON whole: A with the section a third under the lead (a sax soli) and brass pushing each phrase; B as the shout, the section opened to a sixth under, the
+    // brass hitting with every leap and between; the bass walking; the ride swinging, a crash at each half.
+    var AU_TI_CH = auChords(AU_BATON_CH, 7), AU_TI_A = AU_SH(AU_BATON_A, -5), AU_TI_B = AU_SH(AU_BATON_B, -5);
+    Q.defSong('title', { bpm: 138, swing: 0.32, from: 16, vol: 0.93, voices: [
+      { wave: 'square', vol: 0.019, gate: 0.85, notes: ' D5_ . D5_ . G5! - - - | . . . . . . . . |' + AU_TI_A + AU_TI_B },
+      { wave: 'square', vol: 0.012, gate: 0.8, notes: ' . . . . D5 - - - | . . . . . . . . |' + auDia(AU_TI_A, 'G', -2) + auDia(AU_TI_B, 'G', -5) },
+      { wave: 'sawtooth', vol: 0.009, gate: 0.45, notes: ' . . . . B3! - - - | . . . . . . . . |' +
+        auGuide(auSome(AU_TI_CH, 1, 8), ' . . . . . . . . | . . . . . . X_ X |', 'G3', 'F#4') + auGuide(auSome(AU_TI_CH, 9, 16), ' . . . . X . . . | . . . X - . X . |', 'G3', 'F#4') },
+      { wave: 'triangle', vol: 0.03, gate: 0.85, notes: ' . . . . G2 - - - | D3 - E3 - F#3 - Ab3 - |' + auWalk(AU_TI_CH, 'E2', 'D4', 'Ab3') },
+      { drum: true, vol: 0.7, notes: ' . . . . . . . . | . . . . . . . . |' + AU_R(AU_RIDE, 16) },
+      { drum: true, vol: 0.8, notes: ' t! . t! . x . . . | k . . . s_ s_ s s! |' + AU_KX + AU_R(AU_KB + AU_KA, 3) + AU_KF + AU_KX + AU_R(AU_KB + AU_KA, 3) + AU_KF }
     ] });
 
-    // MAP: F major, 108 bpm, a stroll between worlds: a friendly tune over a walking bass, soft ticks for footsteps.
-    Q.defSong('map', { bpm: 108, vol: 0.98, voices: [
-      { wave: 'square', vol: 0.018, gate: 0.7, notes:
-        'C5 - A4 C5 F5 - - - | E5 - D5 - A4 - - - | D5 - Bb4 D5 F5 - - - | E5 - - D5 C5 - - - |' +
-        ' C5 - A4 C5 F5 - G5 - | A5 - G5 F5 D5 - - - | Bb4 - D5 - G5 - F5 - | E5 - - - C5 - - - |' +
-        ' D5 - - F5 Bb5 - A5 - | G5 - - E5 C5 - - - | C5 - E5 - A5 - G5 - | F5 - E5 - D5 - - - |' +
-        ' D5 - Bb4 - G4 - Bb4 - | C5 - - - E5 - G5 - | F5 - - - A4 - C5 - | F5 - - - . . A4 Bb4 |' },
-      { wave: 'triangle', vol: 0.034, gate: 0.8, notes:
-        'F2 - A2 - C3 - A2 - | D3 - A2 - F2 - A2 - | Bb2 - D3 - F3 - D3 - | C3 - E3 - G3 - E3 - |' +
-        ' F2 - A2 - C3 - A2 - | D3 - A2 - F2 - A2 - | G2 - Bb2 - D3 - Bb2 - | C3 - G2 - E2 - G2 - |' +
-        ' Bb2 - D3 - F3 - D3 - | C3 - E3 - G3 - E3 - | A2 - C3 - E3 - C3 - | D3 - A2 - F2 - A2 - |' +
-        ' G2 - Bb2 - D3 - Bb2 - | C3 - E3 - G3 - Bb2 - | F2 - A2 - C3 - A2 - | F2 - C3 - A2 - C3 - |' },
-      { drum: true, vol: 0.7, notes: AU_R('k h t h k h t h |', 16) }
+    // MAP, THE COMMUTE: F major, 112 bpm, swung 0.37, a stroll between worlds. THE BATON simplified and lazier (its answers held, like whistling while walking), the
+    // bass walking (literally), a soft rhythm-guitar chop on every beat (the guide tones), and footsteps: a tick on 1 and 3, a brush on 2 and 4.
+    var AU_MAP_CH = auChords(AU_BATON_CH, 5);
+    var AU_MAP_LEAD =
+      ' C4 . C4 . F4 - - - | A4 - - C5 A4 - F4 . | D4 . D4 . G4 - - - | Bb4 - - G4 E4 - - . |' +
+      ' C4 . C4 . F4 - - A4 | - C5 D5 C5 A4 - F4 . | G4 - - A4 Bb4 - G4 - | F4 - - - . . . . |' +
+      ' F4 . F4 . Bb4 - - - | D5 - - F5 D5 - Bb4 . | E4 . E4 . A4 - - - | C5 - - A4 F#4 - - . |' +
+      ' D4 . D4 . G4 - - - | Bb4 - - G4 E4 - - . | C4 . C4 . F4 - - A4 | - G4 F4 D4 C4 - . . |';
+    Q.defSong('map', { bpm: 112, swing: 0.37, vol: 1.05, voices: [
+      { wave: 'square', vol: 0.018, gate: 0.75, notes: AU_MAP_LEAD },
+      { wave: 'square', vol: 0.009, gate: 0.3, notes: auGuide(AU_MAP_CH, ' X_ . X . X_ . X . |', 'A3', 'G4') },
+      { wave: 'triangle', vol: 0.032, gate: 0.85, notes: auWalk(AU_MAP_CH, 'C2', 'Bb3') },
+      { drum: true, vol: 0.8, notes: AU_R(AU_R(' t_ . u . t_ . u . |', 3) + ' t_ . u . t_ t_ u . |', 4) }
     ] });
 
-    // W1, THE INBOX: C major, 144 bpm, bouncy and papery: a hopping staccato tune, octaves bouncing in the bass, paper shuffling on the off-beats,
-    // and a little new-mail ding at the end of each half.
-    Q.defSong('w1', { bpm: 144, vol: 1.19, voices: [
-      { wave: 'square', vol: 0.02, gate: 0.45, notes:
-        'E5 . E5 G5 . E5 . C5 | D5 . D5 F5 . D5 . B4 | C5 . C5 E5 . C5 . A4 | B4 . G4 . A4 B4 C5 D5 |' +
-        ' E5 . E5 G5 . E5 . C5 | F5 . F5 A5 . F5 . D5 | G5 . E5 . D5 . G4 . | C5 . . . . . . . |' +
-        ' C5 . F5 . A5 . G5 F5 | G5 . . . E5 . . . | A4 . D5 . F5 . E5 D5 | E5 . . . D5 . . . |' +
-        ' C5 . F5 . A5 . C6 . | B5 . G5 . E5 . G5 . | F5 . E5 . D5 . F5 . | G5 . . . . . D5 . |' },
-      { wave: 'triangle', vol: 0.034, gate: 0.5, notes:
-        AU_R('C3 C4', 4) + ' |' + AU_R('G2 G3', 4) + ' |' + AU_R('A2 A3', 4) + ' |' + AU_R('G2 G3', 4) + ' |' +
-        AU_R('C3 C4', 4) + ' |' + AU_R('F2 F3', 4) + ' |' + AU_R('G2 G3', 4) + ' |' + AU_R('C3 C4', 4) + ' |' +
-        AU_R('F2 F3', 4) + ' |' + AU_R('E2 E3', 4) + ' |' + AU_R('D3 D4', 4) + ' |' + AU_R('G2 G3', 4) + ' |' +
-        AU_R('F2 F3', 4) + ' |' + AU_R('E2 E3', 4) + ' |' + AU_R('D3 D4', 4) + ' |' + AU_R('G2 G3', 4) + ' |' },
-      { drum: true, vol: 0.8, notes: AU_R('k p s p k p s p |', 7) + ' k p s p k k s s |' + AU_R('k p s p k p s p |', 7) + ' k p s p k k s s! |' },
-      { wave: 'sine', vol: 0.022, gate: 0.6, notes: AU_R('. . . . . . . . |', 7) + ' . . . . G6 - E6 - |' + AU_R('. . . . . . . . |', 7) + ' . . G6 E6 . . . . |' }
+    // W1, THE INBOX: C major, 144 bpm, swung 0.32, a bouncy jump swing. THE BATON hopping (staccato), the section replying in the lead's pauses (two quick notes, a
+    // reply and a reply-all), then soli in thirds for B; 8 bars of shout in unison (the motif on C, leaping to F, over a blues turn); paper on the backbeat, the ride,
+    // a walking bass, and the new-mail ding at the end of each half.
+    var AU_W1_CH = AU_BATON_CH + ' C6 C6 F7 F7 C6 A7 Dm7.G7 C6';
+    var AU_W1_SHOUT =
+      ' C5! . C5! . F5 - E5 C5 | . . Eb5 E5 G5 - E5 . | C5! . C5! . F5 - Eb5 C5 | . . A4 C5 Eb5 - C5 . |' +
+      ' G4 . G4 . C5 - - Eb5 | E5 - G5 - E5 C#5 - . | D5 - F5 - B4 - D5 . | C5 - - - . . . . |';
+    var AU_W1K = ' k_ . p . k_ . p p_ |';
+    Q.defSong('w1', { bpm: 144, swing: 0.32, vol: 1.03, voices: [
+      { wave: 'square', vol: 0.02, gate: 0.5, notes: AU_BATON_A + AU_BATON_B + AU_W1_SHOUT },
+      { wave: 'square', vol: 0.012, gate: 0.5, notes: auGuide(auSome(AU_W1_CH, 1, 8), ' . . . . . X_ X . | . . . . . . . . |', 'E4', 'D5') + auDia(AU_BATON_B, 'C', -2) + AU_SH(AU_W1_SHOUT, -12) },
+      { wave: 'triangle', vol: 0.032, gate: 0.8, notes: auWalk(AU_W1_CH, 'E2', 'D4') },
+      { wave: 'triangle', vol: 0.022, gate: 0.6, notes: AU_R(' . . . . . . . . |', 11) + ' . . . . G6 - E6 - |' + AU_R(' . . . . . . . . |', 11) + ' . . . . G6 - E6 - |' },
+      { drum: true, vol: 0.7, notes: AU_R(AU_RIDE, 24) },
+      { drum: true, vol: 0.8, notes: ' x . p . k_ . p p_ |' + AU_R(AU_W1K, 6) + AU_KF + AU_R(AU_W1K, 7) + AU_KF + ' x . p . k_ . p p_ |' + AU_R(AU_W1K, 6) + ' k_ . s s s s s! s! |' }
     ] });
     // ===== 33-audio-songs-b.js =====
-    // ---------- 33-audio-songs-b.js: worlds 2, 3 and 4 (AUDIO, builder 4): our own tunes, the format at the top of 30-audio-engine.js ----------
-    function auPulse(root) { return Q.au.rep(root + '! ' + root + '_ ' + root + ' ' + root + '_', 4) + ' |'; }   // a bar of sixteenths on one note, leaning on each beat
-    function auArp(a, b, c, d) { var n = [a, b, c, d], k = [0, 1, 2, 3, 2, 1, 0, 1, 2, 3, 2, 1, 0, 1, 2, 1], o = [], i; for (i = 0; i < 16; i++) o.push(n[k[i]]); return ' ' + o.join(' ') + ' |'; }
-    function auOct(lo, hi) { return Q.au.rep(lo + ' ' + hi, 4) + ' |'; }   // a bar of eighths jumping an octave
+    // ---------- 33-audio-songs-b.js: worlds 2, 3 and 4 (AUDIO, builder 14): THE BATON in each world's mood, 8-bit big band (MUSIC-NOTES.md) ----------
+    function auHumOf(chords, lo, hi) {   // the server room's hum: each chord's root on every swung eighth, leaning on the beats (a two-chord bar: four each)
+      var L = auMidi(lo), H = auMidi(hi), prev = Math.round((L + H) / 2);
+      return String(chords).split(/\s+/).filter(function (x) { return x && x !== '|'; }).map(function (bar) {
+        return bar.split('.').map(function (c, q, all) { var r = auNear(auChord(c).r, prev, L, H), nm = auName(r), k, s = ''; prev = r; for (k = 0; k < 8 / all.length; k++) s += ' ' + nm + (k % 2 ? '_' : ''); return s; }).join('') + ' |';
+      }).join('');
+    }
+    function auRoll(chords, lo, per) {   // soft broken chords rolling up and down, one note a step (per: steps a bar), from the root nearest lo
+      var L = auMidi(lo), k = [0, 1, 2, 3, 2, 1, 0, 1];
+      return String(chords).split(/\s+/).filter(function (x) { return x && x !== '|'; }).map(function (bar) {
+        var c = auChord(bar.split('.')[0]), r = auNear(c.r, L, L - 6, L + 6), tones = [r, r + c.iv[1], r + c.iv[2], r + 12], s = '', i;
+        for (i = 0; i < per; i++) s += ' ' + auName(tones[k[i % k.length]]);
+        return s + ' |';
+      }).join('');
+    }
 
-    // W2, THE SERVER ROOM: A minor with a cool raised sixth (F#), 112 bpm in sixteenths, a humming pulse: the low hum leans on every beat, the tune holds
-    // long notes and sends short bursts, and high blips blink like the racks' lights.
-    Q.defSong('w2', { bpm: 112, div: 4, vol: 1.3, voices: [
-      { wave: 'square', vol: 0.016, gate: 0.7, notes:
-        'A4 - - - - - - - E5 - - - C5 - B4 - | A4 - - - - - - - . . E5 F#5 G5 - F#5 - |' +
-        ' A4 - - - - - - - C5 - - - F5 - E5 - | D5 - - - - - - - B4 - - - G4 - - - |' +
-        ' E5 - - - - - - - A5 - - - G5 - E5 - | C5 - - - - - - - . . A4 B4 C5 - D5 - |' +
-        ' F#5 - - - - - - - A5 - - - F#5 - D5 - | B4 - - - - - - - D5 - - - G#4 - - - |' },
-      { wave: 'triangle', vol: 0.027, gate: 0.45, notes: auPulse('A2') + auPulse('A2') + auPulse('F2') + auPulse('G2') + auPulse('A2') + auPulse('A2') + auPulse('D3') + auPulse('E2') },
-      { wave: 'sine', vol: 0.012, gate: 0.3, notes:
-        '. . . A6 . . . . . . E6 . . . . . | . . . . . . C7 . . . . . . A6 . . | . . . A6 . . . . . . F6 . . . . . | . . . . . . G6 . . . . . . D7 . . |' +
-        ' . . . E6 . . . . . . A6 . . . . . | . . . . . . E6 . . . . . . C7 . . | . . . F#6 . . . . . . A6 . . . . . | . . . . . . G#6 . . . . . . B6 . . |' },
-      { drum: true, vol: 0.8, notes: Q.au.rep('k . h . . . h . k . h . . t h . |', 8) }
+    // W2, THE SERVER ROOM: A dorian (A minor with a cool raised sixth, F#), 112 bpm, swung 0.37, cool and steady. The triangle hums: each chord's root on every
+    // swung eighth, never stopping. Over it THE BATON's minor face in A, its sixths raised, so bar 3's leap is a plain fourth again (F# F# B); the section holds one
+    // cool note a bar (the guide tones); the rack lights blink high on chord tones; then 8 bars where the hum carries on alone and the motif blinks back, an echo.
+    var AU_W2_TH = auMap(AU_SH(AU_BATON_MA + AU_BATON_MB, -3), function (n) { return n % 12 === 5 ? n + 1 : n; });
+    var AU_W2_CH = 'Am6 Am6 Bm7 E7 Am6 D7 Bm7.E7 Am6 D7 D7 Cmaj7 B7 Bm7 E7 Am6 Am6', AU_W2_BR = 'Am6 Am6 Fmaj7 G6 Am6 Am6 D7 E7';
+    var AU_W2_ECHO = ' E5 . E5 . A5 - - - | . . . . . . . . | C5 . C5 . F5 - - - | . . . . D5 - B4 - | E5 . E5 . A5 - - - | . . . . . . . . | F#5 . F#5 . B5 - - - | G#5 - - - E5 - - - |';
+    Q.defSong('w2', { bpm: 112, swing: 0.37, vol: 1.19, voices: [
+      { wave: 'square', vol: 0.018, gate: 0.9, notes: AU_W2_TH + AU_W2_ECHO },
+      { wave: 'triangle', vol: 0.027, gate: 0.55, notes: auHumOf(AU_W2_CH + ' ' + AU_W2_BR, 'E2', 'D3') },
+      { wave: 'square', vol: 0.01, gate: 0.95, notes: auGuide(AU_W2_CH + ' ' + AU_W2_BR, ' X - - - - - - - |', 'C4', 'B4') },
+      { wave: 'triangle', vol: 0.014, gate: 0.4, notes: auGuide(AU_W2_CH + ' ' + AU_W2_BR, ' . . . X . . . . | . . . . . . X . | . X . . . . . . | . . . . . X . . |', 'E6', 'D7') },
+      { drum: true, vol: 0.5, notes: AU_R(AU_RIDE, 24) },
+      { drum: true, vol: 0.7, notes: AU_R(AU_R(' k_ . . . . . t_ . |', 7) + ' k_ . . . t_ . t_ t |', 3) }
     ] });
 
-    // W3, THE CLOUD: D major with a floating raised fourth (G#), 92 bpm, airy: soft rolling arpeggios up high, a slow bell of a tune, long low notes, a breath of wind.
-    Q.defSong('w3', { bpm: 92, div: 4, vol: 0.89, voices: [
-      { wave: 'triangle', vol: 0.032, gate: 0.9, notes:
-        'A5 - - - - - - - F#5 - - - E5 - - - | G#5 - - - - - - - B5 - - - - - - - | A5 - - - F#5 - - - D5 - - - E5 - - - | F#5 - - - - - - - D5 - - - B4 - - - |' +
-        ' A5 - - - - - - - D6 - - - C#6 - - - | B5 - - - - - - - G#5 - - - E5 - - - | F#5 - - - G5 - - - A5 - - - B5 - - - | A5 - - - - - - - E5 - - - C#5 - - - |' },
-      { wave: 'sine', vol: 0.017, gate: 0.6, oct: -1, notes:
-        auArp('D5', 'F#5', 'A5', 'C#6') + auArp('E5', 'G#5', 'B5', 'D6') + auArp('B4', 'D5', 'F#5', 'A5') + auArp('G4', 'B4', 'D5', 'F#5') +
-        auArp('D5', 'F#5', 'A5', 'C#6') + auArp('E5', 'G#5', 'B5', 'D6') + auArp('G4', 'B4', 'D5', 'F#5') + auArp('A4', 'C#5', 'E5', 'A5') },
-      { wave: 'triangle', vol: 0.03, gate: 0.9, notes:
-        'D3 - - - - - - - A2 - - - - - - - | D3 - - - - - - - . . . . D3 - - - | B2 - - - - - - - F#2 - - - - - - - | G2 - - - - - - - D3 - - - - - - - |' +
-        ' D3 - - - - - - - A2 - - - - - - - | D3 - - - - - - - . . . . D3 - - - | G2 - - - - - - - B2 - - - - - - - | A2 - - - - - - - E2 - - - - - - - |' },
-      { drum: true, vol: 0.7, notes: Q.au.rep('w . h_ . . . h_ . . . h_ . . . h_ . | . . h_ . . . h_ . . . h_ . . . h_ . |', 4) }
+    // W3, THE CLOUD: D major with a floating raised fourth (G#), a jazz waltz (3/4), 96 bpm, swung 0.40, airy. The motif fits one bar of three: tap, tap, and the
+    // leap on beat 3, held into the next bar. Slow bells (a high triangle) sing THE BATON in three; the section chops beats 2 and 3 softly (the waltz's comp);
+    // soft broken chords roll up high; the bass plays 1 and 3; brushes, and a breath of wind every eight bars. The second time, the section sings a third under.
+    var AU_W3_A =
+      ' A4 . A4 . D5 - | - - E5 - F#5 - | G#5 - - - E5 - | F#5 - - - . . | F#4 . F#4 . B4 - | - - C#5 - D5 - | E5 - - - G#4 - | A4 - - - . . |' +
+      ' D5 . D5 . G5 - | - - A5 - B5 - | A5 - - - F#5 - | D5 - - - . . | B4 . B4 . E5 - | - - F#5 - G5 - | F#5 - - - E5 - | D5 - - - . . |';
+    var AU_W3_A2 = auCut(AU_W3_A, 1, 12) + ' B4 . B4 . E5 - | - - G#5 - A5 - | B5 - - - G#5 - | A5 - - - - - |';
+    var AU_W3_CH = 'D6 D6 E D6 Bm7 Bm7 E7 A7 G6 G6 F#m7 Bm7 Em7 A7 D6 D6', AU_W3_CH2 = auSome(AU_W3_CH, 1, 12) + ' Em7 E D6 A7';   // sixths, not sevenths, under the bells' roots
+    var AU_W3_BASS = ' D3 - - - A2 - | D3 - - - A2 - | D3 - - - B2 - | D3 - - - A2 - | B2 - - - F#2 - | B2 - - - F#2 - | E2 - - - B2 - | A2 - - - E2 - |' +
+      ' G2 - - - D3 - | G2 - - - D3 - | F#2 - - - C#3 - | B2 - - - F#2 - | E2 - - - B2 - | A2 - - - E2 - | D3 - - - A2 - | D3 - - - A2 - |';
+    var AU_W3_BASS2 = auCut(AU_W3_BASS, 1, 12) + ' E2 - - - B2 - | D3 - - - B2 - | D3 - - - A2 - | A2 - - - E2 - |';
+    var AU_W3_KIT = ' w . f . f_ . |' + AU_R(' u . f . f_ . |', 7);
+    Q.defSong('w3', { bpm: 96, bar: 6, swing: 0.4, vol: 0.93, voices: [
+      { wave: 'triangle', vol: 0.032, gate: 0.95, max: 1.6, notes: AU_W3_A + AU_W3_A2 },
+      { wave: 'square', vol: 0.009, gate: 0.4, notes: auGuide(AU_W3_CH, ' . . X_ . X_ . |', 'A3', 'A4') + auDia(AU_W3_A2, 'D', -2, AU_LYD) },
+      { wave: 'square', vol: 0.006, gate: 0.5, notes: auRoll(AU_W3_CH + ' ' + AU_W3_CH2, 'A4', 6) },
+      { wave: 'triangle', vol: 0.03, gate: 0.9, notes: AU_W3_BASS + AU_W3_BASS2 },
+      { drum: true, vol: 0.7, notes: AU_R(AU_W3_KIT, 4) }
     ] });
 
-    // W4, THE BACKLOG: E minor, 150 bpm, tense and climbing: the bass climbs a step every bar (E F# G A B C D, then B to come back), the tune climbs with it
-    // in a figure that repeats one step higher, then hammers repeated notes higher and higher with a tick under it, like a deadline.
-    Q.defSong('w4', { bpm: 150, vol: 1.07, voices: [
-      { wave: 'square', vol: 0.018, gate: 0.6, notes:
-        'E4 . G4 . B4 - A4 G4 | F#4 . A4 . C5 - B4 A4 | G4 . B4 . D5 - C5 B4 | A4 . C5 . E5 - D5 C5 |' +
-        ' B4 . D5 . F#5 - E5 D5 | C5 . E5 . G5 - F5 E5 | D5 . F#5 . A5 - G5 F#5 | D#5 . F#5 . A5 - B5 - |' +
-        ' E5 . E5 . E5 - D5 E5 | F#5 . F#5 . F#5 - E5 F#5 | G5 . G5 . G5 - F#5 G5 | A5 . A5 . A5 - G5 A5 |' +
-        ' B5 . B5 . B5 - A5 B5 | C6 . A5 . G5 . E5 . | F#5 . E5 . D5 . C5 . | A5 - F#5 - D#5 - B4 - |' },
-      { wave: 'triangle', vol: 0.035, gate: 0.55, notes:
-        auOct('E2', 'E3') + auOct('F#2', 'F#3') + auOct('G2', 'G3') + auOct('A2', 'A3') + auOct('B2', 'B3') + auOct('C3', 'C4') + auOct('D3', 'D4') + auOct('B2', 'B3') +
-        auOct('E2', 'E3') + auOct('F#2', 'F#3') + auOct('G2', 'G3') + auOct('A2', 'A3') + auOct('B2', 'B3') + auOct('C3', 'C4') + auOct('D3', 'D4') + auOct('B2', 'B3') },
-      { wave: 'square', vol: 0.012, gate: 0.6, notes: Q.au.rep('. . . . . . . . |', 8) +
-        ' G4 . G4 . G4 - F#4 G4 | A4 . A4 . A4 - G4 A4 | B4 . B4 . B4 - A4 B4 | C5 . C5 . C5 - B4 C5 | D5 . D5 . D5 - C#5 D5 |' + Q.au.rep('. . . . . . . . |', 3) },
-      { drum: true, vol: 0.85, notes: Q.au.rep('k h s h k h s h |', 7) + ' k h s h s s s s |' + Q.au.rep('k t s t k t s t |', 7) + ' k . s s s s s! s! |' }
+    // W4, THE BACKLOG: E minor, 152 bpm, swung 0.30, tense and driving. The bass walks up a step every bar (E F# G A B C D, then B to come back) and the motif
+    // climbs with it, a bar a step, each tap on the chord's fifth leaping to its root; then the brass hammers repeated notes higher and higher over a clock's tick
+    // (a deadline); then THE BATON's minor face in E, the deadline's own tune, and up again.
+    var AU_W4_CLIMB = ' B4 . B4 . E5 - D5 E5 | C#5 . C#5 . F#5 - E5 F#5 | D5 . D5 . G5 - F#5 G5 | E5 . E5 . A5 - G5 A5 | F#5 . F#5 . B5 - A5 B5 | G5 . G5 . C6 - B5 C6 | A5 . A5 . D6 - C6 D6 | B5 - A5 - F#5 - D#5 - |';
+    var AU_W4_HAM = ' E5! . E5 . E5 - D5 E5 | F#5! . F#5 . F#5 - E5 F#5 | G5! . G5 . G5 - F#5 G5 | A5! . A5 . A5 - G5 A5 | B5! . B5 . B5 - A5 B5 | C6! . A5 . G5 . E5 . | F#5! . E5 . D5 . C5 . | A5 - F#5 - D#5 - B4 - |';
+    var AU_W4_TH = AU_SH(auCut(AU_BATON_MA, 1, 8), 4);
+    var AU_W4_CCH = 'Em7 F#m7 Gmaj7 A7 Bm7 Cmaj7 D7 B7', AU_W4_CH = AU_W4_CCH + ' ' + AU_W4_CCH + ' ' + auChords(auSome(AU_BATON_MCH, 1, 8), 4);
+    var AU_W4_UP = ' E2 - G2 - B2 - F2 - | F#2 - A2 - C#3 - Ab2 - | G2 - B2 - D3 - G#2 - | A2 - C#3 - E3 - Bb2 - | B2 - D3 - F#3 - Db3 - | C3 - E3 - G3 - C#3 - | D3 - F#3 - A3 - C3 - | B2 - A2 - F#2 - F2 - |';   // the climb, walked up a step a bar
+    var AU_W4_JUMP = ' E2 E3 E2 E3 E2 E3 D3 E3 | F#2 F#3 F#2 F#3 F#2 F#3 E3 F#3 | G2 G3 G2 G3 G2 G3 F#3 G3 | A2 A3 A2 A3 A2 A3 G3 A3 | B2 B3 B2 B3 B2 B3 A3 B3 | C3 C4 C3 C4 C3 C4 B3 C4 | D3 D4 D3 D4 D3 D4 C4 D4 | B2 B3 A2 A3 F#2 F#3 F2 F3 |';   // the same climb jumping octaves, driving
+    Q.defSong('w4', { bpm: 152, swing: 0.3, vol: 1.01, voices: [
+      { wave: 'square', vol: 0.018, gate: 0.6, notes: AU_W4_CLIMB + AU_W4_HAM + AU_W4_TH },
+      { wave: 'square', vol: 0.011, gate: 0.5, notes: auGuide(AU_W4_CCH, ' . . . . . X_ X . |', 'E4', 'D5') + auGuide(AU_W4_CCH, ' X! . X . X - . . |', 'D4', 'C5') + auGuide(auSome(AU_W4_CH, 17, 24), ' . . . . . . X_ X |', 'E4', 'D5') },
+      { wave: 'sawtooth', vol: 0.009, gate: 0.45, notes: auGuide(AU_W4_CCH, ' . . . . . . . X |', 'G3', 'F4') + auGuide(AU_W4_CCH, ' X! . X . X - . . |', 'G3', 'F4') + auGuide(auSome(AU_W4_CH, 17, 24), ' . . . . X . . . | . . . . . . . X |', 'G3', 'F4') },
+      { wave: 'triangle', vol: 0.033, gate: 0.8, notes: AU_W4_UP + AU_W4_JUMP + auWalk(auSome(AU_W4_CH, 17, 24), 'E2', 'D4', 'F2') },
+      { drum: true, vol: 0.7, notes: AU_R(AU_RIDE, 8) + AU_R(' t . t t_ t . t t_ |', 8) + AU_R(AU_RIDE, 8) },
+      { drum: true, vol: 0.85, notes: AU_KX + AU_R(AU_KB + AU_KA, 3) + AU_KF + ' x . s_ . k . s_ . |' + AU_R(' k . s_ . k . s_ k_ |', 6) + AU_KF + AU_KX + AU_R(AU_KB + AU_KA, 3) + ' k_ . s s s s s! s! |' }
     ] });
     // ===== 34-audio-songs-c.js =====
-    // ---------- 34-audio-songs-c.js: the bosses' song and SCOPE CREEP's (AUDIO, builder 4): our own tunes, the format at the top of 30-audio-engine.js ----------
+    // ---------- 34-audio-songs-c.js: the bosses' song and SCOPE CREEP's march (AUDIO, builder 14): THE BATON's minor face, 8-bit big band (MUSIC-NOTES.md) ----------
+    // The bosses have the conductor's tune now: every boss theme is THE BATON in minor (32-audio-songs-a.js), each in its world's colour (36-audio-songs-e.js).
     function auRiff(lo, hi) { return ' ' + lo + '! ' + hi + ' ' + lo + ' ' + lo + '! ' + hi + ' ' + lo + ' ' + lo + '! ' + hi + ' |'; }   // eighths leaning 3 + 3 + 2
     function auPah(a, b, c) { return ' ' + a + ' - ' + b + ' - ' + c + ' - ' + b + ' - |'; }   // a march bass: the root, a chord note up, the fifth, up again
     function auRun(a, b, c) { return ' ' + a + ' ' + b + ' ' + c + ' ' + b + ' ' + a + ' ' + b + ' ' + c + ' ' + b + ' |'; }   // running eighths on a chord
+    function auRiffs(chords, lo, hi) {   // the 3 + 3 + 2 riff on each chord's root (a two-chord bar changes at its second lean), the leaning notes an octave down
+      var L = auMidi(lo), H = auMidi(hi), prev = Math.round((L + H) / 2);
+      return String(chords).split(/\s+/).filter(function (x) { return x && x !== '|'; }).map(function (bar) {
+        var rs = bar.split('.').map(function (c) { var r = auNear(auChord(c).r, prev, L + 12, H); prev = r; return [auName(r - 12), auName(r)]; }), a = rs[0], b = rs[rs.length - 1];
+        return ' ' + [a[0] + '!', a[1], a[0], b[0] + '!', b[1], b[0], b[0] + '!', b[1]].join(' ') + ' |';
+      }).join('');
+    }
+    var AU_SWK = ' k . . s_ k . s_ . |', AU_SWF = ' k . s s_ s . s! s! |';   // the bosses' kit: kicks on 1 and 3 with the riff, ghost snares, a fill
 
-    // BOSS (worlds 1 to 3): C minor, 168 bpm, urgent: a riff that leans 3 + 3 + 2, a tune in the same push, then running arpeggios; a held chord note under it.
-    Q.defSong('boss', { bpm: 168, vol: 0.99, voices: [
-      { wave: 'square', vol: 0.02, gate: 0.7, notes:
-        'G5 - - Eb5 - - C5 - | D5 - - Eb5 - - F5 - | Eb5 - - C5 - - Ab4 - | Bb4 - - C5 - - D5 - |' +
-        ' G5 - - Eb5 - - C5 - | D5 - - Eb5 - - G5 - | Ab5 - - G5 - - Eb5 - | D5 - - B4 - - G4 - |' +
-        ' F5 . Ab5 . C6 . Ab5 . | G5 . F5 . Eb5 . C5 . | Eb5 . G5 . C6 . G5 . | F5 . Eb5 . D5 . C5 . |' +
-        ' C5 . Eb5 . Ab5 . Eb5 . | D5 . F5 . Bb5 . F5 . | B4 . D5 . G5 . B5 . | D6 - - - B5 - - - |' },
-      { wave: 'triangle', vol: 0.032, gate: 0.5, notes:
-        auRiff('C3', 'C4') + auRiff('C3', 'C4') + auRiff('Ab2', 'Ab3') + auRiff('Bb2', 'Bb3') + auRiff('C3', 'C4') + auRiff('C3', 'C4') + auRiff('Ab2', 'Ab3') + auRiff('G2', 'G3') +
-        auRiff('F2', 'F3') + auRiff('F2', 'F3') + auRiff('C3', 'C4') + auRiff('C3', 'C4') + auRiff('Ab2', 'Ab3') + auRiff('Bb2', 'Bb3') + auRiff('G2', 'G3') + auRiff('G2', 'G3') },
-      { wave: 'triangle', vol: 0.02, gate: 0.95, notes:
-        'Eb4 - - - - - - - | Eb4 - - - - - - - | C4 - - - - - - - | D4 - - - - - - - | Eb4 - - - - - - - | Eb4 - - - - - - - | C4 - - - - - - - | B3 - - - - - - - |' +
-        ' Ab3 - - - - - - - | Ab3 - - - - - - - | G3 - - - - - - - | G3 - - - - - - - | C4 - - - - - - - | D4 - - - - - - - | B3 - - - - - - - | D4 - - - - - - - |' },
-      { drum: true, vol: 0.9, notes: Q.au.rep('k h s k h k s h |', 7) + ' k s s k s s s! s! |' + Q.au.rep('k h s k h k s h |', 7) + ' k s s k s s s! s! |' }
+    // BOSS (the template, and the fallback for any arena): C minor, 168 bpm, swung 0.28, urgent. THE BATON's minor face on the lead, the bass on the 3 + 3 + 2
+    // riff under every chord, the brass kicking with the riff's leaning notes, the section a third under the lead for B (a soli), the ride and a busy kit.
+    var AU_BOSS_CH = AU_BATON_MCH;
+    Q.defSong('boss', { bpm: 168, swing: 0.28, vol: 1.11, voices: [
+      { wave: 'square', vol: 0.02, gate: 0.7, notes: AU_BATON_MA + AU_BATON_MB },
+      { wave: 'square', vol: 0.011, gate: 0.6, notes: auGuide(auSome(AU_BOSS_CH, 1, 8), ' . . . . . X_ X . | . . . . . . . . |', 'Eb4', 'D5') + auDia(AU_BATON_MB, 'C', -2, AU_HMIN) },
+      { wave: 'sawtooth', vol: 0.009, gate: 0.4, notes: auGuide(AU_BOSS_CH, ' X! . . X . . X . |', 'G3', 'F4') },
+      { wave: 'triangle', vol: 0.03, gate: 0.5, notes: auRiffs(AU_BOSS_CH, 'C2', 'C4') },
+      { drum: true, vol: 0.7, notes: AU_R(AU_RIDE, 16) },
+      { drum: true, vol: 0.85, notes: AU_KX + AU_R(AU_SWK, 6) + AU_SWF + AU_KX + AU_R(AU_SWK, 6) + AU_SWF }
     ] });
 
-    // FINAL, SCOPE CREEP (w4-boss): D minor, 138 bpm, grand and a little silly: a pompous march whose opening grows one note longer every bar ("quick ask...
-    // while you're in there... just one more thing"), a slide that goes boing, then a broad tune. Three songs share it, joined (each takes over at the next bar,
-    // at the same place): 'final' for the first part, 'final2' adds a counter-line of running eighths (the tickets piling up), and 'final3' (the agents join)
-    // turns it to D major and adds three voices: C1's quick even sixteenths up high (the shield), C2's runs with long pauses, C3's one firm note a bar.
+    // FINAL, SCOPE CREEP (w4-boss): D minor, 138 bpm, swung 0.32, a pompous two-beat swing march, grand and a little silly. SCOPE CREEP twists the conductor's
+    // motif into a question that never lands (D D G, the leap to the fourth) and it grows one note longer every bar ("quick ask... while you're in there... just one
+    // more thing"); then THE BATON's minor face in D answers it, and a slide that goes boing brings it round. Three songs share it, joined (each takes over at the
+    // next bar, at the same place): 'final' with the section echoing a third under; 'final2' with a running counter-line (the tickets piling up); and 'final3'
+    // (35-audio-songs-d.js), D major, the agents joining. The bass marches in two (the root and a half step into the next), the brass goes oom-pah on 2 and 4.
     var AU_FINAL_LEAD =
-      'D5 - A4 - . . . . | D5 - A4 - Bb4 - . . | D5 - A4 - Bb4 - C5 - | D5 A4 Bb4 C5 D5 E5 F5 G5 |' +
-      ' A5 - - - G5 - F5 E5 | F5 - - - D5 - - - | Bb4 - D5 - F5 - Bb5 - | A5 - - - A4>A5 - - - |' +
-      ' F5 - - - D5 - Bb4 - | G5 - - - E5 - C5 - | E5 - - - C5 - A4 - | D5 - F5 - A5 - D6 - |' +
-      ' D6 - - - Bb5 - G5 - | E5 - G5 - A5 - C#6 - | D6 - - - A5 - F5 - | E5 - - - C#5 - A4 - |';
-    var AU_FINAL_BASS =
-      auPah('D3', 'F3', 'A2') + auPah('D3', 'F3', 'D3') + auPah('D3', 'F3', 'D3') + auPah('D3', 'F3', 'A2') +
-      auPah('A2', 'C#3', 'E2') + auPah('D3', 'F3', 'A2') + auPah('Bb2', 'D3', 'F2') + auPah('A2', 'C#3', 'E2') +
-      auPah('Bb2', 'D3', 'F2') + auPah('C3', 'E3', 'G2') + auPah('A2', 'C3', 'E2') + auPah('D3', 'F3', 'A2') +
-      auPah('G2', 'Bb2', 'D3') + auPah('A2', 'C#3', 'E2') + auPah('D3', 'F3', 'A2') + auPah('A2', 'C#3', 'E2');
-    Q.defSong('final', { bpm: 138, join: 'final', vol: 1.07, voices: [
+      ' D5 . D5 . G5 - - - | D5 . D5 . G5 - A5 - | D5 . D5 . G5 - A5 Bb5 | D5 . D5 . G5 A5 Bb5 C6 |' + AU_SH(auCut(AU_BATON_MA, 1, 4), 2) + AU_SH(auCut(AU_BATON_MB, 1, 4), 2) +
+      ' Bb4 . Bb4 . E5 - - F#5 | G5 - E5 - C#5 E5 - . | D5 - - - A4 - F4 - | A4 - - - A4>A5 - - - |';
+    var AU_FINAL_CH = 'Gm6 Gm6 Gm6 A7 Dm6 Dm6 Em7b5 A7 Gm6 Gm6 Fmaj7 E7 Em7b5 A7 Dm6 A7';   // the question's bars: G minor's notes over a D in the bass (it never lands)
+    var AU_FINAL_PED = ' D2 - - - A2 - - - | D2 - - - A2 - - - | D2 - - - A2 - - - | A2 - - - E2 - - - |';   // the bass holds D under the question, then A
+    var AU_FINAL_BASS = AU_FINAL_PED + auWalk(auSome(AU_FINAL_CH, 5, 16), 'D2', 'C4', 'E2', 2, 4);
+    var AU_FINAL_OOM = auGuide(AU_FINAL_CH, ' . . X . . . X . |', 'A3', 'G4');   // the brass: oom-pah on 2 and 4
+    var AU_FINAL_KIT = ' x . s . k . s . |' + AU_R(' k . s . k . s . |', 6) + ' k . s s_ k . s s! |' + ' x . s . k . s . |' + AU_R(' k . s . k . s . |', 6) + ' k s . s k s s! s! |';
+    Q.defSong('final', { bpm: 138, swing: 0.32, join: 'final', vol: 0.98, voices: [
       { wave: 'square', vol: 0.02, gate: 0.75, notes: AU_FINAL_LEAD },
-      { wave: 'triangle', vol: 0.036, gate: 0.6, notes: AU_FINAL_BASS },
-      { drum: true, vol: 0.85, notes: ' x h s h k h s h |' + Q.au.rep('k h s h k h s h |', 6) + ' k h s s k s s s |' + ' x h s h k h s h |' + Q.au.rep('k h s h k h s h |', 6) + ' k s k s k s s! s! |' }
+      { wave: 'square', vol: 0.011, gate: 0.7, notes: auDia(AU_FINAL_LEAD, 'D', -2, AU_HMIN) },
+      { wave: 'sawtooth', vol: 0.009, gate: 0.4, notes: AU_FINAL_OOM },
+      { wave: 'triangle', vol: 0.034, gate: 0.85, notes: AU_FINAL_BASS },
+      { drum: true, vol: 0.65, notes: AU_R(AU_RIDE, 16) },
+      { drum: true, vol: 0.85, notes: AU_FINAL_KIT }
     ] });
-    Q.defSong('final2', { bpm: 138, join: 'final', vol: 0.99, voices: [
+    // FINAL2, its second phase: the same march, the section's echo traded for a counter-line of running swung eighths on the chords (the tickets piling up).
+    var AU_FINAL_RUN = AU_R(auRun('D4', 'F4', 'A4'), 4) + auRun('D4', 'F4', 'A4') + auRun('D4', 'F4', 'B4') + auRun('E4', 'G4', 'Bb4') + auRun('E4', 'G4', 'C#5') +
+      auRun('D4', 'G4', 'Bb4') + auRun('D4', 'G4', 'Bb4') + auRun('C4', 'F4', 'A4') + auRun('D4', 'G#4', 'B4') + auRun('E4', 'G4', 'Bb4') + auRun('E4', 'G4', 'C#5') + auRun('D4', 'F4', 'A4') + auRun('C#4', 'E4', 'G4');
+    Q.defSong('final2', { bpm: 138, swing: 0.32, join: 'final', vol: 0.96, voices: [
       { wave: 'square', vol: 0.02, gate: 0.75, notes: AU_FINAL_LEAD },
-      { wave: 'triangle', vol: 0.036, gate: 0.6, notes: AU_FINAL_BASS },
-      { wave: 'square', vol: 0.012, gate: 0.5, notes:
-        auRun('D4', 'F4', 'A4') + auRun('D4', 'F4', 'A4') + auRun('D4', 'F4', 'A4') + auRun('D4', 'F4', 'A4') +
-        auRun('C#4', 'E4', 'G4') + auRun('D4', 'F4', 'A4') + auRun('D4', 'F4', 'Bb4') + auRun('C#4', 'E4', 'A4') +
-        auRun('D4', 'F4', 'Bb4') + auRun('E4', 'G4', 'C5') + auRun('C4', 'E4', 'A4') + auRun('D4', 'F4', 'A4') +
-        auRun('D4', 'G4', 'Bb4') + auRun('C#4', 'E4', 'G4') + auRun('D4', 'F4', 'A4') + auRun('C#4', 'E4', 'A4') },
-      { drum: true, vol: 0.9, notes: ' x h s h k k s h |' + Q.au.rep('k h s h k k s h |', 6) + ' k s s s k s s s |' + ' x h s h k k s h |' + Q.au.rep('k h s h k k s h |', 6) + ' k s k s k s s! s! |' }
+      { wave: 'square', vol: 0.011, gate: 0.5, notes: AU_FINAL_RUN },
+      { wave: 'sawtooth', vol: 0.009, gate: 0.4, notes: AU_FINAL_OOM },
+      { wave: 'triangle', vol: 0.034, gate: 0.85, notes: AU_FINAL_BASS },
+      { drum: true, vol: 0.65, notes: AU_R(AU_RIDE, 16) },
+      { drum: true, vol: 0.9, notes: AU_FINAL_KIT.replace(/ k \. s \. k \. s \. \|/g, ' k . s k_ k . s . |') }
     ] });
     // ===== 35-audio-songs-d.js =====
-    // ---------- 35-audio-songs-d.js: SCOPE CREEP's third part, VEND-9's shop, the rescue, the end and game over (AUDIO, builder 4): our own tunes ----------
-    function auType(a, b, c) { return Q.au.rep(a + ' ' + b + ' ' + c + ' ' + b, 4) + ' |'; }   // C1's quick even sixteenths on a chord (a voice with sub: 2)
-    function auHold(n) { return ' ' + n + '! - - - - - - - |'; }                                // C3's one firm note a bar
-    var AU_REST16 = ' . . . . . . . . . . . . . . . . |';
+    // ---------- 35-audio-songs-d.js: SCOPE CREEP's third part, VEND-9's shop, the rescue, the end and game over (AUDIO, builder 14): 8-bit big band ----------
+    function auType(a, b, c) { return Q.au.rep(a + ' ' + b + ' ' + c + ' ' + b, 4) + ' |'; }   // a bar of sixteenths on a chord (THE ENCORE's C1, a voice with sub: 2)
 
-    // FINAL3, the agents join (call Q.music('final3') when the third part starts: it takes over at the next bar, at the same place): D major now, the same
-    // march, with C1 typing a shield of sixteenths up high, C2's quick runs and long pauses, C3 holding one firm note a bar, and the conductor's tick on the off-beats.
-    Q.defSong('final3', { bpm: 138, join: 'final', vol: 0.87, voices: [
-      { wave: 'square', vol: 0.02, gate: 0.75, notes:
-        'D5 - A4 - . . . . | D5 - A4 - B4 - . . | D5 - A4 - B4 - C#5 - | D5 A4 B4 C#5 D5 E5 F#5 G5 |' +
-        ' A5 - - - G5 - F#5 E5 | F#5 - - - D5 - - - | Bb4 - D5 - F5 - Bb5 - | A5 - - - A4>A5 - - - |' +
-        ' D5 - - - B4 - G4 - | E5 - - - C#5 - A4 - | C#5 - - - A4 - F#4 - | D5 - F#5 - A5 - D6 - |' +
-        ' D6 - - - B5 - G5 - | E5 - G5 - A5 - C#6 - | D6 - - - A5 - F#5 - | E5 - - - C#5 - A4 - |' },
-      { wave: 'triangle', vol: 0.036, gate: 0.6, notes:
-        auPah('D3', 'F#3', 'A2') + auPah('D3', 'F#3', 'D3') + auPah('D3', 'F#3', 'D3') + auPah('D3', 'F#3', 'A2') +
-        auPah('A2', 'C#3', 'E2') + auPah('D3', 'F#3', 'A2') + auPah('Bb2', 'D3', 'F2') + auPah('A2', 'C#3', 'E2') +
-        auPah('G2', 'B2', 'D3') + auPah('A2', 'C#3', 'E2') + auPah('F#2', 'A2', 'C#3') + auPah('D3', 'F#3', 'A2') +
-        auPah('G2', 'B2', 'D3') + auPah('A2', 'C#3', 'E2') + auPah('D3', 'F#3', 'A2') + auPah('A2', 'C#3', 'E2') },
-      { drum: true, vol: 0.9, notes: ' x t s t k t s t |' + Q.au.rep('k t s t k t s t |', 6) + ' k s s s k s s s |' + ' x t s t k t s t |' + Q.au.rep('k t s t k t s t |', 6) + ' k s k s k s s! s! |' },
-      { wave: 'square', vol: 0.011, gate: 0.5, sub: 2, notes:   // C1
-        auType('D6', 'A5', 'F#5') + auType('D6', 'A5', 'F#5') + auType('D6', 'A5', 'F#5') + auType('D6', 'A5', 'F#5') +
-        auType('C#6', 'G5', 'E5') + auType('D6', 'A5', 'F#5') + auType('D6', 'Bb5', 'F5') + auType('C#6', 'A5', 'E5') +
-        auType('D6', 'B5', 'G5') + auType('C#6', 'A5', 'E5') + auType('C#6', 'A5', 'F#5') + auType('D6', 'A5', 'F#5') +
-        auType('D6', 'B5', 'G5') + auType('C#6', 'G5', 'E5') + auType('D6', 'A5', 'F#5') + auType('C#6', 'G5', 'E5') },
-      { wave: 'triangle', vol: 0.02, gate: 0.6, sub: 2, notes:   // C2
-        ' A5 B5 C#6 D6 E6 F#6 - - - - . . . . . . |' + AU_REST16 + AU_REST16 + ' F#6 E6 D6 C#6 B5 A5 - - - - . . . . . . |' +
-        ' E5 F#5 G5 A5 B5 C#6 - - - - . . . . . . |' + AU_REST16 + AU_REST16 + ' . . . . . . . . E6 D6 C#6 B5 A5 - - - |' +
-        ' B5 C#6 D6 E6 F#6 G6 - - - - . . . . . . |' + AU_REST16 + AU_REST16 + ' D6 E6 F#6 G6 A6 - - - . . . . . . . . |' +
-        ' G6 F#6 E6 D6 C#6 B5 - - - - . . . . . . |' + AU_REST16 + AU_REST16 + ' A5 B5 C#6 D6 E6 - - - . . . . . . . . |' },
-      { wave: 'triangle', vol: 0.026, gate: 0.95, notes:   // C3
-        auHold('D4') + auHold('D4') + auHold('D4') + auHold('D4') + auHold('C#4') + auHold('D4') + auHold('D4') + auHold('C#4') +
-        auHold('D4') + auHold('C#4') + auHold('C#4') + auHold('D4') + auHold('D4') + auHold('C#4') + auHold('D4') + auHold('C#4') }
+    // FINAL3, the agents join (Q.music('final3') when the third part starts: it takes over at the next bar, at the same place): the march turns D major and the
+    // conductor's tune is his again: the question (D D G), then THE BATON in D major where 'final' had its minor face. C1 types a shield of quick even notes up
+    // high (one key, every eighth), C2 runs up and down with long pauses between, C3 holds one firm note a bar; the kit keeps a note on every beat (the phase 3
+    // ring, 84-w4-boss.js, follows this song's clock and its 138 bpm).
+    var AU_F3_LEAD =
+      ' D5 . D5 . G5 - - - | D5 . D5 . G5 - A5 - | D5 . D5 . G5 - A5 B5 | D5 . D5 . G5 A5 B5 C#6 |' + AU_SH(auCut(AU_BATON_A, 1, 4), 2) + AU_SH(auCut(AU_BATON_B, 1, 4), 2) +
+      ' B4 . B4 . E5 - - F#5 | G5 - E5 - C#5 E5 - . | D5 - - - A4 - F#4 - | A4 - - - A4>A5 - - - |';
+    var AU_F3_CH = 'G6 G6 G6 A7 D6 Bm7 Em7 A7 G6 G6 F#m7 B7 Em7 A7 D6 A7';   // the question's bars: G's notes over the D pedal
+    var AU_F3_C2 = ' A5 B5 C#6 D6 E6 F#6 - . | . . . . . . . . | . . . . . . . . | F#6 E6 D6 C#6 B5 A5 - . | F#5 G5 A5 B5 C#6 D6 - . | . . . . . . . . | . . . . . . . . | . . . . E6 D6 C#6 A5 |' +
+      ' B5 C#6 D6 E6 F#6 G6 - . | . . . . . . . . | . . . . . . . . | D#6 E6 F#6 G6 A6 - . . | G6 F#6 E6 D6 C#6 B5 - . | . . . . . . . . | . . . . . . . . | A5 B5 C#6 D6 E6 - . . |';
+    Q.defSong('final3', { bpm: 138, swing: 0.32, join: 'final', vol: 0.82, voices: [
+      { wave: 'square', vol: 0.02, gate: 0.75, notes: AU_F3_LEAD },
+      { wave: 'triangle', vol: 0.034, gate: 0.85, notes: AU_FINAL_PED + auWalk(auSome(AU_F3_CH, 5, 16), 'D2', 'C4', 'E2', 2, 4) },
+      { drum: true, vol: 0.85, notes: ' x . q r_ k . q r_ |' + AU_R(' k . q r_ k . q r_ |', 6) + ' k . q s k . s s! |' + ' x . q r_ k . q r_ |' + AU_R(' k . q r_ k . q r_ |', 6) + ' k s q s k s s! s! |' },
+      { wave: 'square', vol: 0.009, gate: 0.3, notes: auGuide(AU_F3_CH, ' X X_ X X_ X X_ X X_ |', 'F#5', 'E6') },   // C1
+      { wave: 'triangle', vol: 0.02, gate: 0.6, notes: AU_F3_C2 },                                                // C2
+      { wave: 'triangle', vol: 0.026, gate: 0.95, notes: auGuide(AU_F3_CH, ' X! - - - - - - - |', 'B3', 'A4') }  // C3
     ] });
 
-    // SHOP, VEND-9: B flat major, 100 bpm, swung, a lounge jingle: sevenths over a walking bass, soft chords on the off-beats, brushes, and a clunk to finish.
-    Q.defSong('shop', { bpm: 100, swing: 0.3, vol: 1.02, voices: [
-      { wave: 'triangle', vol: 0.03, gate: 0.7, notes:
-        'D5 - F5 - A5 - - F5 | G5 - - - F5 - D5 - | Eb5 - G5 - Bb5 - - G5 | A5 - - - . . F5 G5 |' +
-        ' F5 - - - A5 - C6 - | B5 - - - G5 - F5 - | Eb5 - D5 - C5 - A4 - | Bb4 - - - . . . . |' },
-      { wave: 'triangle', vol: 0.034, gate: 0.75, notes:
-        'Bb2 - C3 - D3 - F3 - | G2 - A2 - Bb2 - D3 - | C3 - G2 - Eb3 - C3 - | F2 - A2 - C3 - Eb3 - |' +
-        ' D3 - C3 - A2 - F2 - | G2 - B2 - D3 - F3 - | C3 - G2 - F2 - A2 - | Bb2 - F2 - G2 - A2 - |' },
-      { wave: 'sine', vol: 0.016, gate: 0.35, notes:
-        '. D4 . . . A4 . . | . Bb3 . . . F4 . . | . Eb4 . . . Bb3 . . | . A3 . . . Eb4 . . |' +
-        ' . F4 . . . C4 . . | . B3 . . . F4 . . | . Eb4 . . . A3 . . | . D4 . . . G4 . . |' },
-      { drum: true, vol: 0.6, notes: Q.au.rep('k_ . h . t_ . h . |', 7) + ' k_ . h . k! . . . |' }
+    // SHOP, VEND-9: B flat major, 100 bpm, swung 0.40, a lounge. THE BATON's first eight bars as a slow lounge tune on a soft triangle (like vibes), a muted square
+    // comping off the beat (beat 1 and the and of 2), the bass walking, brushes; it ends with a clunk.
+    var AU_SHOP_CH = auChords(auSome(AU_BATON_CH, 1, 8), -2);
+    Q.defSong('shop', { bpm: 100, swing: 0.4, vol: 1.02, voices: [
+      { wave: 'triangle', vol: 0.03, gate: 0.85, notes: AU_SH(AU_BATON_A, -2) },
+      { wave: 'square', vol: 0.008, gate: 0.45, notes: auGuide(AU_SHOP_CH, ' X_ . . X . . . . |', 'D4', 'C5') },
+      { wave: 'triangle', vol: 0.032, gate: 0.85, notes: auWalk(AU_SHOP_CH, 'D2', 'C4') },
+      { drum: true, vol: 0.7, notes: AU_R(' u . f . u . f . |', 7) + ' u . f . k! . . . |' }
     ] });
 
-    // RESCUE (once, about five seconds): C major, 140 bpm: the conductor's two taps and a leap, a climb, a held high C.
-    Q.defSong('rescue', { bpm: 140, loop: false, vol: 0.86, voices: [
-      { wave: 'square', vol: 0.022, gate: 0.8, notes: 'G4 . G4 . C5 - E5 - | G5 - E5 - G5 A5 B5 - | C6 - - - - - - - |' },
-      { wave: 'triangle', vol: 0.024, gate: 0.8, notes: 'E4 . E4 . G4 - C5 - | E5 - C5 - E5 F5 G5 - | E5 - - - - - - - |' },
-      { wave: 'triangle', vol: 0.034, gate: 0.8, notes: 'C3 - - - G2 - - - | C3 - - - G2 - - - | C3 - - - - - - - |' },
-      { drum: true, vol: 0.8, notes: 'k . s . k . s . | k . s . k s s s | x! . . . . . . . |' }
+    // RESCUE (once, about five seconds): C major, 140 bpm, swung 0.32: the band's fanfare. The conductor's two taps (on the rim too) and the leap, a climb, and the
+    // shout chord held (C, E, G and A, a big band's sixth chord) with a crash.
+    var AU_RES_LEAD = ' G4 . G4 . C5 - - E5 | G5 - E5 - G5 A5 B5 - | C6! - - - - - - - |';
+    Q.defSong('rescue', { bpm: 140, swing: 0.32, loop: false, vol: 0.84, voices: [
+      { wave: 'square', vol: 0.021, gate: 0.8, notes: AU_RES_LEAD },
+      { wave: 'square', vol: 0.013, gate: 0.8, notes: auDia(AU_RES_LEAD, 'C', -2) },
+      { wave: 'sawtooth', vol: 0.009, gate: 0.6, notes: ' . . . . E4! - - . | . . . . . . . . | G4! - - - - - - - |' },
+      { wave: 'triangle', vol: 0.033, gate: 0.8, notes: ' C3 - - - G2 - - - | C3 - E3 - G3 - B2 - | C3 - - - - - - - |' },
+      { drum: true, vol: 0.8, notes: ' t! . t! . k . s . | k . s . k s s s! | x! . . . . . . . |' }
     ] });
 
-    // END: E flat major, 84 bpm, warm: the conductor's motif again, slow and gentle, over soft broken chords (the ending and the credits).
-    Q.defSong('end', { bpm: 84, vol: 0.97, voices: [
-      { wave: 'triangle', vol: 0.032, gate: 0.9, notes:
-        'Bb4 . Bb4 . Eb5 - - D5 | D5 - C5 - Bb4 - F4 - | G4 . G4 . C5 - - Bb4 | Ab4 - F4 - Eb4 - - - |' +
-        ' Bb4 . Bb4 . Eb5 - F5 - | Ab5 - F5 - Eb5 - C5 - | Ab4 - - C5 Eb5 - - - | D5 - - - . . Eb5 F5 |' +
-        ' G5 - - - Eb5 - C5 - | D5 - - - F5 - Bb5 - | Bb5 - - Ab5 G5 - D5 - | Eb5 - - - . . Eb5 F5 |' +
-        ' Ab5 - - - Eb5 - C5 - | F5 - - - D5 - Bb4 - | Eb5 . Eb5 . Bb4 . G4 . | Eb4 - - - . . . . |' },
-      { wave: 'triangle', vol: 0.03, gate: 0.9, notes:
-        'Eb3 - - - Bb2 - - - | D3 - - - Bb2 - - - | C3 - - - G2 - - - | Ab2 - - - Eb3 - - - |' +
-        ' G2 - - - Bb2 - - - | Ab2 - - - C3 - - - | F2 - - - C3 - - - | Bb2 - - - F2 - - - |' +
-        ' C3 - - - G2 - - - | Bb2 - - - F2 - - - | G2 - - - D3 - - - | C3 - - - G2 - - - |' +
-        ' Ab2 - - - Eb3 - - - | Bb2 - - - F2 - - - | Eb3 - - - Bb2 - - - | Eb3 - - - . . . . |' },
-      { wave: 'sine', vol: 0.014, gate: 0.5, notes:
-        auRun('Eb4', 'G4', 'Bb4') + auRun('D4', 'F4', 'Bb4') + auRun('C4', 'Eb4', 'G4') + auRun('C4', 'Eb4', 'Ab4') +
-        auRun('Eb4', 'G4', 'Bb4') + auRun('C4', 'Eb4', 'Ab4') + auRun('Eb4', 'F4', 'Ab4') + auRun('D4', 'F4', 'Ab4') +
-        auRun('C4', 'Eb4', 'G4') + auRun('D4', 'F4', 'Bb4') + auRun('D4', 'G4', 'Bb4') + auRun('C4', 'Eb4', 'G4') +
-        auRun('C4', 'Eb4', 'Ab4') + auRun('D4', 'F4', 'Bb4') + auRun('Eb4', 'G4', 'Bb4') + auRun('Eb4', 'G4', 'Bb4') },
-      { drum: true, vol: 0.5, notes: Q.au.rep('k_ . . . t_ . . . |', 16) }
+    // END: E flat major, 84 bpm, swung 0.42, a warm swing ballad for the ending and the credits: THE BATON whole, slow and gentle on a round triangle, the section a
+    // third under it on a soft square, soft broken chords, a bass in two, brushes.
+    var AU_END_CH = auChords(AU_BATON_CH, 3), AU_END_LEAD = AU_SH(AU_BATON_A + AU_BATON_B, 3);
+    Q.defSong('end', { bpm: 84, swing: 0.42, vol: 0.93, voices: [
+      { wave: 'triangle', vol: 0.032, gate: 0.9, notes: AU_END_LEAD },
+      { wave: 'square', vol: 0.009, gate: 0.85, notes: auDia(AU_END_LEAD, 'Eb', -2) },
+      { wave: 'square', vol: 0.005, gate: 0.5, notes: auRoll(AU_END_CH, 'G4', 8) },
+      { wave: 'triangle', vol: 0.03, gate: 0.9, notes: auWalk(AU_END_CH, 'Eb2', 'Db4', null, 2, 4) },
+      { drum: true, vol: 0.55, notes: AU_R(' u . . . u_ . f . |', 16) }
     ] });
 
-    // OVER (once, under three seconds): A minor, 92 bpm, a short sigh: two steps down and a slide, home to A.
-    Q.defSong('over', { bpm: 92, loop: false, vol: 1.01, voices: [
-      { wave: 'triangle', vol: 0.03, gate: 0.95, notes: 'E5 - D5 - C5>A4 - - - |' },
-      { wave: 'sine', vol: 0.018, gate: 0.95, notes: 'C5 - B4 - A4>E4 - - - |' },
-      { wave: 'triangle', vol: 0.03, gate: 0.95, notes: 'A2 - E2 - A2 - - - |' }
+    // OVER (once, under three seconds): A minor, 92 bpm, a short sigh: the two taps, tired, and the leap falls instead (a fifth down, to the A a fourth up would
+    // reach) and slides away, home to A.
+    Q.defSong('over', { bpm: 92, swing: 0.42, loop: false, vol: 1.27, voices: [
+      { wave: 'triangle', vol: 0.03, gate: 0.95, notes: ' E5 . E5 . A4 - A4>A3 - |' },
+      { wave: 'square', vol: 0.01, gate: 0.9, notes: ' C5 . C5 . E4 - E4>E3 - |' },
+      { wave: 'triangle', vol: 0.03, gate: 0.95, notes: ' A2 - - - - - - - |' },
+      { drum: true, vol: 0.6, notes: ' t_ . t_ . . . . . |' }
     ] });
     // ===== 36-audio-songs-e.js =====
-    // ---------- 36-audio-songs-e.js: a boss theme for each of worlds 1 to 3 (AUDIO, builder 4): our own tunes, the format at the top of 30-audio-engine.js ----------
-    // One family: each is built on 'boss' (34-audio-songs-c.js): its bass riff leaning 3 + 3 + 2, and its opening figure (a falling triad in the same push),
-    // each in its world's colour. 'boss' stays the fallback. Joined pairs (the same join name and as many bars) switch at the next bar line, at the same bar.
-    function auHum(r, up) {   // a bar of sixteenths on one note, leaning 3 + 3 + 2 (up: the leaning notes an octave higher, hotter)
-      var u = up || r;
-      return ' ' + [r + '!', r + '_', r, r + '_', r, r + '_', u + '!', r + '_', r, r + '_', r, r + '_', u + '!', r + '_', r, r + '_'].join(' ') + ' |';
+    // ---------- 36-audio-songs-e.js: a boss theme for each of worlds 1 to 3 (AUDIO, builder 14): THE BATON's minor face in each world's colour, 8-bit big band ----------
+    // One family, built on 'boss' (34-audio-songs-c.js): the minor theme and the riff leaning 3 + 3 + 2. Joined pairs (the same join name and as many bars) switch at
+    // the next bar line, at the same bar, each at its own tempo.
+    function auLean3(chords, lo, hi, hot) {   // the hum leaning 3 + 3 + 2 on each chord's root, one note a swung eighth (hot: its leaning notes an octave up)
+      var L = auMidi(lo), H = auMidi(hi), prev = Math.round((L + H) / 2);
+      return String(chords).split(/\s+/).filter(function (x) { return x && x !== '|'; }).map(function (bar) {
+        var rs = bar.split('.').map(function (c) { var r = auNear(auChord(c).r, prev, L, H); prev = r; return [auName(r), auName(hot ? r + 12 : r)]; }), a = rs[0], b = rs[rs.length - 1];
+        return ' ' + [a[1] + '!', a[0] + '_', a[0], b[1] + '!', b[0] + '_', b[0], b[1] + '!', b[0] + '_'].join(' ') + ' |';
+      }).join('');
+    }
+    function auEcho(s) {   // the lead's taps copied onto the off-beats an octave down (everyone on CC): a bar opening 'X . X .' echoes as '. X_ . X_'
+      return String(s).split('|').filter(function (b) { return /\S/.test(b); }).map(function (b) {
+        var t = b.split(/\s+/).filter(function (x) { return !!x; }), n = auMidi(t[0]);
+        if (n === null || t[0] !== t[2] || t[1] !== '.' || t[3] !== '.') return ' . . . . . . . . |';
+        return ' . ' + auName(n - 12) + '_ . ' + auName(n - 12) + '_ . . . . |';
+      }).join('');
     }
 
-    // BOSS-HYDRA, THE REPLY-ALL HYDRA: C minor, 160 bpm, bouncy, papery and a little pompous: the boss figure hopping in repeated staccato notes over the riff,
-    // paper on the off-beats, a dotted fanfare in the second half, and a nasal sawtooth answering every second bar with the RE: RE: figure (up a fourth).
-    Q.defSong('boss-hydra', { bpm: 160, vol: 1.17, voices: [
-      { wave: 'square', vol: 0.02, gate: 0.5, notes:
-        'G5 . G5 Eb5 . Eb5 C5 . | D5 . D5 Eb5 . Eb5 F5 . | Eb5 . Eb5 C5 . C5 Ab4 . | Bb4 . Bb4 C5 . C5 D5 . |' +
-        ' G5 . G5 Eb5 . Eb5 C5 . | D5 . D5 Eb5 . Eb5 G5 . | Ab5 - - - Eb5 - - - | G5 - - - D5 - B4 - |' +
-        ' F5 - - C5 F5 - Ab5 - | C6 - - - Ab5 - F5 - | G5 - - Eb5 G5 - C6 - | Eb6 - - - C6 - G5 - |' +
-        ' Ab5 - - Eb5 Ab5 - C6 - | D6 - - - Bb5 - F5 - | G5 - - D5 G5 - B5 - | D6 - - - B5 . . . |' },
-      { wave: 'triangle', vol: 0.03, gate: 0.45, notes:
-        auRiff('C3', 'C4') + auRiff('C3', 'C4') + auRiff('Ab2', 'Ab3') + auRiff('Bb2', 'Bb3') + auRiff('C3', 'C4') + auRiff('C3', 'C4') + auRiff('Ab2', 'Ab3') + auRiff('G2', 'G3') +
-        auRiff('F2', 'F3') + auRiff('F2', 'F3') + auRiff('C3', 'C4') + auRiff('C3', 'C4') + auRiff('Ab2', 'Ab3') + auRiff('Bb2', 'Bb3') + auRiff('G2', 'G3') + auRiff('G2', 'G3') },
-      { drum: true, vol: 0.85, notes: Q.au.rep('k p s k p k s p |', 7) + ' k p s k s s s! s! |' + Q.au.rep('k p s k p k s p |', 7) + ' k p s k s s s! s! |' },
-      { wave: 'sawtooth', vol: 0.012, gate: 0.5, notes:
-        ' . . . . . . . . | . . . . . . F5 Bb5 | . . . . . . . . | . . . . . . F5 Bb5 | . . . . . . . . | . . . . . . G5 C6 | . . . . . . . . | . . . . D5 G5 D5 G5 |' +
-        ' . . . . . . . . | . . . . . . F5 Bb5 | . . . . . . . . | . . . . . . G5 C6 | . . . . . . . . | . . . . . . F5 Bb5 | . . . . . . . . | . . . . D5 G5 D5 G5 |' }
+    // BOSS-HYDRA, THE REPLY-ALL HYDRA: C minor, 160 bpm, swung 0.28, bouncy, papery and a little pompous. THE BATON's minor face hopping (staccato), every tap
+    // echoed an octave down on the off-beat (everyone on CC), then B as a pompous fanfare (accented); a nasal sawtooth answers every second bar with RE: RE: (two
+    // notes a fourth apart, the motif's own leap), and twice (reply-all) at each half's end; the riff under it; paper plays the ride; the kit marches in two.
+    var AU_HYD_LEAD = AU_BATON_MA + AU_BATON_MB.replace(/(^\s*|\| )(\S+) \. (\S+) \. (\S+)/g, '$1$2! . $3! . $4!');   // B: the taps and the leap accented
+    var AU_HYD_RE = ' . . . . . . . . | . . . . . . G4 C5 | . . . . . . . . | . . . . . . D5 G5 | . . . . . . . . | . . . . . . Eb5 Ab5 | . . . . . . . . | . . . . G4 C5 G4 C5 |' +
+      ' . . . . . . . . | . . . . . . C5 F5 | . . . . . . . . | . . . . . . A4 D5 | . . . . . . . . | . . . . . . D5 G5 | . . . . . . . . | . . . . G4 C5 G4 C5 |';
+    var AU_HYD_KIT = ' x . s . k . s . |' + AU_R(' k . s . k . s . |', 6) + ' k . s s_ k s s! s! |';
+    Q.defSong('boss-hydra', { bpm: 160, swing: 0.28, vol: 1.27, voices: [
+      { wave: 'square', vol: 0.02, gate: 0.5, notes: AU_HYD_LEAD },
+      { wave: 'square', vol: 0.011, gate: 0.4, notes: auEcho(AU_HYD_LEAD) },
+      { wave: 'sawtooth', vol: 0.011, gate: 0.5, notes: AU_HYD_RE },
+      { wave: 'triangle', vol: 0.027, gate: 0.45, notes: auRiffs(AU_BATON_MCH, 'C2', 'C4') },
+      { drum: true, vol: 0.75, notes: AU_R(' p . p p_ p . p p_ |', 16) },
+      { drum: true, vol: 0.78, notes: AU_HYD_KIT + AU_HYD_KIT }
     ] });
 
-    // BOSS-OVERHEAT, THE OVERHEAT: A minor, 120 bpm in sixteenths, a heavy humming pulse leaning 3 + 3 + 2 (the riff as a hum), the boss figure held long
-    // above it, the racks' lights blinking. BOSS-OVERHEAT2, its last phase (joined: Q.music('boss-overheat2') takes over at the next bar line, at the same bar):
-    // hotter and faster, 138 bpm, the hum jumping up an octave on its leaning notes, the tune an octave higher with a sawtooth buzzing under it, busier drums.
-    var AU_HEAT_LEAD =
-      'E5 - - - - - C5 - - - - - A4 - - - | B4 - - - - - C5 - - - - - D5 - - - | C5 - - - - - A4 - - - - - F4 - - - | G#4 - - - - - B4 - - - - - E5 - - - |' +
-      ' E5 - - - - - C5 - - - - - A4 - - - | B4 - - - - - C5 - - - - - E5 - - - | F#5 - - - - - D5 - - - - - A4 - - - | G#5 - - - - - E5 - - - - - B4 - - - |';
-    var AU_HEAT_ROOTS = ['A2', 'A2', 'F2', 'E2', 'A2', 'A2', 'D3', 'E2'], AU_HEAT_HIGH = ['A3', 'A3', 'F3', 'E3', 'A3', 'A3', 'D4', 'E3'];
-    function auHeatHum(hot) { var s = '', i; for (i = 0; i < 8; i++) s += auHum(AU_HEAT_ROOTS[i], hot ? AU_HEAT_HIGH[i] : null); return s; }
-    Q.defSong('boss-overheat', { bpm: 120, div: 4, join: 'overheat', vol: 1.32, voices: [
-      { wave: 'square', vol: 0.017, gate: 0.8, notes: AU_HEAT_LEAD },
-      { wave: 'triangle', vol: 0.0265, gate: 0.45, notes: auHeatHum(false) },
-      { wave: 'sine', vol: 0.012, gate: 0.3, notes:
-        ' . . . A6 . . . . . . E6 . . . . . | . . . . . . C7 . . . . . . A6 . . | . . . A6 . . . . . . F6 . . . . . | . . . . . . G#6 . . . . . . B6 . . |' +
-        ' . . . E6 . . . . . . A6 . . . . . | . . . . . . E6 . . . . . . C7 . . | . . . F#6 . . . . . . A6 . . . . . | . . . . . . G#6 . . . . . . B6 . . |' },
-      { drum: true, vol: 0.8, notes: Q.au.rep('k . h . . . k . s . h . k . h . |', 7) + ' k . s . s . k . s s s s k s s! s! |' }
+    // BOSS-OVERHEAT, THE OVERHEAT: A minor, 120 bpm, swung 0.35, a slow burn: the hum leaning 3 + 3 + 2 on the triangle (the riff as a hum), THE BATON's minor
+    // face held long above it, a cool note a bar under it, the racks' lights blinking high. BOSS-OVERHEAT2, its last phase (joined: Q.music('boss-overheat2')
+    // takes over at the next bar line, at the same bar): hotter and faster, 138 bpm, the hum leaping an octave on its leaning notes, the tune cut short and pushed,
+    // a sawtooth buzzing an octave under it, the lights blinking twice as often, the kit busier.
+    var AU_HEAT_LEAD = AU_SH(AU_BATON_MA + AU_BATON_MB, -3), AU_HEAT_CH = auChords(AU_BATON_MCH, -3);
+    Q.defSong('boss-overheat', { bpm: 120, swing: 0.35, join: 'overheat', vol: 1.22, voices: [
+      { wave: 'square', vol: 0.018, gate: 0.95, notes: AU_HEAT_LEAD },
+      { wave: 'triangle', vol: 0.027, gate: 0.5, notes: auLean3(AU_HEAT_CH, 'E2', 'D3') },
+      { wave: 'square', vol: 0.009, gate: 0.95, notes: auGuide(AU_HEAT_CH, ' X - - - - - - - |', 'C4', 'B4') },
+      { wave: 'triangle', vol: 0.013, gate: 0.35, notes: auGuide(AU_HEAT_CH, ' . . . X . . . . | . . . . . . X . | . X . . . . . . | . . . . . X . . |', 'E6', 'D7') },
+      { drum: true, vol: 0.55, notes: AU_R(AU_RIDE, 16) },
+      { drum: true, vol: 0.8, notes: AU_R(' k . . . k . t_ . |', 7) + ' k . s_ s k . s s! |' + AU_R(' k . . . k . t_ . |', 7) + ' k . s_ s k s s! s! |' }
     ] });
-    Q.defSong('boss-overheat2', { bpm: 138, div: 4, join: 'overheat', vol: 1.19, voices: [
-      { wave: 'square', vol: 0.015, gate: 0.8, oct: 1, notes: AU_HEAT_LEAD },
-      { wave: 'sawtooth', vol: 0.01, gate: 0.8, notes: AU_HEAT_LEAD },
-      { wave: 'triangle', vol: 0.029, gate: 0.45, notes: auHeatHum(true) },
-      { wave: 'sine', vol: 0.012, gate: 0.3, notes:
-        ' . . A6 . . . E6 . . . C7 . . . E6 . | . . C7 . . . A6 . . . E6 . . . A6 . | . . A6 . . . F6 . . . C7 . . . F6 . | . . B6 . . . G#6 . . . E6 . . . G#6 . |' +
-        ' . . A6 . . . E6 . . . C7 . . . E6 . | . . C7 . . . A6 . . . E6 . . . A6 . | . . F#6 . . . D7 . . . A6 . . . F#6 . | . . B6 . . . G#6 . . . E6 . . . B6 . |' },
-      { drum: true, vol: 0.8, notes: Q.au.rep('k h h h k h k h s h k h k h s h |', 7) + ' k s s s k s k s s s k s s! s! s! s! |' }
+    Q.defSong('boss-overheat2', { bpm: 138, swing: 0.32, join: 'overheat', vol: 1.27, voices: [
+      { wave: 'square', vol: 0.021, gate: 0.6, notes: AU_HEAT_LEAD },
+      { wave: 'sawtooth', vol: 0.01, gate: 0.6, notes: AU_SH(AU_HEAT_LEAD, -12) },
+      { wave: 'triangle', vol: 0.027, gate: 0.5, notes: auLean3(AU_HEAT_CH, 'E2', 'D3', true) },
+      { wave: 'triangle', vol: 0.013, gate: 0.35, notes: auGuide(AU_HEAT_CH, ' . X . X . . X . | . . X . . X . X |', 'E6', 'D7') },
+      { drum: true, vol: 0.6, notes: AU_R(AU_RIDE, 16) },
+      { drum: true, vol: 0.78, notes: AU_R(' k . s_ k k . s k_ |', 7) + ' k s s s k s s! s! |' + AU_R(' k . s_ k k . s k_ |', 7) + ' k s s s k s s! s! |' }
     ] });
 
-    // BOSS-LOOP, THE INFINITE LOOP: 128 bpm, airy and dizzy: one two-bar phrase (the boss figure, then a lift through the raised fourth) played four times,
-    // each time a major third higher (D, F#, A#, then D an octave up), so after three climbs it is home again, higher, and the loop starts over below: a
-    // phrase that loops and climbs every time round, over the riff and soft arpeggios, with a breath of wind at each climb. BOSS-LOOP2: the same in double
-    // time, 256 bpm (joined: Q.music('boss-loop2') takes over at the next bar line, at the same bar).
-    var AU_LOOP_PHRASE = 'A4 - - F#4 - - D4 - | E4 - - F#4 - - G#4 - |';
-    var AU_LOOP_LEAD = AU_LOOP_PHRASE + ' ' + Q.au.shift(AU_LOOP_PHRASE, 4) + ' ' + Q.au.shift(AU_LOOP_PHRASE, 8) + ' ' + Q.au.shift(AU_LOOP_PHRASE, 12);
+    // BOSS-LOOP, THE INFINITE LOOP: 128 bpm, swung 0.33, airy and dizzy: one two-bar phrase (THE BATON's motif on A, leaping to D, then a lift through the raised
+    // fourth, G#) played four times, each time a major third higher (D, F#, A#, then D an octave up), so after three climbs it is home again, higher, and the
+    // loop starts over below; the riff under it, soft running chords above, a breath of wind at each climb. BOSS-LOOP2: the same in double time, 256 bpm, nearly
+    // straight (joined: Q.music('boss-loop2') takes over at the next bar line, at the same bar).
+    var AU_LOOP_PHRASE = ' A3 . A3 . D4 - - E4 | F#4 - D4 - E4 F#4 G#4 - |';
+    var AU_LOOP_LEAD = AU_LOOP_PHRASE + AU_SH(AU_LOOP_PHRASE, 4) + AU_SH(AU_LOOP_PHRASE, 8) + AU_SH(AU_LOOP_PHRASE, 12);
     var AU_LOOP_BASS = auRiff('D2', 'D3') + auRiff('D2', 'D3') + auRiff('F#2', 'F#3') + auRiff('F#2', 'F#3') + auRiff('A#2', 'A#3') + auRiff('A#2', 'A#3') + auRiff('D3', 'D4') + auRiff('D3', 'D4');
     var AU_LOOP_ARP = auRun('D5', 'F#5', 'A5') + auRun('E5', 'G#5', 'B5') + auRun('F#5', 'A#5', 'C#6') + auRun('G#5', 'C6', 'D#6') +
       auRun('A#4', 'D5', 'F5') + auRun('C5', 'E5', 'G5') + auRun('D5', 'F#5', 'A5') + auRun('E5', 'G#5', 'B5');
-    var AU_LOOP_DRUM = Q.au.rep('k w h . s . h . | k . h . s . h k |', 4);
-    Q.defSong('boss-loop', { bpm: 128, join: 'loop', vol: 1.15, voices: [
-      { wave: 'square', vol: 0.018, gate: 0.8, notes: AU_LOOP_LEAD },
-      { wave: 'triangle', vol: 0.03, gate: 0.45, notes: AU_LOOP_BASS },
-      { wave: 'sine', vol: 0.015, gate: 0.5, notes: AU_LOOP_ARP },
-      { drum: true, vol: 0.75, notes: AU_LOOP_DRUM }
+    var AU_LOOP_KIT = AU_R(' k w . . s . . . | k . . s_ s . . k_ |', 4);
+    Q.defSong('boss-loop', { bpm: 128, swing: 0.33, join: 'loop', vol: 1.22, voices: [
+      { wave: 'square', vol: 0.019, gate: 0.8, notes: AU_LOOP_LEAD },
+      { wave: 'triangle', vol: 0.028, gate: 0.45, notes: AU_LOOP_BASS },
+      { wave: 'square', vol: 0.007, gate: 0.45, notes: AU_LOOP_ARP },
+      { drum: true, vol: 0.6, notes: AU_R(AU_RIDE, 8) },
+      { drum: true, vol: 0.8, notes: AU_LOOP_KIT }
     ] });
-    Q.defSong('boss-loop2', { bpm: 256, join: 'loop', vol: 1.13, voices: [
-      { wave: 'square', vol: 0.018, gate: 0.8, notes: AU_LOOP_LEAD },
-      { wave: 'triangle', vol: 0.03, gate: 0.45, notes: AU_LOOP_BASS },
-      { wave: 'sine', vol: 0.015, gate: 0.5, notes: AU_LOOP_ARP },
-      { drum: true, vol: 0.75, notes: AU_LOOP_DRUM }
+    Q.defSong('boss-loop2', { bpm: 256, swing: 0.12, join: 'loop', vol: 1.17, voices: [
+      { wave: 'square', vol: 0.019, gate: 0.8, notes: AU_LOOP_LEAD },
+      { wave: 'triangle', vol: 0.028, gate: 0.45, notes: AU_LOOP_BASS },
+      { wave: 'square', vol: 0.007, gate: 0.45, notes: AU_LOOP_ARP },
+      { drum: true, vol: 0.6, notes: AU_R(AU_RIDE, 8) },
+      { drum: true, vol: 0.8, notes: AU_LOOP_KIT }
     ] });
     // ===== 37-audio-overtime.js =====
-    // ---------- 37-audio-overtime.js: version 116, THE OVERTIME UPDATE (AUDIO, builder 4): our own tunes and sounds, the format at the top of 30-audio-engine.js ----------
-    // ENCORE: the four bosses' themes as one fast medley that loops, through all four fights of THE ENCORE. ROOT: a quiet medley of the four worlds' tunes,
-    // for the five rooms of THE ROOT FOLDER. Both are in four parts, one a world (parts: in a level of world n, a start begins at part n, so a fight or a room
-    // starts on its own world's tune and the medley goes on round from there). STAR: a gold star's chime. README: README.TXT's soft reveal.
-    function auTo16(s, det) {   // a run of eighths written in sixteenths (for a voice with sub: 2), each note as long as before; det: its last sixteenth let go (detached)
-      var t = String(s).split(/\s+/).filter(function (x) { return !!x; }), out = [], i, j, nx;
-      for (i = 0; i < t.length; i++) {
-        if (t[i] === '|') { out.push('|'); continue; }
-        if (t[i] === '.') { out.push('.', '.'); continue; }
-        for (j = i + 1; j < t.length && t[j] === '|'; j++) {}
-        nx = j < t.length ? t[j] : '';
-        out.push(t[i], nx === '-' || !det ? '-' : '.');
-      }
-      return ' ' + out.join(' ');
+    // ---------- 37-audio-overtime.js: version 116, THE OVERTIME UPDATE (AUDIO, builders 4 and 14): our own tunes and sounds, 8-bit big band (MUSIC-NOTES.md) ----------
+    // ENCORE: the four bosses' themes as one fast medley that loops, through all four fights of THE ENCORE. ROOT: a quiet medley of the four worlds' tunes, for the
+    // five rooms of THE ROOT FOLDER. Both are in four parts, one a world (parts: in a level of world n, a start begins at part n, so a fight or a room starts on its
+    // own world's tune and the medley goes on round from there). Every one of them is THE BATON in a mood. STAR: a gold star's chime. README: README.TXT's reveal.
+    function auBox(chords, lo) {   // a music box: each chord's notes one a beat (root, third, fifth, third), from the root nearest lo
+      var L = auMidi(lo);
+      return String(chords).split(/\s+/).filter(function (x) { return x && x !== '|'; }).map(function (bar) {
+        var c = auChord(bar.split('.')[0]), r = auNear(c.r, L, L - 6, L + 6);
+        return ' ' + [r, r + c.iv[1], r + c.iv[2], r + c.iv[1]].map(auName).join(' . ') + ' . |';
+      }).join('');
     }
-    function auBars(s, a, b) {   // bars a to b (counted from 1) of a run with bar lines
-      var p = String(s).split('|'), out = '', i;
-      for (i = a - 1; i < b && i < p.length; i++) out += ' ' + p[i].replace(/^\s+|\s+$/g, '') + ' |';
-      return out;
-    }
-    var AU_R16 = Q.au.rep(' . . . . . . . . . . . . . . . . |', 1);   // a bar of rests in sixteenths
-    function auLean(s) {   // a run whose bars lean on their first note: every later note in a bar softer
-      return ' ' + String(s).split('|').map(function (bar) { var first = true; return bar.replace(/(^|\s)([A-G][#b]?[0-8](?:>[A-G][#b]?[0-8])?)(?=\s|$)/g, function (m, sp, n) { if (first) { first = false; return sp + n; } return sp + n + '_'; }); }).join('|');
-    }
-    function auHumLow(r) { return auHum(r).replace(/ ([A-G][#b]?[0-8]) /g, ' $1_ '); }   // the hum held down: only its three leaning notes at full strength
+    var AU_REST8 = ' . . . . . . . . |';
 
-    // ENCORE: 168 bpm (the bosses' own 'boss' tempo, every theme quicker than in its fight), 32 bars in four parts of 8, round and round:
-    //   1 THE REPLY-ALL HYDRA, C minor: the hopping figure, then its pompous fanfare, with the RE: RE: replies on a nasal sawtooth
-    //   2 THE OVERHEAT, A minor: the long boss figure over the sixteenth hum, the racks' lights blinking; in its second half the hum leaps and a sawtooth buzzes under the tune
-    //   3 THE INFINITE LOOP: the phrase that climbs a major third each time round (D, F#, A#, then D higher), over the riff and the arpeggios, a breath of wind at each climb
-    //   4 SCOPE CREEP, D minor: the march whose opening grows a note a bar, the tickets piling up in running eighths, C1 typing its shield in the last four bars,
-    //     and the boing turned to G at the end, so the medley goes round to the hydra's C minor.
-    // The engine asks for it at each fight; while Q.encoreOn() is true, Q.music lets any other song go (a boss's own, SCOPE CREEP's final2 and final3), and a
-    // start begins at that fight's boss's part (parts: 8), so after the stop at each beaten boss the next fight opens on its own theme.
-    var AU_ENC_LEAD =
-      auTo16('G5 . G5 Eb5 . Eb5 C5 . | D5 . D5 Eb5 . Eb5 F5 . | Eb5 . Eb5 C5 . C5 Ab4 . | Bb4 . Bb4 C5 . C5 D5 . |', true) +   // the hop, detached
-      auTo16(' Ab5 - - Eb5 Ab5 - C6 - | D6 - - - Bb5 - F5 - | G5 - - D5 G5 - B5 - | D6 - - - B5 . . . |', false) +              // the fanfare, held
-      auLean(AU_HEAT_LEAD) +
-      auTo16(AU_LOOP_LEAD, false) +
-      auTo16(auBars(AU_FINAL_LEAD, 1, 7) + ' G5 - - - G4>G5 - - - |', true);
-    var AU_ENC_BASS =
-      auTo16(auRiff('C3', 'C4') + auRiff('C3', 'C4') + auRiff('Ab2', 'Ab3') + auRiff('Bb2', 'Bb3') + auRiff('Ab2', 'Ab3') + auRiff('Bb2', 'Bb3') + auRiff('G2', 'G3') + auRiff('G2', 'G3'), true) +
-      auHumLow('A2') + auHumLow('A2') + auHumLow('F2') + auHumLow('E2') + auHum('A2', 'A3') + auHum('A2', 'A3') + auHum('D3', 'D4') + auHum('E2', 'E3') +   // cold, then hot
-      auTo16(AU_LOOP_BASS, true) +
-      auTo16(auBars(AU_FINAL_BASS, 1, 7) + auPah('G2', 'B2', 'D3'), true);
-    var AU_ENC_SAW =
-      auTo16(' . . . . . . . . | . . . . . . F5 Bb5 | . . . . . . . . | . . . . . . F5 Bb5 | . . . . . . . . | . . . . . . F5 Bb5 | . . . . . . . . | . . . . D5 G5 D5 G5 |', true) +
-      Q.au.rep(AU_R16, 4) + auBars(AU_HEAT_LEAD, 5, 8) +
-      Q.au.rep(AU_R16, 8) +
-      auTo16(Q.au.rep(auRun('D4', 'F4', 'A4'), 4) + auRun('C#4', 'E4', 'G4') + auRun('D4', 'F4', 'A4') + auRun('D4', 'F4', 'Bb4') + auRun('B3', 'D4', 'G4'), true);
-    var AU_ENC_HIGH =
-      Q.au.rep(AU_R16, 7) + auTo16(' . . . . G6 - D6 - |', true) +
-      ' . . . A6 . . . . . . E6 . . . . . | . . . . . . C7 . . . . . . A6 . . | . . . A6 . . . . . . F6 . . . . . | . . . . . . G#6 . . . . . . B6 . . |' +
-      ' . . . E6 . . . . . . A6 . . . . . | . . . . . . E6 . . . . . . C7 . . | . . . F#6 . . . . . . A6 . . . . . | . . . . . . G#6 . . . . . . B6 . . |' +
-      auTo16(AU_LOOP_ARP, true) +
-      Q.au.rep(AU_R16, 4) + auType('C#6', 'A5', 'E5') + auType('D6', 'A5', 'F5') + auType('D6', 'Bb5', 'F5') + auType('D6', 'B5', 'G5');
-    var AU_ENC_DRUM =
-      auTo16(Q.au.rep('k p s k p k s p |', 7) + ' k p s k s s s! s! |', true) +
-      Q.au.rep(' k . h . . . k . s . h . k . h . |', 7) + ' k . s . s . k . s s s s k s s! s! |' +
-      auTo16(AU_LOOP_DRUM, true) +
-      auTo16(' x h s h k h s h |' + Q.au.rep('k h s h k h s h |', 6) + ' k s k s k s s! s! |', true);
-    Q.defSong('encore', { bpm: 168, parts: 8, vol: 1.18, voices: [
-      { wave: 'square', vol: 0.019, sub: 2, notes: AU_ENC_LEAD },
-      { wave: 'triangle', vol: 0.028, gate: 0.9, sub: 2, notes: AU_ENC_BASS },
-      { wave: 'sawtooth', vol: 0.011, sub: 2, notes: AU_ENC_SAW },
-      { wave: 'sine', vol: 0.013, gate: 0.6, sub: 2, notes: AU_ENC_HIGH },
-      { drum: true, vol: 0.8, sub: 2, notes: AU_ENC_DRUM }
+    // ENCORE: 168 bpm (the bosses' own 'boss' tempo, every theme quicker than in its fight), swung 0.28, 32 bars in four parts of 8, round and round:
+    //   1 THE REPLY-ALL HYDRA, C minor: the minor theme hopping, the RE: RE: replies on the nasal sawtooth, the taps echoed up high, paper on the ride
+    //   2 THE OVERHEAT, A minor: the minor theme over the leaning hum, the racks' lights; in its second half the hum leaps and a sawtooth buzzes under the tune
+    //   3 THE INFINITE LOOP: the phrase that climbs a major third each time round (D, F#, A#, then D higher), over the riff and the running chords, wind at each climb
+    //   4 SCOPE CREEP, D minor: the march's growing question, then the theme, the brass oom-pah, C1 typing in the last four bars, and the boing turned to G at the
+    //     end, so the medley goes round to the hydra's C minor.
+    // The engine asks for it at each fight; while Q.encoreOn() is true, Q.music lets any other song go (a boss's own, SCOPE CREEP's final2 and final3), and a start
+    // begins at that fight's boss's part (parts: 8), so after the stop at each beaten boss the next fight opens on its own theme.
+    var AU_ENC_FCH = auSome(AU_FINAL_CH, 1, 7) + ' G7';
+    var AU_ENC_LEAD = AU_BATON_MA + auCut(AU_HEAT_LEAD, 1, 8) + AU_LOOP_LEAD + auCut(AU_FINAL_LEAD, 1, 7) + ' G5_ - - - G4>G5 - - - |';   // the boing, softly, so the loop's last downbeat stays under the room's loud sounds (b4_mix_test.js)
+    var AU_ENC_SAW = auCut(AU_HYD_RE, 1, 8) + AU_R(AU_REST8, 4) + AU_SH(auCut(AU_HEAT_LEAD, 5, 8), -12) + AU_R(AU_REST8, 8) + auGuide(AU_ENC_FCH, ' . . X . . . X . |', 'A3', 'G4');
+    var AU_ENC_BASS = auRiffs(auSome(AU_BATON_MCH, 1, 8), 'C2', 'C4') + auLean3(auSome(AU_HEAT_CH, 1, 4), 'E2', 'D3') + auLean3(auSome(AU_HEAT_CH, 5, 8), 'E2', 'D3', true) +
+      AU_LOOP_BASS + auCut(AU_FINAL_BASS, 1, 7) + ' G2 - - - D3 - - - |';
+    var AU_ENC_HIGH = AU_SH(auEcho(AU_BATON_MA), 24) + auGuide(auSome(AU_HEAT_CH, 1, 8), ' . . . X . . . . | . . . . . . X . | . X . . . . . . | . . . . . X . . |', 'E6', 'D7') +
+      AU_LOOP_ARP + AU_R(AU_REST8, 4) + auGuide(auSome(AU_ENC_FCH, 5, 8), ' X X_ X X_ X X_ X X_ |', 'F#5', 'E6');
+    var AU_ENC_DRUM = AU_R(' k . p p_ s . p p_ |', 7) + ' k . s s_ k s s! s! |' + AU_R(' k . r r_ k . q t_ |', 7) + ' k . s_ s k s s! s! |' +
+      AU_R(' k w r r_ s . q r_ | k . q r_ s . q k_ |', 4) + ' x . s . k . s . |' + AU_R(' k . s . k . s . |', 6) + ' k_ . s_ s k s s s! |';
+    Q.defSong('encore', { bpm: 168, swing: 0.28, parts: 8, vol: 1.27, voices: [
+      { wave: 'square', vol: 0.019, gate: 0.65, notes: AU_ENC_LEAD },
+      { wave: 'triangle', vol: 0.027, gate: 0.6, notes: AU_ENC_BASS },
+      { wave: 'sawtooth', vol: 0.01, gate: 0.5, notes: AU_ENC_SAW },
+      { wave: 'triangle', vol: 0.013, gate: 0.4, notes: AU_ENC_HIGH },
+      { drum: true, vol: 0.8, notes: AU_ENC_DRUM }
     ] });
 
-    // ROOT: 96 bpm, quiet, a music box in an old folder: 16 bars in four parts of 4, each world's own tune played slowly and softly on a round triangle, a sine
-    // music box on the beats, long low notes, a clock's tick and a breath of wind at each part (parts: 4, so a room of world n starts on its world's tune):
-    //   1 THE INBOX, C major   2 THE SERVER ROOM, A minor (its raised sixth)   3 THE CLOUD, D major (its raised fourth)   4 THE BACKLOG, E minor, its climb, then home to C.
-    function auStrong(s) { return String(s).replace(/(^|\s)([A-G][#b]?[0-8])(?=\s|$)/g, '$1$2!'); }   // every note of a run a little stronger
-    function auBox(a, b, c, d) { return ' ' + a + ' - - - ' + b + ' - - - ' + c + ' - - - ' + d + ' - - - |'; }   // a music box: a note a beat (sub: 2)
-    function auHalf(a, b) { return ' ' + a + ' - - - - - - - ' + b + ' - - - - - - - |'; }                       // two long notes a bar (sub: 2)
-    var AU_ROOT_LEAD =
-      auTo16(auStrong('E5 . E5 G5 . E5 . C5 | D5 . D5 F5 . D5 . B4 | C5 . C5 E5 . C5 . A4 | B4 . G4 . A4 B4 C5 D5 |'), false) +   // (its notes stronger: it has the most rests)
-      ' A4 - - - - - - - E5 - - - C5 - B4 - | A4 - - - - - - - . . E5 F#5 G5 - F#5 - | A4 - - - - - - - C5 - - - F5 - E5 - | D5 - - - - - - - B4 - - - G4 - - - |' +
-      ' A5 - - - - - - - F#5 - - - E5 - - - | G#5 - - - - - - - B5 - - - - - - - | A5 - - - F#5 - - - D5 - - - E5 - - - | F#5 - - - - - - - D5 - - - B4 - - - |' +
-      auTo16(Q.au.shift('E4 . G4 . B4 - A4 G4 | F#4 . A4 . C5 - B4 A4 | G4 . B4 . D5 - C5 B4 | A4 . C5 . E5 - D5 C5 |', 12), false);
-    var AU_ROOT_BOX =
-      auBox('C6', 'E6', 'G6', 'E6') + auBox('B5', 'D6', 'G6', 'D6') + auBox('A5', 'C6', 'E6', 'C6') + auBox('B5', 'D6', 'G6', 'D6') +
-      auBox('A5', 'C6', 'E6', 'C6') + auBox('A5', 'C6', 'F#6', 'C6') + auBox('A5', 'C6', 'F6', 'C6') + auBox('B5', 'D6', 'G6', 'D6') +
-      auBox('D6', 'F#6', 'A6', 'F#6') + auBox('E6', 'G#6', 'B6', 'G#6') + auBox('B5', 'D6', 'F#6', 'D6') + auBox('G5', 'B5', 'D6', 'B5') +
-      auBox('E6', 'G6', 'B6', 'G6') + auBox('F#5', 'A5', 'C6', 'A5') + auBox('G5', 'B5', 'D6', 'B5') + auBox('A5', 'C6', 'E6', 'C6');
-    var AU_ROOT_BASS =
-      auHalf('C3', 'G2') + auHalf('G2', 'D3') + auHalf('A2', 'E3') + auHalf('G2', 'D3') +
-      auHalf('A2', 'E3') + auHalf('A2', 'E3') + auHalf('F2', 'C3') + auHalf('G2', 'D3') +
-      auHalf('D3', 'A2') + auHalf('D3', 'E3') + auHalf('B2', 'F#2') + auHalf('G2', 'D3') +
-      auHalf('E2', 'B2') + auHalf('F#2', 'A2') + auHalf('G2', 'D3') + auHalf('A2', 'E3');
-    Q.defSong('root', { bpm: 96, parts: 4, vol: 1, voices: [
-      { wave: 'triangle', vol: 0.03, gate: 0.9, sub: 2, notes: AU_ROOT_LEAD },
-      { wave: 'sine', vol: 0.011, gate: 0.7, sub: 2, notes: AU_ROOT_BOX },
-      { wave: 'triangle', vol: 0.024, gate: 0.9, sub: 2, notes: AU_ROOT_BASS },
-      { drum: true, vol: 0.6, notes: Q.au.rep(' w . h_ . t_ . h_ . |' + Q.au.rep('k_ . h_ . t_ . h_ . |', 3), 4) }
+    // ROOT: 96 bpm, swung 0.40, quiet, a music box in an old folder: 16 bars in four parts of 4 (parts: 4, so a room of world n starts on its world's tune), each
+    // world's THE BATON played slowly and softly on a round triangle, a music box on the beats, two long low notes a bar, a clock's tick and a breath of wind:
+    //   1 THE INBOX, C major   2 THE SERVER ROOM, A dorian (its raised sixth)   3 THE CLOUD, D with its raised fourth (the waltz's opening, in four)
+    //   4 THE BACKLOG, E minor, its climb, then a turn to G, home to C.
+    var AU_ROOT_LEAD = auCut(AU_BATON_A, 1, 4) + auCut(AU_W2_TH, 1, 4) +
+      ' A4 . A4 . D5 - - - | E5 - F#5 - G#5 - - - | E5 - - - F#5 - - - | D5 - - - . . . . |' +
+      ' B4 . B4 . E5 - D5 E5 | C#5 . C#5 . F#5 - E5 F#5 | D5 . D5 . G5 - F#5 G5 | D5 . D5 . G5 - F5 B4 |';
+    var AU_ROOT_CH = 'C6 Am7 Dm7 G7 Am6 Am6 Bm7 E7 D6 E E D6 Em7 F#m7 Gmaj7 G7';
+    Q.defSong('root', { bpm: 96, swing: 0.4, parts: 4, vol: 1.08, voices: [
+      { wave: 'triangle', vol: 0.03, gate: 0.9, notes: AU_ROOT_LEAD },
+      { wave: 'square', vol: 0.007, gate: 0.6, notes: auBox(AU_ROOT_CH, 'C6') },
+      { wave: 'triangle', vol: 0.024, gate: 0.9, notes: auWalk(AU_ROOT_CH, 'C2', 'Bb3', null, 2, 4) },
+      { drum: true, vol: 0.6, notes: AU_R(' w . h_ . t_ . h_ . |' + AU_R(' k_ . h_ . t_ . h_ . |', 3), 4) }
     ] });
 
     // STAR: a gold star, won during play: bright and short (0.27 s), a fifth leaping up high (A6 to E7) on a soft body, a breath of sparkle; it sits under the music's
@@ -3898,21 +3983,21 @@
       var c = ENG_SKY[Q.level.world] || ENG_SKY[0], i, x;
       g.fillStyle = c; g.fillRect(0, 0, Q.W, Q.H);
       g.fillStyle = 'rgba(255,255,255,0.05)';
-      for (i = 0; i < 4; i++) { x = Math.round(((i * 97 - Q.cam.x * 0.25) % 400 + 400) % 400) - 40; g.fillRect(x, 70 + (i % 2) * 30 - Math.round(Q.cam.y * 0.1), 60, 24); }
+      for (i = 0; i < 4; i++) { x = Math.round(((i * 97 - Q.cam.x * 0.25) % 400 + 400) % 400) - 40; g.fillRect(x, 70 + (i % 2) * 30 - Math.round(Q.cam.y * 0.1), 60, 24); if (x + 400 < Q.W) g.fillRect(x + 400, 70 + (i % 2) * 30 - Math.round(Q.cam.y * 0.1), 60, 24); }   // the second copy only shows on a wide screen
       g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(0, 150 - Math.round(Q.cam.y * 0.2), Q.W, 60);
     }
     function engDrawDark(g, lv) {   // a dark level: only a ring of light round the conductor
-      var P = Q.P, c;
+      var P = Q.P, c, W = Q.W;
       if (!P) return;
-      if (!engDarkCv) {
-        engDarkCv = Q.canvas(640, 400); c = engDarkCv.getContext('2d');
-        c.fillStyle = '#05060a'; c.fillRect(0, 0, 640, 400);
+      if (!engDarkCv || engDarkCv.width !== W * 2) {   // twice the screen each way, the ring in its middle: it covers the screen wherever he stands (a wider screen gets a wider one)
+        engDarkCv = Q.canvas(W * 2, 400); c = engDarkCv.getContext('2d');
+        c.fillStyle = '#05060a'; c.fillRect(0, 0, W * 2, 400);
         c.globalCompositeOperation = 'destination-out';
-        var gr = c.createRadialGradient(320, 200, 30, 320, 200, 92); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
-        c.fillStyle = gr; c.fillRect(0, 0, 640, 400); c.globalCompositeOperation = 'source-over';
+        var gr = c.createRadialGradient(W, 200, 30, W, 200, 92); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = gr; c.fillRect(0, 0, W * 2, 400); c.globalCompositeOperation = 'source-over';
       }
       g.globalAlpha = typeof lv.dark === 'number' ? Q.clamp(lv.dark, 0, 1) : 0.88;
-      g.drawImage(engDarkCv, Math.round(P.x + P.w / 2 - Q.cam.x) - 320, Math.round(P.y + P.h / 2 - Q.cam.y) - 200);
+      g.drawImage(engDarkCv, Math.round(P.x + P.w / 2 - Q.cam.x) - W, Math.round(P.y + P.h / 2 - Q.cam.y) - 200);
       g.globalAlpha = 1;
     }
     function engHudLite(g) {   // only until the UI's Q.ui.hud lands: hearts, rhythm, tokens, LV, the boss's bar
@@ -3930,8 +4015,8 @@
       if (!(engToastLite.t > 0) || !engToastLite.text) return;
       engToastLite.t -= Q.DT;
       var w = Math.min(316, Q.api.width(engToastLite.text) + 10);
-      g.fillStyle = '#1d1d24'; g.fillRect(160 - w / 2, 18, w, 13); g.fillStyle = '#ffd23f'; g.fillRect(160 - w / 2, 18, w, 1);
-      Q.api.text(engToastLite.text.slice(0, 52), 160, 21, '#f6efe2', 1, 'center');
+      g.fillStyle = '#1d1d24'; g.fillRect((Q.W >> 1) - w / 2, 18, w, 13); g.fillStyle = '#ffd23f'; g.fillRect((Q.W >> 1) - w / 2, 18, w, 1);
+      Q.api.text(engToastLite.text.slice(0, 52), Q.W >> 1, 21, '#f6efe2', 1, 'center');
     }
     function engDrawBubble(g) {   // a sign's words in a speech bubble above it while he is near: cream, a dark outline, a tail down to the sign
       if (!(engBub.a > 0) || !engBub.text) return;
@@ -3970,6 +4055,7 @@
     }
 
     Q.defScene('level', {
+      wide: true,   // it fills a wider screen itself: the view grows, the HUD band and the fades span it (WIDESCREEN.md)
       enter: function (opts) {
         opts = opts || {};
         if ((opts.resume || !opts.level) && Q.level && Q.P) return;   // back from the pause menu: carry on where it was
@@ -4526,7 +4612,7 @@
         if (!cv || !Q.api || typeof Q.canvas !== 'function') return;
         try {
           a = Q.canvas(192, 16); saved = g.getImageData(0, 0, 192, 16);
-          g.save(); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, 192, 16);
+          g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, 192, 16);   // the screen's own pixels, even when asked from inside the centred column
           for (i = 0; i < CH.length; i++) Q.api.text(CH.charAt(i), (i % 32) * 6, Math.floor(i / 32) * 8, '#ffffff');
           g.restore();
           a.getContext('2d').drawImage(cv, 0, 0, 192, 16, 0, 0, 192, 16);
@@ -4588,8 +4674,8 @@
         }
         return out;
       };
-      U.bands = function (g, cols, y0, h) {   // paints the colours as bands from y0 down, h pixels each
-        for (var i = 0; i < cols.length; i++) { g.fillStyle = cols[i]; g.fillRect(0, y0 + i * h, 320, h); }
+      U.bands = function (g, cols, y0, h, w) {   // paints the colours as bands from y0 down, h pixels each (w wide: 320, or Q.W for a side painter on a wide screen)
+        for (var i = 0; i < cols.length; i++) { g.fillStyle = cols[i]; g.fillRect(0, y0 + i * h, w || 320, h); }
       };
       U.frames = function (id) { var d = Q.SPRITE[id]; return d ? (d.frames ? d.frames.length : d.n || 1) : 0; };
       U.sprite = function (g, id, frame, x, y, k, flip) {   // a sprite at k times its size (k 1: just Q.spr)
@@ -4794,8 +4880,12 @@
         TO.cur = null;
         while (TO.q.length && !TO.cur) { var e = TO.q.shift(); if (e.left >= 0.3) TO.cur = e; }   // a sign left behind (a short one) is dropped
       }
-      function drawToast(g) {
+      function drawToast(g) {   // in the centred 320 column on a wide screen (Q.col)
         var c = TO.cur, now = U.now(); if (!c || TO.drawnAt === now) return;
+        Q.col(g, toastIn);
+      }
+      function toastIn(g) {
+        var c = TO.cur, now = U.now();
         TO.drawnAt = now;
         var n = c.lines.length, sw = c.star ? 16 : 0, h = Math.max(n * 9 + 7, sw), w = c.w + 14 + sw, x = 160 - (w >> 1), k = Math.min(1, c.age / 0.12, Math.max(0, c.left) / 0.12), i, cx;
         var base = T.cur && T.top ? TOPY + BH + 4 : 18, y = Math.round(base - (1 - k) * (h + 4));
@@ -4838,7 +4928,7 @@
       U.drawTalk = Q.ui.drawTalk = function (g) {
         U.tick();
         drawToast(g);
-        if (T.cur) drawBox(g);
+        if (T.cur) Q.col(g, drawBox);   // the box keeps to the centred 320 column on a wide screen
       };
       Q.ui.talkStep = U.tick;
     })();
@@ -4899,28 +4989,32 @@
         if (fw > 0) U.fill(g, x + 1, 11, fw, 3, '#ffd9b0');
         if (hw > 0) { U.fill(g, x + 1, 11, hw, 3, H.hitT > 0 ? '#ffffff' : '#e0443a'); U.fill(g, x + 1, 11, hw, 1, H.hitT > 0 ? '#ffffff' : '#ff8a7a'); }
       }
+      U.hudBand = function () {   // where the HUD's items go: the whole screen up to 16:9 (Q.HUDW), centred on a wider one, so they never sit at the far edges of a 32:9 screen
+        var w = Math.min(Q.W, Q.HUDW || 356);
+        return { x: (Q.W - w) >> 1, w: w };
+      };
       Q.ui.hud = function (g) {
-        var s = U.stat(), now = U.now(), i, x, hearts, full, y, iw;
+        var s = U.stat(), now = U.now(), i, x, hearts, full, y, iw, hb = U.hudBand(), L = hb.x, R = hb.x + hb.w;   // L and R: the band's sides (0 and 320 on a 320 screen)
         bookkeep(s, now);
         if (Q.level && Q.level.world) U.lastWorld = Q.level.world;   // the map stands him by the world he was last in (the level is gone when the map opens)
         if (Q.level) U.lastStop = Q.level.root ? 'root' : typeof Q.encoreOn === 'function' && Q.encoreOn() ? 'encore' : '';   // or by THE ROOT FOLDER, or THE ENCORE's stage
-        U.fill(g, 0, 0, 320, 15, '#121318'); U.fill(g, 0, 15, 320, 1, '#3a3d52');
+        U.fill(g, 0, 0, Q.W, 15, '#121318'); U.fill(g, 0, 15, Q.W, 1, '#3a3d52');   // the dark band spans the whole screen
         hearts = Q.clamp(Math.round(s.maxHp), 1, 8);
         for (i = 0; i < hearts; i++) {
           full = i < Math.round(s.hp); y = 4;
           if (full && s.hp <= 1 && Math.floor(now * 4) % 2) y = 3;   // the last heart beats
-          Q.spr(g, 'ui-heart', full ? 0 : 1, 4 + i * 9, y);
+          Q.spr(g, 'ui-heart', full ? 0 : 1, L + 4 + i * 9, y);
         }
-        x = 8 + hearts * 9;
+        x = L + 8 + hearts * 9;
         for (i = 0; i < Q.clamp(Math.round(s.rhythmMax), 0, 6); i++) Q.spr(g, 'ui-note', i < Math.floor(s.rhythm + 0.001) ? 0 : 1, x + i * 7, 4);
         iw = U.iconCount() * 13 - 1;
-        if (iw > 0) U.icons(g, 316 - iw, 2, 13); else iw = 0;
-        if (Q.boss) { bossBar(g, 118, 316 - (iw ? iw + 6 : 0) - 118, now); }
+        if (iw > 0) U.icons(g, R - 4 - iw, 2, 13); else iw = 0;
+        if (Q.boss) { bossBar(g, L + 118, R - 4 - (iw ? iw + 6 : 0) - (L + 118), now); }
         else {
-          Q.spr(g, 'token', H.tokT > 0 ? Math.floor(now * 16) % 4 : 0, 120, 4);
-          U.text(String(Math.floor(s.tokens)), 131, 5, H.tokT > 0 ? '#ffd23f' : '#f6efe2');
-          U.text('LV', 166, 5, '#8a8fa3'); U.text(String(s.lv), 179, 5, H.lvT > 0 && Math.floor(now * 8) % 2 ? '#ffd23f' : '#ffffff');
-          x = 179 + U.width(String(s.lv)) + 5;
+          Q.spr(g, 'token', H.tokT > 0 ? Math.floor(now * 16) % 4 : 0, L + 120, 4);
+          U.text(String(Math.floor(s.tokens)), L + 131, 5, H.tokT > 0 ? '#ffd23f' : '#f6efe2');
+          U.text('LV', L + 166, 5, '#8a8fa3'); U.text(String(s.lv), L + 179, 5, H.lvT > 0 && Math.floor(now * 8) % 2 ? '#ffd23f' : '#ffffff');
+          x = L + 179 + U.width(String(s.lv)) + 5;
           U.fill(g, x, 6, 38, 5, '#000000'); U.fill(g, x + 1, 7, 36, 3, '#2a2c3a');
           if (s.part > 0) { U.fill(g, x + 1, 7, Math.max(1, Math.round(36 * s.part)), 3, '#2ec4b6'); U.fill(g, x + 1, 7, Math.max(1, Math.round(36 * s.part)), 1, '#8ff0e6'); }
         }
@@ -5130,6 +5224,8 @@
         TI.drift = []; TI.stars = []; TI.notes = [];
         for (i = 0; i < 18; i++) TI.drift.push({ x: r() * 340 - 10, y: r() * 200, vx: -(3 + r() * 6), vy: 2 + r() * 5, k: i % 3, ph: r() * 6.28 });
         for (i = 0; i < 44; i++) TI.stars.push({ x: Math.floor(r() * 320), y: Math.floor(r() * 160), ph: r() * 6.28 });
+        var r2 = Q.api && Q.api.rand ? Q.api.rand(29) : Math.random; TI.sstars = [];   // a wide screen's side stars: their own seed, so the middle's stay as they were
+        for (i = 0; i < 98; i++) TI.sstars.push({ x: Math.floor(r2() * Q.WMAX), y: Math.floor(r2() * 160), ph: r2() * 6.28 });
       }
       function items() {   // THE ENDING once won: see it again; FILE n (the file screen, 79) once any of the three files has a save
         var l = TI.has ? (TI.won ? ['START', 'CONTINUE', 'THE ENDING'] : ['START', 'CONTINUE']) : ['START'];
@@ -5219,6 +5315,17 @@
           }
           if (TI.leave) { g.globalAlpha = Q.clamp(TI.fade, 0, 1); U.fill(g, 0, 0, 320, 200, '#000000'); g.globalAlpha = 1; }
           U.drawTalk(g);
+        },
+        sides: function (g) {   // a wide screen's sides (the engine clips to them): the sky, stars of their own, the drift carried on from the middle every 340 px, the horizon, the same fade
+          var i, k, d, t = TI.t, ox = Q.OX, st = TI.sstars || [];
+          U.bands(g, SKY, 0, 8, Q.W);
+          U.fill(g, 0, 152, Q.W, 48, '#1a2350'); U.fill(g, 0, 152, Q.W, 1, '#2a3878');
+          for (i = 0; i < st.length; i++) { d = st[i]; g.fillStyle = Math.sin(t * 2 + d.ph) > 0.6 ? '#ffffff' : '#5d6a9e'; g.fillRect(d.x, d.y, 1, 1); }
+          g.save(); g.beginPath(); g.rect(0, 0, Q.W, 152); g.clip();
+          for (i = 0; i < TI.drift.length; i++) { d = TI.drift[i]; for (k = -1; k <= 1; k++) Q.spr(g, d.k === 0 ? 'u5-env' : d.k === 1 ? 'u5-tix' : 'u5-note', 0, ox + Math.round(d.x) + k * 340, Math.round(d.y + Math.sin(t + d.ph) * 2)); }
+          g.restore();
+          U.fill(g, 0, 179, Q.W, 15, '#10173a');
+          if (TI.leave) { g.globalAlpha = Q.clamp(TI.fade, 0, 1); U.fill(g, 0, 0, Q.W, 200, '#000000'); g.globalAlpha = 1; }
         },
         leave: function () { TI.notes = []; }
       });
@@ -5392,6 +5499,11 @@
           drawInfo(g, t);
           if (M.going) { g.globalAlpha = Q.clamp(M.fade, 0, 1); U.fill(g, 0, 0, 320, 200, '#000000'); g.globalAlpha = 1; }
           U.drawTalk(g);
+        },
+        sides: function (g) {   // a wide screen's sides (the engine clips to them): more board, the HUD's band carried across, and the same fade
+          U.boardSides(g);
+          U.fill(g, 0, 0, Q.W, 15, '#121318'); U.fill(g, 0, 15, Q.W, 1, '#3a3d52');
+          if (M.going) { g.globalAlpha = Q.clamp(M.fade, 0, 1); U.fill(g, 0, 0, Q.W, 200, '#000000'); g.globalAlpha = 1; }
         }
       });
       function drawInfo(g, t) {   // the bar at the bottom: where he stands and what he can do there
@@ -5457,6 +5569,24 @@
         for (i = 0; i < 26; i++) { x = Math.floor(rnd() * 316); y = Math.floor(rnd() * 196); f(g, x, y, 3, 3, '#2e7a62'); f(g, x + 1, y + 1, 1, 1, '#0b241e'); }   // little rings
         for (i = 0; i < 16; i++) { x = Math.floor(rnd() * 300); y = Math.floor(rnd() * 190); f(g, x, y, 4 + Math.floor(rnd() * 8), 1, '#3f7f6b'); }   // marks printed on the board
       } });
+      Q.defSprite('u5-board-side', { w: 400, h: 200, n: 1, draw: function (g) {   // more of the same board for a wide screen's sides (its own seed): its right part shows left of the map, its left part right of it
+        var seed = 23, i, x, y, w, h, k;
+        function rnd() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
+        f(g, 0, 0, 400, 200, '#0b241e');
+        for (y = 0; y < 200; y += 10) f(g, 0, y, 400, 1, '#0d2a23');
+        for (x = 0; x < 400; x += 10) f(g, x, 0, 1, 200, '#0d2a23');
+        for (i = 0; i < 57; i++) { x = Math.floor(rnd() * 40) * 10; y = Math.floor(rnd() * 20) * 10; w = 20 + Math.floor(rnd() * 8) * 10; h = 10 + Math.floor(rnd() * 5) * 10; f(g, x, y, w, 1, '#174a3d'); f(g, x + w, y, 1, h, '#174a3d'); f(g, x + w - 1, y + h - 1, 3, 3, '#1f5f4e'); }
+        for (i = 0; i < 11; i++) {
+          x = 8 + Math.floor(rnd() * 370); y = 20 + Math.floor(rnd() * 150); w = 14 + Math.floor(rnd() * 3) * 6; h = 8 + Math.floor(rnd() * 2) * 4;
+          for (k = 2; k < w - 1; k += 3) { f(g, x + k, y - 2, 1, 2, '#8f9aa8'); f(g, x + k, y + h, 1, 2, '#8f9aa8'); }
+          f(g, x, y, w, h, '#14171f'); f(g, x, y, w, 1, '#2a2f3d'); f(g, x + 2, y + 2, 2, 2, '#2a2f3d');
+        }
+        for (i = 0; i < 32; i++) { x = Math.floor(rnd() * 396); y = Math.floor(rnd() * 196); f(g, x, y, 3, 3, '#2e7a62'); f(g, x + 1, y + 1, 1, 1, '#0b241e'); }
+        for (i = 0; i < 20; i++) { x = Math.floor(rnd() * 380); y = Math.floor(rnd() * 190); f(g, x, y, 4 + Math.floor(rnd() * 8), 1, '#3f7f6b'); }
+      } });
+      U.boardSides = function (g) {   // a wide screen's sides of the map and the shop: the board carried on, its grid in step with the map's (both at multiples of 10 from the column)
+        Q.spr(g, 'u5-board-side', 0, Q.OX - 400, 0); Q.spr(g, 'u5-board-side', 0, Q.OX + 320, 0);
+      };
       U.WORLDCOL = { 1: '#2f7de1', 2: '#2ec4b6', 3: '#6fb8ff', 4: '#a070e0' };
       U.WORLDNAME = { 1: 'THE INBOX', 2: 'THE SERVER ROOM', 3: 'THE CLOUD', 4: 'THE BACKLOG' };
       U.worldName = function (n) { var w = Q.WORLD[n]; return w && w.name ? String(w.name) : U.WORLDNAME[n] || 'WORLD ' + n; };
@@ -5623,6 +5753,11 @@
             U.text('A: BUY   B: LEAVE', 160, 186, '#7f8a9e', 1, 'center');
           }
           U.drawTalk(g);
+        },
+        sides: function (g) {   // a wide screen's sides (the engine clips to them): the map's board carried on, dimmed the same, the floor across
+          U.boardSides(g);
+          g.globalAlpha = 0.55; U.fill(g, 0, 0, Q.W, 200, '#05100d'); g.globalAlpha = 1;
+          U.fill(g, 0, 134, Q.W, 66, '#14201c'); U.fill(g, 0, 134, Q.W, 1, '#2e7a62');
         }
       });
     })();
@@ -5812,6 +5947,7 @@
         return x;
       }
       Q.defScene('codex', {
+        wide: true,   // like the pause menu: the scene under it at the screen's width, the header band across it, the pages in the centred 320 column
         enter: function (opts) { U.entered();
           opts = opts || {};
           CO.from = opts.from || 'level'; CO.sel = 0; CO.read = ''; CO.t = 0;
@@ -5832,9 +5968,14 @@
           if (s && s.a && U.press('a')) s.a(p.sub, CO.sel);
         },
         draw: function (g) {
-          var p = cur(), s = SEC[p.sec] || SEC.memos, x;
           U.under(g, CO.from);
-          U.fill(g, 0, 0, 320, 23, '#0b0c10'); U.fill(g, 0, 23, 320, 1, '#2a2c3a');   // a header of its own: the HUD under it never shows through (QA round 2)
+          U.fill(g, 0, 0, Q.W, 23, '#0b0c10'); U.fill(g, 0, 23, Q.W, 1, '#2a2c3a');   // a header of its own: the HUD under it never shows through (QA round 2)
+          Q.col(g, codexPage);
+        },
+        leave: function () { for (var i = 0; i < ORDER.length; i++) if (SEC[ORDER[i]] && SEC[ORDER[i]].leave) SEC[ORDER[i]].leave(); }   // HOLD MUSIC puts the scene's song back
+      });
+      function codexPage(g) {   // the page itself, in the centred 320 column (all of the screen on a 320 one)
+          var p = cur(), s = SEC[p.sec] || SEC.memos, x;
           if (CO.read) { U.memoPaper(g, CO.read); U.text('B: BACK', 160, 188, '#8a93a8', 1, 'center'); U.drawTalk(g); return; }
           U.text('CODEX', 10, 6, '#ffffff', 2);
           x = tabs(g, p.sec);
@@ -5847,9 +5988,7 @@
           s.draw(g, p.sub, CO.sel, CO.t);
           U.text(s.hint ? s.hint(p.sub) : 'LEFT/RIGHT: PAGE   B: BACK', 160, 188, '#8a93a8', 1, 'center');
           U.drawTalk(g);
-        },
-        leave: function () { for (var i = 0; i < ORDER.length; i++) if (SEC[ORDER[i]] && SEC[ORDER[i]].leave) SEC[ORDER[i]].leave(); }   // HOLD MUSIC puts the scene's song back
-      });
+      }
     })();
     // ===== 75-ui-codex-music.js =====
     // ---------- 75-ui-codex-music.js: the codex's HOLD MUSIC page, the jukebox (UI, builder 5; QUEST-API.md part 14.5) ----------
@@ -6040,10 +6179,10 @@
         var s = Math.max(0, Math.floor(secs || 0)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, r = s % 60;
         return (h ? h + ':' + (m < 10 ? '0' : '') : '') + m + ':' + (r < 10 ? '0' : '') + r;
       };
-      U.under = function (g, from) {   // the scene it came from, drawn still, then a dark veil
+      U.under = function (g, from) {   // the scene it came from, drawn still (as the engine draws it: the level at the screen's width, a menu in its column), then a dark veil over the whole screen
         var sc = from && from !== 'pause' && from !== 'codex' ? Q.SCENE[from] : null;
-        if (sc && sc.draw) { try { sc.draw(g, Q); } catch (e) { if (!PA.warned) { PA.warned = true; Q.warn('pause: drawing ' + from + ' under the menu: ' + e); } } }
-        g.globalAlpha = 0.72; U.fill(g, 0, 0, 320, 200, '#07080c'); g.globalAlpha = 1;
+        if (sc && sc.draw) { try { if (Q.drawScene) Q.drawScene(g, from); else sc.draw(g, Q); } catch (e) { if (!PA.warned) { PA.warned = true; Q.warn('pause: drawing ' + from + ' under the menu: ' + e); } } }
+        g.globalAlpha = 0.72; U.fill(g, 0, 0, Q.W, 200, '#07080c'); g.globalAlpha = 1;
       };
       function choose(what) {
         if (what === 'RESUME') { resume(); return; }
@@ -6061,6 +6200,7 @@
         if (what === 'MAP') Q.go('map'); else Q.go('title');
       }
       Q.defScene('pause', {
+        wide: true,   // the scene under it at the screen's width, the veil and the header band across it, the menu in the centred 320 column
         enter: function (opts) { U.entered();
           opts = opts || {};
           PA.from = opts.from || (opts.back ? PA.from : 'level'); PA.ask = ''; PA.t = 0;
@@ -6087,9 +6227,13 @@
           if (U.press('a')) choose(items()[PA.sel]);
         },
         draw: function (g) {
-          var s = U.stat(), list = items(), i, x, y, n, ab = ['dash', 'hover', 'pound'], a, any = 0;
           U.under(g, PA.from);
-          U.fill(g, 0, 0, 320, 27, '#0b0c10'); U.fill(g, 0, 27, 320, 1, '#2a2c3a');   // a header of its own, so the HUD under it never shows through
+          U.fill(g, 0, 0, Q.W, 27, '#0b0c10'); U.fill(g, 0, 27, Q.W, 1, '#2a2c3a');   // a header of its own, so the HUD under it never shows through
+          Q.col(g, pauseMenu);
+        }
+      });
+      function pauseMenu(g) {   // the menu itself, in the centred 320 column (all of the screen on a 320 one)
+          var s = U.stat(), list = items(), i, x, y, n, ab = ['dash', 'hover', 'pound'], a, any = 0;
           U.text('PAUSED', 160, 8, '#ffffff', 2, 'center');
           n = U.starCount();   // GOLD STARS won (part 14.2), at the right of the header
           U.starIcon(g, 312 - U.width('STARS ' + n.n + '/' + n.all) - 15, 8, n.n > 0);
@@ -6129,8 +6273,7 @@
             U.text('YOUR GAME IS SAVED FIRST.', 160, y + 21, '#c3c7d4', 1, 'center');
             U.item('NO', 128, y + 40, PA.askSel === 0, false, 'center'); U.item('YES', 192, y + 40, PA.askSel === 1, false, 'center');
           }
-        }
-      });
+      }
     })();
     // ===== 76-ui-credits.js =====
     // ---------- 76-ui-credits.js: the credits (UI, builder 5) ----------
@@ -6139,7 +6282,8 @@
     // (the script's last line: THE END big, the rest under it), then A (or a while) to the title. The 'end' song carries on.
     (function () {
       var U = Q.ui, CR = { t: 0, y: 0, rows: [], total: 0, phase: 'roll', pt: 0, end: 'THE END', rest: '' }, PO = {};
-      var SKY = U.grad('#070a18', '#18224a', 20);
+      var SKY = U.grad('#070a18', '#18224a', 20), SSTARS = [];   // SSTARS: a wide screen's side stars (made once, their own seed)
+      (function () { var s = 41, i; function r() { s = (s * 16807) % 2147483647; return s / 2147483647; } for (i = 0; i < 66; i++) SSTARS.push([Math.floor(r() * Q.WMAX), Math.floor(r() * 200), i]); })();
       function layout(lines) {   // each line's look and the room it takes
         var rows = [], i, s, c;
         for (i = 0; i < lines.length; i++) {
@@ -6257,6 +6401,13 @@
           if (CR.rest) U.text(CR.rest, 160, 112, '#8ff0e6', 1, 'center');
           U.text('MEMOS ' + s.memos + '/24   TIME ' + U.clock(s.time), 160, 138, '#5d6a9e', 1, 'center');
           if (CR.pt > 1 && Math.floor(t * 2) % 2) U.text(Q.SCRIPT.postcredits && Q.SCRIPT.postcredits.length ? 'A: ONE MORE THING' : 'A: TITLE', 160, 176, '#c3c7d4', 1, 'center');   // A goes to the postcredits first
+        },
+        sides: function (g) {   // a wide screen's sides (the engine clips to them): the night sky with stars of its own, the roll's band at the foot; after it, the office carried out to the edges
+          var t = CR.t, i, d;
+          if (CR.phase === 'post') { if (Q.edges) Q.edges(g); return; }
+          U.bands(g, SKY, 0, 10, Q.W);
+          for (i = 0; i < SSTARS.length; i++) { d = SSTARS[i]; U.fill(g, d[0], d[1], 1, 1, Math.sin(t * 2 + d[2] * 1.3) > 0.5 ? '#ffffff' : '#4a5488'); }
+          if (CR.phase === 'roll') { U.fill(g, 0, 186, Q.W, 14, SKY[SKY.length - 1]); U.fill(g, 0, 186, Q.W, 1, '#2a3878'); }
         }
       });
     })();
@@ -6336,6 +6487,15 @@
           U.text(line(), 160, 172, '#f6efe2', 1, 'center');
           if (EC.counted && !Q.talking() && Math.floor(t * 2) % 2) U.text('A: BACK TO THE MAP', 160, 187, '#c9b0ee', 1, 'center');
           U.drawTalk(g);
+        },
+        sides: function (g) {   // a wide screen's sides (the engine clips to them): the curtains carried on in folds of 6 from the seams, the valance across, the dark floor
+          var ox = Q.OX, r = ox + 320, x, k;
+          for (x = ox - 6; x > -6; x -= 6) { k = Math.round((ox - 6 - x) / 6); U.fill(g, x, 0, 6, 166, k % 2 ? '#a8243a' : '#c8384c'); }
+          for (x = r; x < Q.W; x += 6) { k = Math.round((x - r) / 6); U.fill(g, x, 0, 6, 166, k % 2 ? '#a8243a' : '#c8384c'); }
+          U.fill(g, 0, 166, Q.W, 34, '#120a16');
+          U.fill(g, 0, 0, Q.W, 12, '#a8243a');
+          for (x = ox % 16 - 16; x < Q.W; x += 16) { U.fill(g, x + 2, 12, 12, 2, '#a8243a'); U.fill(g, x + 4, 14, 8, 1, '#a8243a'); }   // the valance's scallops, in step with the middle's
+          U.fill(g, 0, 11, Q.W, 1, '#ffd23f'); U.fill(g, 0, 3, Q.W, 1, '#c8384c');
         }
       });
     })();
@@ -6389,6 +6549,11 @@
             U.item('TITLE', 160, 173, OV.sel === 1, false, 'center');
           }
           U.drawTalk(g);
+        },
+        sides: function (g) {   // a wide screen's sides (the engine clips to them): the sky, and the middle's drifting stars carried on every 320 px, so they cross the seams unbroken
+          var t = OV.t, i, x;
+          U.bands(g, OVSKY, 0, 10, Q.W);
+          for (i = 0; i < 24; i++) { x = (i * 53 + Math.floor(t * (4 + i % 3))) % 320; U.fill(g, Q.OX + x - 320, (i * 37) % 120, 1, 1, i % 4 ? '#3a4470' : '#6f7ab0'); U.fill(g, Q.OX + x + 320, (i * 37) % 120, 1, 1, i % 4 ? '#3a4470' : '#6f7ab0'); }
         }
       });
       var OVSKY = U.grad('#0a0d1c', '#1c2547', 20);
@@ -6686,7 +6851,7 @@
       U.cardNow = function () { return C.cur ? (C.cur.big ? 'world' : 'level') + ':' + C.cur.a : ''; };   // for checks
       U.cardTimes = function () { return C.cur && C.cur.times ? C.cur.times.s + (C.cur.times.under ? ' (UNDER PAR)' : '') : ''; };   // for checks
       U.card = function (g) {   // the HUD calls it every frame
-        var now = U.now(), dt = C.at < 0 ? 0 : Q.clamp(now - C.at, 0, 0.05), c, off, h, y, wa, wb, x0, e, tw;
+        var now = U.now(), dt = C.at < 0 ? 0 : Q.clamp(now - C.at, 0, 0.05), c, off, h, y, wa, wb, x0, e, tw, W = Q.W, cx = Q.W >> 1;   // the band spans the screen, its words at its middle (320 and 160 on a 320 screen)
         C.at = now;
         check();
         if (Q.scene !== 'level' || (!C.cur && !C.list.length)) return;
@@ -6695,27 +6860,27 @@
         C.t += dt; c = C.cur;
         if (C.t >= c.secs) { C.cur = null; C.wait = 0.15; return; }
         e = C.t < 0.3 ? 1 - C.t / 0.3 : c.secs - C.t < 0.3 ? -(1 - (c.secs - C.t) / 0.3) : 0;   // in from the left, out to the right
-        off = e > 0 ? -Math.round(e * e * 320) : Math.round(e * e * 320);
+        off = e > 0 ? -Math.round(e * e * W) : Math.round(e * e * W);
         g.save(); g.translate(off, 0);
         if (tall()) {   // a climb: a slim band at the very bottom, so the ledges above him are never covered (the times after the name)
-          h = 14; y = 186; U.fill(g, 0, y, 320, h, '#121318'); U.fill(g, 0, y, 320, 1, c.col);
+          h = 14; y = 186; U.fill(g, 0, y, W, h, '#121318'); U.fill(g, 0, y, W, 1, c.col);
           wa = c.big ? 0 : (c.a ? U.width(c.a) : 0); wb = U.width(c.big ? c.a + ': ' + c.b : c.b); tw = c.times ? U.width(c.times.s) + 12 + (c.times.under ? 11 : 0) : 0;
-          x0 = 160 - ((wa + (wa ? 6 : 0) + wb + tw) >> 1);
+          x0 = cx - ((wa + (wa ? 6 : 0) + wb + tw) >> 1);
           if (wa) U.text(c.a, x0, y + 4, c.col);
           U.text(c.big ? c.a + ': ' + c.b : c.b, x0 + wa + (wa ? 6 : 0), y + 4, c.big ? c.col : '#f6efe2');
           if (tw) { x0 += wa + (wa ? 6 : 0) + wb + 12; U.text(c.times.s, x0, y + 4, '#9aa3ad'); if (c.times.under) U.clockIcon(g, x0 + U.width(c.times.s) + 3, y + 3, true); }
           g.restore(); C.y = y; return;
         }
         h = c.big ? 48 : c.times ? 36 : 26; y = c.big ? 30 : 38; C.y = y;
-        U.fill(g, 0, y, 320, h, '#121318'); U.fill(g, 0, y + 2, 320, h - 4, '#191b24');
-        U.fill(g, 0, y, 320, 2, c.col); U.fill(g, 0, y + h - 2, 320, 2, c.col);
-        if (c.big) { U.text(c.a, 160, y + 7, c.col, 2, 'center'); U.text(c.b, 160, y + 24, '#f6efe2', 3, 'center'); }
+        U.fill(g, 0, y, W, h, '#121318'); U.fill(g, 0, y + 2, W, h - 4, '#191b24');
+        U.fill(g, 0, y, W, 2, c.col); U.fill(g, 0, y + h - 2, W, 2, c.col);
+        if (c.big) { U.text(c.a, cx, y + 7, c.col, 2, 'center'); U.text(c.b, cx, y + 24, '#f6efe2', 3, 'center'); }
         else {
-          wa = c.a ? U.width(c.a, 2) : 0; wb = U.width(c.b, 2); x0 = 160 - ((wa + (wa ? 12 : 0) + wb) >> 1);
+          wa = c.a ? U.width(c.a, 2) : 0; wb = U.width(c.b, 2); x0 = cx - ((wa + (wa ? 12 : 0) + wb) >> 1);
           if (c.a) U.text(c.a, x0, y + 6, c.col, 2);
           U.text(c.b, x0 + wa + (wa ? 12 : 0), y + 6, '#f6efe2', 2);
           if (c.times) {   // BEST and PAR under the name, the clock after them when he made par
-            tw = U.width(c.times.s) + (c.times.under ? 11 : 0); x0 = 160 - (tw >> 1);
+            tw = U.width(c.times.s) + (c.times.under ? 11 : 0); x0 = cx - (tw >> 1);
             U.text(c.times.s, x0, y + 25, c.times.under ? '#ffd23f' : '#9aa3ad');
             if (c.times.under) U.clockIcon(g, x0 + U.width(c.times.s) + 3, y + 24, true);
           }
@@ -7140,14 +7305,16 @@
     // storm), 4 THE SPAM FOLDER (junk-mail pink).
     var w1Bg = null;
     function w1Lcg(seed) { var s = seed >>> 0; return function () { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
-    function w1BgSky() {
-      var cv = Q.canvas(320, 200), g = cv.getContext('2d'), bands = ['#0b1128', '#0d142e', '#101834', '#121c3b', '#152042', '#18244a', '#1b2952', '#1f2e5b', '#233364', '#27386c'];
-      var i, x, y, r = w1Lcg(91), counts = ['12', '3', '99+', '1K', '7', '404', '58', '2', '640', '31', '9', '1,204', '88', '5', '17', '256'];
+    function w1BgSky() {   // Q.WMAX wide (712): the first 320 as it always was, the rest more of the same sky for a wide screen (stars and counts of its own seed)
+      var cv = Q.canvas(Q.WMAX, 200), g = cv.getContext('2d'), bands = ['#0b1128', '#0d142e', '#101834', '#121c3b', '#152042', '#18244a', '#1b2952', '#1f2e5b', '#233364', '#27386c'];
+      var i, x, y, r = w1Lcg(91), counts = ['12', '3', '99+', '1K', '7', '404', '58', '2', '640', '31', '9', '1,204', '88', '5', '17', '256'], r2 = w1Lcg(191), xw = Q.WMAX - 320;
       for (i = 0; i < bands.length; i++) {
-        g.fillStyle = bands[i]; g.fillRect(0, i * 20, 320, 20);
-        if (i) for (x = (i % 2); x < 320; x += 2) g.fillRect(x, i * 20 - 1, 1, 1);   // a dithered seam between bands
+        g.fillStyle = bands[i]; g.fillRect(0, i * 20, Q.WMAX, 20);
+        if (i) for (x = (i % 2); x < Q.WMAX; x += 2) g.fillRect(x, i * 20 - 1, 1, 1);   // a dithered seam between bands
       }
       for (i = 0; i < 40; i++) { g.fillStyle = r() < 0.5 ? '#3a4a86' : '#55669f'; g.fillRect(Math.floor(r() * 320), Math.floor(r() * 150), 1, 1); }
+      for (i = 0; i < 49; i++) { g.fillStyle = r2() < 0.5 ? '#3a4a86' : '#55669f'; g.fillRect(320 + Math.floor(r2() * xw), Math.floor(r2() * 150), 1, 1); }   // the wide part's stars
+      for (i = 0; i < 20; i++) Q.w1.tiny(g, counts[(i * 7 + 3) % counts.length], 324 + Math.floor(r2() * (xw - 30)), 6 + Math.floor(r2() * 120), i % 3 ? '#3f5194' : '#6274b8');   // and its unread counts
       for (i = 0; i < counts.length; i++) {   // the stars are unread counts
         x = 8 + Math.floor(r() * 290); y = 6 + Math.floor(r() * 120);
         if (x > 216 && x < 290 && y < 72) continue;
@@ -7200,11 +7367,12 @@
       if (sky === 2 || sky === 3) { g.fillStyle = 'rgba(6,6,24,0.28)'; g.fillRect(0, 0, Q.W, Q.H); }
       if (Q.api) Q.api.text('99+', 251, 34, '#fffdf7', 1, 'center');
       fx = ((Math.floor(camX * 0.15) % 640) + 640) % 640; oy = Math.round(low * 0.1);
-      g.drawImage(w1Bg.far, -fx, oy); g.drawImage(w1Bg.far, 640 - fx, oy);
+      g.drawImage(w1Bg.far, -fx, oy); g.drawImage(w1Bg.far, 640 - fx, oy); if (1280 - fx < Q.W) g.drawImage(w1Bg.far, 1280 - fx, oy);   // a third copy only on a wide screen
       mx = ((Math.floor(camX * 0.35) % 640) + 640) % 640; oy = Math.round(low * 0.22);
-      g.drawImage(w1Bg.mid, -mx, oy); g.drawImage(w1Bg.mid, 640 - mx, oy);
-      for (i = 0; i < 16; i++) {   // letters falling like slow snow
-        x = (((i * 97 + 13) - camX * 0.3 + Math.sin(t * 0.7 + i) * 6) % 330 + 330) % 330 - 5;
+      g.drawImage(w1Bg.mid, -mx, oy); g.drawImage(w1Bg.mid, 640 - mx, oy); if (1280 - mx < Q.W) g.drawImage(w1Bg.mid, 1280 - mx, oy);
+      var snow = Math.round(16 * (Q.W + 10) / 330), span = Q.W + 10;   // 16 letters over 330 px on a 320 screen, as many again for each 330 more
+      for (i = 0; i < snow; i++) {   // letters falling like slow snow
+        x = (((i * 97 + 13) - camX * 0.3 + Math.sin(t * 0.7 + i) * 6) % span + span) % span - 5;
         y = ((t * (9 + (i % 5) * 3) + i * 41) % 215) - 10;
         g.fillStyle = i % 4 ? '#aeb8d6' : '#e6e9f2'; g.fillRect(Math.round(x), Math.round(y), 3, 2);
         g.fillStyle = '#5d6a96'; g.fillRect(Math.round(x), Math.round(y) + 2, 3, 1);
@@ -8146,14 +8314,14 @@
     }
     function w2Blit(g, img, ox, oy, wrapY) {   // draw a layer tiled across the screen (and down it, when wrapY)
       var w = img.width, h = img.height, x, y, x0 = -(((ox % w) + w) % w), y0 = wrapY ? -(((oy % h) + h) % h) : -oy;
-      for (y = y0; y < 200; y += h) { for (x = x0; x < 320; x += w) g.drawImage(img, Math.round(x), Math.round(y)); if (!wrapY) break; }
+      for (y = y0; y < 200; y += h) { for (x = x0; x < Q.W; x += w) g.drawImage(img, Math.round(x), Math.round(y)); if (!wrapY) break; }   // across the screen's width (320, or wider)
     }
     Q.defBg('server', function (g, camX, camY, t, Q) {
-      var look = (Q.level && Q.level.w2look) || 'cold', b = Q.w2.bgc, i, x, y, ox, a;
+      var look = (Q.level && Q.level.w2look) || 'cold', b = Q.w2.bgc, i, x, y, ox, a, k;
       if (!b) { b = Q.w2.bgc = { leds: [] }; b.far = w2BgFar(g); b.mid = w2BgMid(g, b.leds); b.loops = w2BgLoops(g); }
       var top = look === 'hot' ? '#1a0c0c' : look === 'cold' ? '#0b1316' : '#0b0e13', bot = look === 'hot' ? '#2a120e' : look === 'cold' ? '#0f1c20' : '#121820';
-      g.fillStyle = top; g.fillRect(0, 0, 320, 200);
-      for (i = 0; i < 5; i++) { g.globalAlpha = 0.2 * (i + 1); g.fillStyle = bot; g.fillRect(0, 100 + i * 20, 320, 20); }
+      g.fillStyle = top; g.fillRect(0, 0, Q.W, 200);
+      for (i = 0; i < 5; i++) { g.globalAlpha = 0.2 * (i + 1); g.fillStyle = bot; g.fillRect(0, 100 + i * 20, Q.W, 20); }
       g.globalAlpha = 1;
       var tall = look === 'fans';
       w2Blit(g, b.far, camX * 0.12, tall ? camY * 0.12 : camY * 0.05, tall);
@@ -8164,26 +8332,32 @@
         x = b.leds[i] + ox; y = b.leds[i + 1] - (tall ? (((camY * 0.3) % 200) + 200) % 200 : Math.round(camY * 0.12));
         g.fillStyle = (i % 10) === 0 ? '#ffb02e' : '#39e27a';
         if (x < 320) g.fillRect(Math.round(x), y, 2, 1); if (x + 384 < 320) g.fillRect(Math.round(x + 384), y, 2, 1);
+        if (Q.W > 320) { if (x >= 320 && x < Q.W) g.fillRect(Math.round(x), y, 2, 1); if (x + 384 >= 320 && x + 384 < Q.W) g.fillRect(Math.round(x + 384), y, 2, 1); if (x + 768 < Q.W) g.fillRect(Math.round(x + 768), y, 2, 1); }   // a wide screen's lights
         if (tall && y + 200 < 200) g.fillRect(Math.round(x), y + 200, 2, 1);
       }
       if (look === 'canyon') {
         w2Blit(g, b.loops, camX * 0.55, camY * 0.2, false);
-        for (i = 0; i < 4; i++) { g.fillStyle = 'rgba(4,6,9,' + (0.15 + i * 0.12) + ')'; g.fillRect(0, 150 + i * 13, 320, 13); }
+        for (i = 0; i < 4; i++) { g.fillStyle = 'rgba(4,6,9,' + (0.15 + i * 0.12) + ')'; g.fillRect(0, 150 + i * 13, Q.W, 13); }
       } else if (look === 'cold') {
-        for (i = 0; i < 3; i++) { g.fillStyle = 'rgba(46,196,182,' + (0.04 + i * 0.03) + ')'; g.fillRect(0, 160 + i * 14, 320, 14); }
-        for (i = 0; i < 16; i++) {   // a little frost in the air
-          x = ((w2Hash(i) * 340 + t * (6 + i % 5) - camX * 0.5) % 340 + 340) % 340 - 10; y = ((w2Hash(i + 20) * 210 - t * (4 + i % 3)) % 210 + 210) % 210 - 5;
+        for (i = 0; i < 3; i++) { g.fillStyle = 'rgba(46,196,182,' + (0.04 + i * 0.03) + ')'; g.fillRect(0, 160 + i * 14, Q.W, 14); }
+        var nf = Math.round(16 * (Q.W + 20) / 340), fs = Q.W + 20;   // 16 over 340 px on a 320 screen, more across a wider one
+        for (i = 0; i < nf; i++) {   // a little frost in the air
+          x = ((w2Hash(i) * fs + t * (6 + i % 5) - camX * 0.5) % fs + fs) % fs - 10; y = ((w2Hash(i + 20) * 210 - t * (4 + i % 3)) % 210 + 210) % 210 - 5;
           g.fillStyle = i % 3 ? 'rgba(226,252,255,0.35)' : 'rgba(143,240,230,0.5)'; g.fillRect(Math.round(x), Math.round(y), 1, 1);
         }
       } else if (look === 'fans') {
         for (i = 0; i < 3; i++) {
-          x = ((i * 130 + 40 - camX * 0.3) % 390 + 390) % 390 - 35; g.fillStyle = 'rgba(143,240,230,0.035)'; g.fillRect(Math.round(x), 0, 36, 200);
-          for (a = 0; a < 4; a++) { y = ((w2Hash(i * 9 + a) * 220 - t * 70 - camY * 0.3) % 220 + 220) % 220 - 10; g.fillStyle = 'rgba(143,240,230,0.12)'; g.fillRect(Math.round(x + 6 + a * 7), Math.round(y), 1, 9); }
+          x = ((i * 130 + 40 - camX * 0.3) % 390 + 390) % 390 - 35;
+          for (k = x; k < Q.W; k += 390) {   // again every 390 px across a wide screen (on a 320 one only the first)
+            g.fillStyle = 'rgba(143,240,230,0.035)'; g.fillRect(Math.round(k), 0, 36, 200);
+            for (a = 0; a < 4; a++) { y = ((w2Hash(i * 9 + a) * 220 - t * 70 - camY * 0.3) % 220 + 220) % 220 - 10; g.fillStyle = 'rgba(143,240,230,0.12)'; g.fillRect(Math.round(k + 6 + a * 7), Math.round(y), 1, 9); }
+          }
         }
       } else if (look === 'hot') {
-        for (i = 0; i < 4; i++) { g.fillStyle = 'rgba(232,64,42,' + (0.05 + i * 0.04) + ')'; g.fillRect(0, 140 + i * 15, 320, 15); }
-        for (i = 0; i < 12; i++) {   // the air shimmers
-          y = ((w2Hash(i + 5) * 200 - t * (14 + i % 4) * 2) % 200 + 200) % 200; x = w2Hash(i + 9) * 300 + Math.sin(t * 3 + i) * 4;
+        for (i = 0; i < 4; i++) { g.fillStyle = 'rgba(232,64,42,' + (0.05 + i * 0.04) + ')'; g.fillRect(0, 140 + i * 15, Q.W, 15); }
+        var ns = Math.round(12 * Q.W / 320);   // 12 on a 320 screen, more across a wider one
+        for (i = 0; i < ns; i++) {   // the air shimmers
+          y = ((w2Hash(i + 5) * 200 - t * (14 + i % 4) * 2) % 200 + 200) % 200; x = w2Hash(i + 9) * (Q.W - 20) + Math.sin(t * 3 + i) * 4;
           g.fillStyle = 'rgba(255,190,120,' + (0.05 + 0.06 * (y / 200)) + ')'; g.fillRect(Math.round(x), Math.round(y), 10 + (i % 3) * 4, 1);
         }
       }
@@ -9259,7 +9433,7 @@
       var p = (t + f.cyc * W2_FAN.CYCLE / 2) % W2_FAN.CYCLE, s = p < W2_FAN.ON ? 'G' : p < W2_FAN.ON + W2_FAN.WARN ? 'W' : 'I';
       f.on = s !== 'I';
       if (Q.tile(f.tx, f.ty) !== s) Q.setTile(f.tx, f.ty, s);
-      if (s !== f.state) { if (s === 'G' && f.state === 'I' && Math.abs(f.tx * 16 - Q.cam.x - 160) < 200 && Math.abs(f.ty * 16 - Q.cam.y - 100) < 140) Q.sfx('fan'); f.state = s; }
+      if (s !== f.state) { if (s === 'G' && f.state === 'I' && Math.abs(f.tx * 16 - Q.cam.x - Q.W / 2) < Q.W / 2 + 40 && Math.abs(f.ty * 16 - Q.cam.y - 100) < 140) Q.sfx('fan'); f.state = s; }   // a fan heard when it is about on screen (160 and 200 on a 320 one)
     }
     Q.w2.inAir = function (x, y, w, h) {   // the fan column a box is in (null if none)
       var st = Q.w2.st, i, f, ov;
@@ -9293,7 +9467,7 @@
       if (!st || st.lv !== Q.level) return;
       for (i = 0; i < st.fans.length; i++) {
         f = st.fans[i]; if (!f.on) continue;
-        x = f.x0 - camX; if (x < -16 || x > 320) continue;
+        x = f.x0 - camX; if (x < -16 || x > Q.W) continue;
         h = f.bot - f.top; if (h <= 0 || f.top - camY > 200 || f.bot - camY < 0) continue;
         g.fillStyle = f.state === 'W' ? 'rgba(255,90,70,0.06)' : 'rgba(143,240,230,0.07)'; g.fillRect(Math.round(x + 1), Math.round(f.top - camY), 14, h);
         for (k = 0; k < 7; k++) {
@@ -9728,8 +9902,9 @@
       w3BgSun(g, t, kind, camX);
       w3BgRow(g, w3Far, 520, 0.12, 0.05, camX, camY, kind === 'wind' ? t * 14 : t * 2, dark);
       if (kind === 'day') {   // files rising like seeds
-        for (i = 0; i < 10; i++) {
-          x = Math.round(((w3Seed[i][0] * 360 - camX * 0.2) % 360 + 360) % 360) - 20; y = Math.round(((w3Seed[i][1] * 230 - t * (8 + w3Seed[i][2] * 8)) % 230 + 230) % 230) - 15;
+        var nd = Math.min(40, Math.round(10 * (Q.W + 40) / 360)), sd = Q.W + 40;   // 10 over 360 px on a 320 screen, more across a wider one
+        for (i = 0; i < nd; i++) {
+          x = Math.round(((w3Seed[i][0] * sd - camX * 0.2) % sd + sd) % sd) - 20; y = Math.round(((w3Seed[i][1] * 230 - t * (8 + w3Seed[i][2] * 8)) % 230 + 230) % 230) - 15;
           g.fillStyle = 'rgba(255,255,255,0.8)'; g.fillRect(x, y, 3, 4); g.fillStyle = 'rgba(46,196,182,0.7)'; g.fillRect(x + 1, y - 2, 1, 1);
         }
       }
@@ -9744,12 +9919,14 @@
       }
       y = 168 - Math.round(camY * 0.2); x = -(Math.round(camX * 0.45) % 160);
       for (i = 0; i < 4; i++) Q.spr(g, 'w3-bgsea', dark ? 1 : 0, x + i * 160, y);
+      if (Q.W > 320) { for (i = x > 0 ? -1 : 4; x + i * 160 < Q.W; i++) if (i < 0 || i > 3) Q.spr(g, 'w3-bgsea', dark ? 1 : 0, x + i * 160, y); }   // a wide screen: more of it (and to the left, when a narrow level puts the view left of 0)
       g.fillStyle = dark ? '#33405e' : '#bdd6ee'; if (y + 40 < Q.H) g.fillRect(0, y + 40, Q.W, Q.H - y - 40);
       if (kind === 'storm') {   // rain
         g.fillStyle = 'rgba(170,190,230,0.45)';
-        for (i = 0; i < 40; i++) {
+        var sr = Q.W + 20;
+        for (i = 0; i < 40; i++) {   // 40 drops over 340 px on a 320 screen; a wider one has each again every 340 px
           x = Math.round(((w3Seed[i][0] * 340 + t * 50 - camX * 0.6) % 340 + 340) % 340) - 10; y = Math.round(((w3Seed[i][1] * 220 + t * (260 + w3Seed[i][2] * 80)) % 220)) - 10;
-          g.fillRect(x, y, 1, 4); g.fillRect(x - 1, y + 4, 1, 2);
+          for (var rx = x; rx < sr; rx += 340) { g.fillRect(rx, y, 1, 4); g.fillRect(rx - 1, y + 4, 1, 2); }
         }
       }
     });
@@ -10665,14 +10842,15 @@
     var W4STAR = ['#6d5a92', '#8a7a4a', '#8a5a78', '#5a6a9a'];
     function w4Bg(v) {
       return function (g, camX, camY, t, Q) {
-        var W = 320, H = 200, i, x, y, w, h, k, sky = W4SKY[v], L = Q.level, lvH = L && L.th ? L.th * 16 : 208;
+        var W = Q.W, H = 200, i, x, y, w, h, k, sky = W4SKY[v], L = Q.level, lvH = L && L.th ? L.th * 16 : 208;   // W: the screen's width (320, or wider: every layer below already runs across W)
         var rise = Q.clamp((lvH - 200 - camY) / 600, 0, 1);   // 0 at the bottom of a level, 1 when 600 px up: the piles sink, the sky opens
         // the sky: six bands
         for (i = 0; i < 6; i++) { g.fillStyle = sky[i]; g.fillRect(0, Math.floor(i * H / 6), W, Math.ceil(H / 6) + 1); }
         if (v === 2 && rise > 0.5) { g.fillStyle = 'rgba(120,80,170,' + ((rise - 0.5) * 0.3).toFixed(3) + ')'; g.fillRect(0, 0, W, 70); }
         // far sticky notes for stars, a few twinkling
-        for (i = 0; i < 36; i++) {
-          x = w4Mod(w4Hash(i) * 640 - camX * 0.04, W); y = w4Mod(w4Hash(i + 99) * 400 - camY * 0.04, H);
+        var ns = Math.round(36 * W / 320), spread = Math.max(640, W * 2);   // 36 over 320 px, as many again for each 320 more
+        for (i = 0; i < ns; i++) {
+          x = w4Mod(w4Hash(i) * spread - camX * 0.04, W); y = w4Mod(w4Hash(i + 99) * 400 - camY * 0.04, H);
           k = (i + Math.floor(t * 0.7)) % 9 === 0 ? 3 : 2;
           g.fillStyle = W4STAR[i & 3]; g.fillRect(Math.floor(x), Math.floor(y), k, k);
         }
@@ -11726,7 +11904,7 @@
     Q.root.grid = function (g, camX, camY, wash, col) {
       var i, x, y, ox = ((Math.floor(camX * 0.5) % 32) + 32) % 32, oy = ((Math.floor(camY * 0.5) % 32) + 32) % 32, bx = Math.floor(camX * 0.5), by = Math.floor(camY * 0.5);
       if (wash) { g.fillStyle = wash; g.fillRect(0, 0, Q.W, Q.H); }
-      for (i = 0; i <= 10; i++) {
+      for (i = 0; i * 32 - ox <= Q.W; i++) {   // 0 to 10 on a 320 screen, on across a wider one
         x = i * 32 - ox;
         g.fillStyle = (((x + bx) % 128) + 128) % 128 === 0 ? col.hi : col.lo; g.fillRect(x, 0, 1, Q.H);
       }
@@ -12010,7 +12188,7 @@
       return w;
     }
     function engStart(api) {
-      engRaw = api; Q.api = engWrapApi(api); Q.g = api.g; Q.t = 0; Q.scene = '';
+      engRaw = api; Q.api = engWrapApi(api); Q.g = api.g; Q.t = 0; Q.scene = ''; Q.setW(api.W);   // the screen's width: 320, or wider when the page asks the runtime (WIDESCREEN.md)
       engAcc = 0; engLatch = {}; engFP = {}; engTaken = {}; engGod = false; engQuiet = false; engErrors = 0;
       engEnc = null; engRootEnd = false; engStarQ = []; engStarBusy = false; engClockStart('', null);   // version 116's own (a game closed in the encore opens out of it)
       Q.P = null; Q.level = null; Q.ents = []; Q.boss = null; Q.cam.x = 0; Q.cam.y = 0; engArena = null; engMap = null; engInfo = null;
@@ -12025,8 +12203,44 @@
       var sc = engOwn(Q.SCENE, Q.scene) ? Q.SCENE[Q.scene] : null;
       if (sc && sc.update) { try { sc.update(Q.DT, Q); } catch (er) { engErr('update', 'scene ' + Q.scene, er); } }
     }
+    function engWidth() {   // the runtime's api.W, read each frame: a page may widen the screen at any time (a window resized); the camera then snaps to the new view
+      var w = Math.round(+engRaw.W);
+      if (!(w >= 320)) w = 320; if (w > Q.WMAX) w = Q.WMAX;
+      if (w === Q.W) return;
+      Q.setW(w);
+      if (Q.P && Q.level) engCamSnap();
+    }
+    function engSides(g, id, sc) {   // a column scene on a wider screen: its own painter for the sides (sc.sides, clipped to them), else its edge columns carried out to the screen's edges
+      var ox = Q.OX, r = ox + 320, W = Q.W, H = Q.H;
+      if (!(W > 320)) return;
+      g.save();
+      if (typeof sc.sides === 'function') {
+        g.beginPath(); g.rect(0, 0, ox, H); g.rect(r, 0, W - r, H); g.clip();
+        try { sc.sides(g, Q); } catch (er) { engErr('draw', 'the sides of ' + id, er); }
+      } else engEdges(g);
+      g.restore();
+    }
+    function engEdges(g) {   // the column's first and last pixel columns stretched out over the sides (a wall, a sky in bands, a floor carry on as they are)
+      var ox = Q.OX, r = ox + 320, W = Q.W, H = Q.H;
+      if (!(W > 320)) return;
+      g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; g.imageSmoothingEnabled = false;
+      if (ox > 0) g.drawImage(g.canvas, ox, 0, 1, H, 0, 0, ox, H);
+      if (W > r) g.drawImage(g.canvas, r - 1, 0, 1, H, r, 0, W - r, H);
+      g.restore();
+    }
+    Q.edges = engEdges;
+    function engDrawScene(g, id) {   // a scene's draw. A wide one (sc.wide: the level, the pause menu, the codex) fills the screen itself; any other is drawn in the centred 320 column (Q.col), then its sides
+      var sc = engOwn(Q.SCENE, id) ? Q.SCENE[id] : null;
+      if (!sc || !sc.draw) return false;
+      if (sc.wide || !(Q.W > 320)) { sc.draw(g, Q); return true; }
+      Q.col(g, function () { sc.draw(g, Q); });
+      engSides(g, id, sc);
+      return true;
+    }
+    Q.drawScene = engDrawScene;
     function engFrame(dt) {
       var i, n, steps, k, sc;
+      engWidth();
       for (i = 0; i < ENG_KEYS.length; i++) { k = ENG_KEYS[i]; if (engRaw.pressed(k)) engLatch[k] = true; }
       engAcc += dt;
       steps = Math.min(4, Math.floor((engAcc + 1e-6) / Q.DT));
@@ -12040,8 +12254,8 @@
       if (engAcc > Q.DT || engAcc < 0) engAcc = 0;   // behind by more than four steps: let it go
       try { Q.audioFrame(dt); } catch (er) { engErr('audioFrame', 'audio', er); }
       sc = engOwn(Q.SCENE, Q.scene) ? Q.SCENE[Q.scene] : null;
-      if (sc && sc.draw) { try { sc.draw(Q.g, Q); } catch (er2) { engErr('draw', 'scene ' + Q.scene, er2); } if (engCheatOn('green')) engGreen(Q.g); }   // GREEN SCREEN over everything
-      else { Q.g.fillStyle = '#0b0c10'; Q.g.fillRect(0, 0, Q.W, Q.H); Q.api.text('BATON QUEST', 160, 96, '#ff8a1e', 1, 'center'); }
+      if (sc && sc.draw) { try { engDrawScene(Q.g, Q.scene); } catch (er2) { engErr('draw', 'scene ' + Q.scene, er2); } if (engCheatOn('green')) engGreen(Q.g); }   // GREEN SCREEN over everything
+      else { Q.g.fillStyle = '#0b0c10'; Q.g.fillRect(0, 0, Q.W, Q.H); Q.api.text('BATON QUEST', Q.W >> 1, 96, '#ff8a1e', 1, 'center'); }
     }
     function engState() {
       var P = Q.P, s = engSave(), lv = Q.level, n = 0, k;

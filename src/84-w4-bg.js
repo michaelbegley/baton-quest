@@ -12,14 +12,15 @@
     var W4STAR = ['#6d5a92', '#8a7a4a', '#8a5a78', '#5a6a9a'];
     function w4Bg(v) {
       return function (g, camX, camY, t, Q) {
-        var W = 320, H = 200, i, x, y, w, h, k, sky = W4SKY[v], L = Q.level, lvH = L && L.th ? L.th * 16 : 208;
+        var W = Q.W, H = 200, i, x, y, w, h, k, sky = W4SKY[v], L = Q.level, lvH = L && L.th ? L.th * 16 : 208;   // W: the screen's width (320, or wider: every layer below already runs across W)
         var rise = Q.clamp((lvH - 200 - camY) / 600, 0, 1);   // 0 at the bottom of a level, 1 when 600 px up: the piles sink, the sky opens
         // the sky: six bands
         for (i = 0; i < 6; i++) { g.fillStyle = sky[i]; g.fillRect(0, Math.floor(i * H / 6), W, Math.ceil(H / 6) + 1); }
         if (v === 2 && rise > 0.5) { g.fillStyle = 'rgba(120,80,170,' + ((rise - 0.5) * 0.3).toFixed(3) + ')'; g.fillRect(0, 0, W, 70); }
         // far sticky notes for stars, a few twinkling
-        for (i = 0; i < 36; i++) {
-          x = w4Mod(w4Hash(i) * 640 - camX * 0.04, W); y = w4Mod(w4Hash(i + 99) * 400 - camY * 0.04, H);
+        var ns = Math.round(36 * W / 320), spread = Math.max(640, W * 2);   // 36 over 320 px, as many again for each 320 more
+        for (i = 0; i < ns; i++) {
+          x = w4Mod(w4Hash(i) * spread - camX * 0.04, W); y = w4Mod(w4Hash(i + 99) * 400 - camY * 0.04, H);
           k = (i + Math.floor(t * 0.7)) % 9 === 0 ? 3 : 2;
           g.fillStyle = W4STAR[i & 3]; g.fillRect(Math.floor(x), Math.floor(y), k, k);
         }

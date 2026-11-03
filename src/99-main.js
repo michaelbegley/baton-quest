@@ -11,7 +11,7 @@
       return w;
     }
     function engStart(api) {
-      engRaw = api; Q.api = engWrapApi(api); Q.g = api.g; Q.t = 0; Q.scene = '';
+      engRaw = api; Q.api = engWrapApi(api); Q.g = api.g; Q.t = 0; Q.scene = ''; Q.setW(api.W);   // the screen's width: 320, or wider when the page asks the runtime (WIDESCREEN.md)
       engAcc = 0; engLatch = {}; engFP = {}; engTaken = {}; engGod = false; engQuiet = false; engErrors = 0;
       engEnc = null; engRootEnd = false; engStarQ = []; engStarBusy = false; engClockStart('', null);   // version 116's own (a game closed in the encore opens out of it)
       Q.P = null; Q.level = null; Q.ents = []; Q.boss = null; Q.cam.x = 0; Q.cam.y = 0; engArena = null; engMap = null; engInfo = null;
@@ -26,8 +26,44 @@
       var sc = engOwn(Q.SCENE, Q.scene) ? Q.SCENE[Q.scene] : null;
       if (sc && sc.update) { try { sc.update(Q.DT, Q); } catch (er) { engErr('update', 'scene ' + Q.scene, er); } }
     }
+    function engWidth() {   // the runtime's api.W, read each frame: a page may widen the screen at any time (a window resized); the camera then snaps to the new view
+      var w = Math.round(+engRaw.W);
+      if (!(w >= 320)) w = 320; if (w > Q.WMAX) w = Q.WMAX;
+      if (w === Q.W) return;
+      Q.setW(w);
+      if (Q.P && Q.level) engCamSnap();
+    }
+    function engSides(g, id, sc) {   // a column scene on a wider screen: its own painter for the sides (sc.sides, clipped to them), else its edge columns carried out to the screen's edges
+      var ox = Q.OX, r = ox + 320, W = Q.W, H = Q.H;
+      if (!(W > 320)) return;
+      g.save();
+      if (typeof sc.sides === 'function') {
+        g.beginPath(); g.rect(0, 0, ox, H); g.rect(r, 0, W - r, H); g.clip();
+        try { sc.sides(g, Q); } catch (er) { engErr('draw', 'the sides of ' + id, er); }
+      } else engEdges(g);
+      g.restore();
+    }
+    function engEdges(g) {   // the column's first and last pixel columns stretched out over the sides (a wall, a sky in bands, a floor carry on as they are)
+      var ox = Q.OX, r = ox + 320, W = Q.W, H = Q.H;
+      if (!(W > 320)) return;
+      g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; g.imageSmoothingEnabled = false;
+      if (ox > 0) g.drawImage(g.canvas, ox, 0, 1, H, 0, 0, ox, H);
+      if (W > r) g.drawImage(g.canvas, r - 1, 0, 1, H, r, 0, W - r, H);
+      g.restore();
+    }
+    Q.edges = engEdges;
+    function engDrawScene(g, id) {   // a scene's draw. A wide one (sc.wide: the level, the pause menu, the codex) fills the screen itself; any other is drawn in the centred 320 column (Q.col), then its sides
+      var sc = engOwn(Q.SCENE, id) ? Q.SCENE[id] : null;
+      if (!sc || !sc.draw) return false;
+      if (sc.wide || !(Q.W > 320)) { sc.draw(g, Q); return true; }
+      Q.col(g, function () { sc.draw(g, Q); });
+      engSides(g, id, sc);
+      return true;
+    }
+    Q.drawScene = engDrawScene;
     function engFrame(dt) {
       var i, n, steps, k, sc;
+      engWidth();
       for (i = 0; i < ENG_KEYS.length; i++) { k = ENG_KEYS[i]; if (engRaw.pressed(k)) engLatch[k] = true; }
       engAcc += dt;
       steps = Math.min(4, Math.floor((engAcc + 1e-6) / Q.DT));
@@ -41,8 +77,8 @@
       if (engAcc > Q.DT || engAcc < 0) engAcc = 0;   // behind by more than four steps: let it go
       try { Q.audioFrame(dt); } catch (er) { engErr('audioFrame', 'audio', er); }
       sc = engOwn(Q.SCENE, Q.scene) ? Q.SCENE[Q.scene] : null;
-      if (sc && sc.draw) { try { sc.draw(Q.g, Q); } catch (er2) { engErr('draw', 'scene ' + Q.scene, er2); } if (engCheatOn('green')) engGreen(Q.g); }   // GREEN SCREEN over everything
-      else { Q.g.fillStyle = '#0b0c10'; Q.g.fillRect(0, 0, Q.W, Q.H); Q.api.text('BATON QUEST', 160, 96, '#ff8a1e', 1, 'center'); }
+      if (sc && sc.draw) { try { engDrawScene(Q.g, Q.scene); } catch (er2) { engErr('draw', 'scene ' + Q.scene, er2); } if (engCheatOn('green')) engGreen(Q.g); }   // GREEN SCREEN over everything
+      else { Q.g.fillStyle = '#0b0c10'; Q.g.fillRect(0, 0, Q.W, Q.H); Q.api.text('BATON QUEST', Q.W >> 1, 96, '#ff8a1e', 1, 'center'); }
     }
     function engState() {
       var P = Q.P, s = engSave(), lv = Q.level, n = 0, k;

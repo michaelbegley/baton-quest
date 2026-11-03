@@ -50,14 +50,14 @@
     }
     function w2Blit(g, img, ox, oy, wrapY) {   // draw a layer tiled across the screen (and down it, when wrapY)
       var w = img.width, h = img.height, x, y, x0 = -(((ox % w) + w) % w), y0 = wrapY ? -(((oy % h) + h) % h) : -oy;
-      for (y = y0; y < 200; y += h) { for (x = x0; x < 320; x += w) g.drawImage(img, Math.round(x), Math.round(y)); if (!wrapY) break; }
+      for (y = y0; y < 200; y += h) { for (x = x0; x < Q.W; x += w) g.drawImage(img, Math.round(x), Math.round(y)); if (!wrapY) break; }   // across the screen's width (320, or wider)
     }
     Q.defBg('server', function (g, camX, camY, t, Q) {
-      var look = (Q.level && Q.level.w2look) || 'cold', b = Q.w2.bgc, i, x, y, ox, a;
+      var look = (Q.level && Q.level.w2look) || 'cold', b = Q.w2.bgc, i, x, y, ox, a, k;
       if (!b) { b = Q.w2.bgc = { leds: [] }; b.far = w2BgFar(g); b.mid = w2BgMid(g, b.leds); b.loops = w2BgLoops(g); }
       var top = look === 'hot' ? '#1a0c0c' : look === 'cold' ? '#0b1316' : '#0b0e13', bot = look === 'hot' ? '#2a120e' : look === 'cold' ? '#0f1c20' : '#121820';
-      g.fillStyle = top; g.fillRect(0, 0, 320, 200);
-      for (i = 0; i < 5; i++) { g.globalAlpha = 0.2 * (i + 1); g.fillStyle = bot; g.fillRect(0, 100 + i * 20, 320, 20); }
+      g.fillStyle = top; g.fillRect(0, 0, Q.W, 200);
+      for (i = 0; i < 5; i++) { g.globalAlpha = 0.2 * (i + 1); g.fillStyle = bot; g.fillRect(0, 100 + i * 20, Q.W, 20); }
       g.globalAlpha = 1;
       var tall = look === 'fans';
       w2Blit(g, b.far, camX * 0.12, tall ? camY * 0.12 : camY * 0.05, tall);
@@ -68,26 +68,32 @@
         x = b.leds[i] + ox; y = b.leds[i + 1] - (tall ? (((camY * 0.3) % 200) + 200) % 200 : Math.round(camY * 0.12));
         g.fillStyle = (i % 10) === 0 ? '#ffb02e' : '#39e27a';
         if (x < 320) g.fillRect(Math.round(x), y, 2, 1); if (x + 384 < 320) g.fillRect(Math.round(x + 384), y, 2, 1);
+        if (Q.W > 320) { if (x >= 320 && x < Q.W) g.fillRect(Math.round(x), y, 2, 1); if (x + 384 >= 320 && x + 384 < Q.W) g.fillRect(Math.round(x + 384), y, 2, 1); if (x + 768 < Q.W) g.fillRect(Math.round(x + 768), y, 2, 1); }   // a wide screen's lights
         if (tall && y + 200 < 200) g.fillRect(Math.round(x), y + 200, 2, 1);
       }
       if (look === 'canyon') {
         w2Blit(g, b.loops, camX * 0.55, camY * 0.2, false);
-        for (i = 0; i < 4; i++) { g.fillStyle = 'rgba(4,6,9,' + (0.15 + i * 0.12) + ')'; g.fillRect(0, 150 + i * 13, 320, 13); }
+        for (i = 0; i < 4; i++) { g.fillStyle = 'rgba(4,6,9,' + (0.15 + i * 0.12) + ')'; g.fillRect(0, 150 + i * 13, Q.W, 13); }
       } else if (look === 'cold') {
-        for (i = 0; i < 3; i++) { g.fillStyle = 'rgba(46,196,182,' + (0.04 + i * 0.03) + ')'; g.fillRect(0, 160 + i * 14, 320, 14); }
-        for (i = 0; i < 16; i++) {   // a little frost in the air
-          x = ((w2Hash(i) * 340 + t * (6 + i % 5) - camX * 0.5) % 340 + 340) % 340 - 10; y = ((w2Hash(i + 20) * 210 - t * (4 + i % 3)) % 210 + 210) % 210 - 5;
+        for (i = 0; i < 3; i++) { g.fillStyle = 'rgba(46,196,182,' + (0.04 + i * 0.03) + ')'; g.fillRect(0, 160 + i * 14, Q.W, 14); }
+        var nf = Math.round(16 * (Q.W + 20) / 340), fs = Q.W + 20;   // 16 over 340 px on a 320 screen, more across a wider one
+        for (i = 0; i < nf; i++) {   // a little frost in the air
+          x = ((w2Hash(i) * fs + t * (6 + i % 5) - camX * 0.5) % fs + fs) % fs - 10; y = ((w2Hash(i + 20) * 210 - t * (4 + i % 3)) % 210 + 210) % 210 - 5;
           g.fillStyle = i % 3 ? 'rgba(226,252,255,0.35)' : 'rgba(143,240,230,0.5)'; g.fillRect(Math.round(x), Math.round(y), 1, 1);
         }
       } else if (look === 'fans') {
         for (i = 0; i < 3; i++) {
-          x = ((i * 130 + 40 - camX * 0.3) % 390 + 390) % 390 - 35; g.fillStyle = 'rgba(143,240,230,0.035)'; g.fillRect(Math.round(x), 0, 36, 200);
-          for (a = 0; a < 4; a++) { y = ((w2Hash(i * 9 + a) * 220 - t * 70 - camY * 0.3) % 220 + 220) % 220 - 10; g.fillStyle = 'rgba(143,240,230,0.12)'; g.fillRect(Math.round(x + 6 + a * 7), Math.round(y), 1, 9); }
+          x = ((i * 130 + 40 - camX * 0.3) % 390 + 390) % 390 - 35;
+          for (k = x; k < Q.W; k += 390) {   // again every 390 px across a wide screen (on a 320 one only the first)
+            g.fillStyle = 'rgba(143,240,230,0.035)'; g.fillRect(Math.round(k), 0, 36, 200);
+            for (a = 0; a < 4; a++) { y = ((w2Hash(i * 9 + a) * 220 - t * 70 - camY * 0.3) % 220 + 220) % 220 - 10; g.fillStyle = 'rgba(143,240,230,0.12)'; g.fillRect(Math.round(k + 6 + a * 7), Math.round(y), 1, 9); }
+          }
         }
       } else if (look === 'hot') {
-        for (i = 0; i < 4; i++) { g.fillStyle = 'rgba(232,64,42,' + (0.05 + i * 0.04) + ')'; g.fillRect(0, 140 + i * 15, 320, 15); }
-        for (i = 0; i < 12; i++) {   // the air shimmers
-          y = ((w2Hash(i + 5) * 200 - t * (14 + i % 4) * 2) % 200 + 200) % 200; x = w2Hash(i + 9) * 300 + Math.sin(t * 3 + i) * 4;
+        for (i = 0; i < 4; i++) { g.fillStyle = 'rgba(232,64,42,' + (0.05 + i * 0.04) + ')'; g.fillRect(0, 140 + i * 15, Q.W, 15); }
+        var ns = Math.round(12 * Q.W / 320);   // 12 on a 320 screen, more across a wider one
+        for (i = 0; i < ns; i++) {   // the air shimmers
+          y = ((w2Hash(i + 5) * 200 - t * (14 + i % 4) * 2) % 200 + 200) % 200; x = w2Hash(i + 9) * (Q.W - 20) + Math.sin(t * 3 + i) * 4;
           g.fillStyle = 'rgba(255,190,120,' + (0.05 + 0.06 * (y / 200)) + ')'; g.fillRect(Math.round(x), Math.round(y), 10 + (i % 3) * 4, 1);
         }
       }

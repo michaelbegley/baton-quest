@@ -38,7 +38,7 @@
         if (!cv || !Q.api || typeof Q.canvas !== 'function') return;
         try {
           a = Q.canvas(192, 16); saved = g.getImageData(0, 0, 192, 16);
-          g.save(); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, 192, 16);
+          g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, 192, 16);   // the screen's own pixels, even when asked from inside the centred column
           for (i = 0; i < CH.length; i++) Q.api.text(CH.charAt(i), (i % 32) * 6, Math.floor(i / 32) * 8, '#ffffff');
           g.restore();
           a.getContext('2d').drawImage(cv, 0, 0, 192, 16, 0, 0, 192, 16);
@@ -100,8 +100,8 @@
         }
         return out;
       };
-      U.bands = function (g, cols, y0, h) {   // paints the colours as bands from y0 down, h pixels each
-        for (var i = 0; i < cols.length; i++) { g.fillStyle = cols[i]; g.fillRect(0, y0 + i * h, 320, h); }
+      U.bands = function (g, cols, y0, h, w) {   // paints the colours as bands from y0 down, h pixels each (w wide: 320, or Q.W for a side painter on a wide screen)
+        for (var i = 0; i < cols.length; i++) { g.fillStyle = cols[i]; g.fillRect(0, y0 + i * h, w || 320, h); }
       };
       U.frames = function (id) { var d = Q.SPRITE[id]; return d ? (d.frames ? d.frames.length : d.n || 1) : 0; };
       U.sprite = function (g, id, frame, x, y, k, flip) {   // a sprite at k times its size (k 1: just Q.spr)
@@ -306,8 +306,12 @@
         TO.cur = null;
         while (TO.q.length && !TO.cur) { var e = TO.q.shift(); if (e.left >= 0.3) TO.cur = e; }   // a sign left behind (a short one) is dropped
       }
-      function drawToast(g) {
+      function drawToast(g) {   // in the centred 320 column on a wide screen (Q.col)
         var c = TO.cur, now = U.now(); if (!c || TO.drawnAt === now) return;
+        Q.col(g, toastIn);
+      }
+      function toastIn(g) {
+        var c = TO.cur, now = U.now();
         TO.drawnAt = now;
         var n = c.lines.length, sw = c.star ? 16 : 0, h = Math.max(n * 9 + 7, sw), w = c.w + 14 + sw, x = 160 - (w >> 1), k = Math.min(1, c.age / 0.12, Math.max(0, c.left) / 0.12), i, cx;
         var base = T.cur && T.top ? TOPY + BH + 4 : 18, y = Math.round(base - (1 - k) * (h + 4));
@@ -350,7 +354,7 @@
       U.drawTalk = Q.ui.drawTalk = function (g) {
         U.tick();
         drawToast(g);
-        if (T.cur) drawBox(g);
+        if (T.cur) Q.col(g, drawBox);   // the box keeps to the centred 320 column on a wide screen
       };
       Q.ui.talkStep = U.tick;
     })();

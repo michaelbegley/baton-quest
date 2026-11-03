@@ -11,7 +11,7 @@
     Q.root.grid = function (g, camX, camY, wash, col) {
       var i, x, y, ox = ((Math.floor(camX * 0.5) % 32) + 32) % 32, oy = ((Math.floor(camY * 0.5) % 32) + 32) % 32, bx = Math.floor(camX * 0.5), by = Math.floor(camY * 0.5);
       if (wash) { g.fillStyle = wash; g.fillRect(0, 0, Q.W, Q.H); }
-      for (i = 0; i <= 10; i++) {
+      for (i = 0; i * 32 - ox <= Q.W; i++) {   // 0 to 10 on a 320 screen, on across a wider one
         x = i * 32 - ox;
         g.fillStyle = (((x + bx) % 128) + 128) % 128 === 0 ? col.hi : col.lo; g.fillRect(x, 0, 1, Q.H);
       }

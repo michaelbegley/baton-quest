@@ -124,6 +124,7 @@
         return x;
       }
       Q.defScene('codex', {
+        wide: true,   // like the pause menu: the scene under it at the screen's width, the header band across it, the pages in the centred 320 column
         enter: function (opts) { U.entered();
           opts = opts || {};
           CO.from = opts.from || 'level'; CO.sel = 0; CO.read = ''; CO.t = 0;
@@ -144,9 +145,14 @@
           if (s && s.a && U.press('a')) s.a(p.sub, CO.sel);
         },
         draw: function (g) {
-          var p = cur(), s = SEC[p.sec] || SEC.memos, x;
           U.under(g, CO.from);
-          U.fill(g, 0, 0, 320, 23, '#0b0c10'); U.fill(g, 0, 23, 320, 1, '#2a2c3a');   // a header of its own: the HUD under it never shows through (QA round 2)
+          U.fill(g, 0, 0, Q.W, 23, '#0b0c10'); U.fill(g, 0, 23, Q.W, 1, '#2a2c3a');   // a header of its own: the HUD under it never shows through (QA round 2)
+          Q.col(g, codexPage);
+        },
+        leave: function () { for (var i = 0; i < ORDER.length; i++) if (SEC[ORDER[i]] && SEC[ORDER[i]].leave) SEC[ORDER[i]].leave(); }   // HOLD MUSIC puts the scene's song back
+      });
+      function codexPage(g) {   // the page itself, in the centred 320 column (all of the screen on a 320 one)
+          var p = cur(), s = SEC[p.sec] || SEC.memos, x;
           if (CO.read) { U.memoPaper(g, CO.read); U.text('B: BACK', 160, 188, '#8a93a8', 1, 'center'); U.drawTalk(g); return; }
           U.text('CODEX', 10, 6, '#ffffff', 2);
           x = tabs(g, p.sec);
@@ -159,7 +165,5 @@
           s.draw(g, p.sub, CO.sel, CO.t);
           U.text(s.hint ? s.hint(p.sub) : 'LEFT/RIGHT: PAGE   B: BACK', 160, 188, '#8a93a8', 1, 'center');
           U.drawTalk(g);
-        },
-        leave: function () { for (var i = 0; i < ORDER.length; i++) if (SEC[ORDER[i]] && SEC[ORDER[i]].leave) SEC[ORDER[i]].leave(); }   // HOLD MUSIC puts the scene's song back
-      });
+      }
     })();

@@ -4,7 +4,8 @@
     // (the script's last line: THE END big, the rest under it), then A (or a while) to the title. The 'end' song carries on.
     (function () {
       var U = Q.ui, CR = { t: 0, y: 0, rows: [], total: 0, phase: 'roll', pt: 0, end: 'THE END', rest: '' }, PO = {};
-      var SKY = U.grad('#070a18', '#18224a', 20);
+      var SKY = U.grad('#070a18', '#18224a', 20), SSTARS = [];   // SSTARS: a wide screen's side stars (made once, their own seed)
+      (function () { var s = 41, i; function r() { s = (s * 16807) % 2147483647; return s / 2147483647; } for (i = 0; i < 66; i++) SSTARS.push([Math.floor(r() * Q.WMAX), Math.floor(r() * 200), i]); })();
       function layout(lines) {   // each line's look and the room it takes
         var rows = [], i, s, c;
         for (i = 0; i < lines.length; i++) {
@@ -122,6 +123,13 @@
           if (CR.rest) U.text(CR.rest, 160, 112, '#8ff0e6', 1, 'center');
           U.text('MEMOS ' + s.memos + '/24   TIME ' + U.clock(s.time), 160, 138, '#5d6a9e', 1, 'center');
           if (CR.pt > 1 && Math.floor(t * 2) % 2) U.text(Q.SCRIPT.postcredits && Q.SCRIPT.postcredits.length ? 'A: ONE MORE THING' : 'A: TITLE', 160, 176, '#c3c7d4', 1, 'center');   // A goes to the postcredits first
+        },
+        sides: function (g) {   // a wide screen's sides (the engine clips to them): the night sky with stars of its own, the roll's band at the foot; after it, the office carried out to the edges
+          var t = CR.t, i, d;
+          if (CR.phase === 'post') { if (Q.edges) Q.edges(g); return; }
+          U.bands(g, SKY, 0, 10, Q.W);
+          for (i = 0; i < SSTARS.length; i++) { d = SSTARS[i]; U.fill(g, d[0], d[1], 1, 1, Math.sin(t * 2 + d[2] * 1.3) > 0.5 ? '#ffffff' : '#4a5488'); }
+          if (CR.phase === 'roll') { U.fill(g, 0, 186, Q.W, 14, SKY[SKY.length - 1]); U.fill(g, 0, 186, Q.W, 1, '#2a3878'); }
         }
       });
     })();

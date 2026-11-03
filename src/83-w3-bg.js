@@ -69,8 +69,9 @@
       w3BgSun(g, t, kind, camX);
       w3BgRow(g, w3Far, 520, 0.12, 0.05, camX, camY, kind === 'wind' ? t * 14 : t * 2, dark);
       if (kind === 'day') {   // files rising like seeds
-        for (i = 0; i < 10; i++) {
-          x = Math.round(((w3Seed[i][0] * 360 - camX * 0.2) % 360 + 360) % 360) - 20; y = Math.round(((w3Seed[i][1] * 230 - t * (8 + w3Seed[i][2] * 8)) % 230 + 230) % 230) - 15;
+        var nd = Math.min(40, Math.round(10 * (Q.W + 40) / 360)), sd = Q.W + 40;   // 10 over 360 px on a 320 screen, more across a wider one
+        for (i = 0; i < nd; i++) {
+          x = Math.round(((w3Seed[i][0] * sd - camX * 0.2) % sd + sd) % sd) - 20; y = Math.round(((w3Seed[i][1] * 230 - t * (8 + w3Seed[i][2] * 8)) % 230 + 230) % 230) - 15;
           g.fillStyle = 'rgba(255,255,255,0.8)'; g.fillRect(x, y, 3, 4); g.fillStyle = 'rgba(46,196,182,0.7)'; g.fillRect(x + 1, y - 2, 1, 1);
         }
       }
@@ -85,12 +86,14 @@
       }
       y = 168 - Math.round(camY * 0.2); x = -(Math.round(camX * 0.45) % 160);
       for (i = 0; i < 4; i++) Q.spr(g, 'w3-bgsea', dark ? 1 : 0, x + i * 160, y);
+      if (Q.W > 320) { for (i = x > 0 ? -1 : 4; x + i * 160 < Q.W; i++) if (i < 0 || i > 3) Q.spr(g, 'w3-bgsea', dark ? 1 : 0, x + i * 160, y); }   // a wide screen: more of it (and to the left, when a narrow level puts the view left of 0)
       g.fillStyle = dark ? '#33405e' : '#bdd6ee'; if (y + 40 < Q.H) g.fillRect(0, y + 40, Q.W, Q.H - y - 40);
       if (kind === 'storm') {   // rain
         g.fillStyle = 'rgba(170,190,230,0.45)';
-        for (i = 0; i < 40; i++) {
+        var sr = Q.W + 20;
+        for (i = 0; i < 40; i++) {   // 40 drops over 340 px on a 320 screen; a wider one has each again every 340 px
           x = Math.round(((w3Seed[i][0] * 340 + t * 50 - camX * 0.6) % 340 + 340) % 340) - 10; y = Math.round(((w3Seed[i][1] * 220 + t * (260 + w3Seed[i][2] * 80)) % 220)) - 10;
-          g.fillRect(x, y, 1, 4); g.fillRect(x - 1, y + 4, 1, 2);
+          for (var rx = x; rx < sr; rx += 340) { g.fillRect(rx, y, 1, 4); g.fillRect(rx - 1, y + 4, 1, 2); }
         }
       }
     });

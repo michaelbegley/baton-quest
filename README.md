@@ -6,9 +6,9 @@ A small platforming RPG. SCOPE CREEP, a tangle of just one more thing, has wrapp
 
 **The manual:** https://michaelbegley.github.io/baton-quest/manual.html, an instruction booklet of our own that opens and turns like a real one: the story, the cast, the controls, the four floors and a secret or two.
 
-On a computer it fills the window (on very wide screens the sides glow with the game's colours). On a phone or tablet it is the 9F POCKET, a handheld of our own that fills the screen: upright, or turned sideways for a bigger picture. A controller works on both. On a phone, "Add to Home Screen" opens it full screen.
+On a computer it fills the window, and on a wide one (16:9 up to 32:9) it shows more of each level instead of stretching it; menus stay in the middle. On a phone or tablet it is the 9F POCKET, a handheld of our own that fills the screen: upright, or turned sideways for a bigger picture. A controller works on both. On a phone, "Add to Home Screen" opens it full screen.
 
-MENU (top right on a computer) has the settings: VIEW (auto, full window or handheld), PIXELS (sharp whole-number steps, or fill), SIDE GLOW, BUTTONS (small, medium, large) and VIBRATION. They stay in your browser.
+MENU (top right on a computer) has the settings: VIEW (auto, full window or handheld), PIXELS (sharp whole-number steps, or fill), WIDESCREEN (auto, or off for the classic 320 by 200), SIDE GLOW, BUTTONS (small, medium, large) and VIBRATION. They stay in your browser.
 
 ## Controls
 

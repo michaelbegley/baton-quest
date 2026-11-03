@@ -73,6 +73,15 @@
           U.text(line(), 160, 172, '#f6efe2', 1, 'center');
           if (EC.counted && !Q.talking() && Math.floor(t * 2) % 2) U.text('A: BACK TO THE MAP', 160, 187, '#c9b0ee', 1, 'center');
           U.drawTalk(g);
+        },
+        sides: function (g) {   // a wide screen's sides (the engine clips to them): the curtains carried on in folds of 6 from the seams, the valance across, the dark floor
+          var ox = Q.OX, r = ox + 320, x, k;
+          for (x = ox - 6; x > -6; x -= 6) { k = Math.round((ox - 6 - x) / 6); U.fill(g, x, 0, 6, 166, k % 2 ? '#a8243a' : '#c8384c'); }
+          for (x = r; x < Q.W; x += 6) { k = Math.round((x - r) / 6); U.fill(g, x, 0, 6, 166, k % 2 ? '#a8243a' : '#c8384c'); }
+          U.fill(g, 0, 166, Q.W, 34, '#120a16');
+          U.fill(g, 0, 0, Q.W, 12, '#a8243a');
+          for (x = ox % 16 - 16; x < Q.W; x += 16) { U.fill(g, x + 2, 12, 12, 2, '#a8243a'); U.fill(g, x + 4, 14, 8, 1, '#a8243a'); }   // the valance's scallops, in step with the middle's
+          U.fill(g, 0, 11, Q.W, 1, '#ffd23f'); U.fill(g, 0, 3, Q.W, 1, '#c8384c');
         }
       });
     })();

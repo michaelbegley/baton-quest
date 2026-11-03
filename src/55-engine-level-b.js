@@ -5,21 +5,21 @@
       var c = ENG_SKY[Q.level.world] || ENG_SKY[0], i, x;
       g.fillStyle = c; g.fillRect(0, 0, Q.W, Q.H);
       g.fillStyle = 'rgba(255,255,255,0.05)';
-      for (i = 0; i < 4; i++) { x = Math.round(((i * 97 - Q.cam.x * 0.25) % 400 + 400) % 400) - 40; g.fillRect(x, 70 + (i % 2) * 30 - Math.round(Q.cam.y * 0.1), 60, 24); }
+      for (i = 0; i < 4; i++) { x = Math.round(((i * 97 - Q.cam.x * 0.25) % 400 + 400) % 400) - 40; g.fillRect(x, 70 + (i % 2) * 30 - Math.round(Q.cam.y * 0.1), 60, 24); if (x + 400 < Q.W) g.fillRect(x + 400, 70 + (i % 2) * 30 - Math.round(Q.cam.y * 0.1), 60, 24); }   // the second copy only shows on a wide screen
       g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(0, 150 - Math.round(Q.cam.y * 0.2), Q.W, 60);
     }
     function engDrawDark(g, lv) {   // a dark level: only a ring of light round the conductor
-      var P = Q.P, c;
+      var P = Q.P, c, W = Q.W;
       if (!P) return;
-      if (!engDarkCv) {
-        engDarkCv = Q.canvas(640, 400); c = engDarkCv.getContext('2d');
-        c.fillStyle = '#05060a'; c.fillRect(0, 0, 640, 400);
+      if (!engDarkCv || engDarkCv.width !== W * 2) {   // twice the screen each way, the ring in its middle: it covers the screen wherever he stands (a wider screen gets a wider one)
+        engDarkCv = Q.canvas(W * 2, 400); c = engDarkCv.getContext('2d');
+        c.fillStyle = '#05060a'; c.fillRect(0, 0, W * 2, 400);
         c.globalCompositeOperation = 'destination-out';
-        var gr = c.createRadialGradient(320, 200, 30, 320, 200, 92); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
-        c.fillStyle = gr; c.fillRect(0, 0, 640, 400); c.globalCompositeOperation = 'source-over';
+        var gr = c.createRadialGradient(W, 200, 30, W, 200, 92); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = gr; c.fillRect(0, 0, W * 2, 400); c.globalCompositeOperation = 'source-over';
       }
       g.globalAlpha = typeof lv.dark === 'number' ? Q.clamp(lv.dark, 0, 1) : 0.88;
-      g.drawImage(engDarkCv, Math.round(P.x + P.w / 2 - Q.cam.x) - 320, Math.round(P.y + P.h / 2 - Q.cam.y) - 200);
+      g.drawImage(engDarkCv, Math.round(P.x + P.w / 2 - Q.cam.x) - W, Math.round(P.y + P.h / 2 - Q.cam.y) - 200);
       g.globalAlpha = 1;
     }
     function engHudLite(g) {   // only until the UI's Q.ui.hud lands: hearts, rhythm, tokens, LV, the boss's bar
@@ -37,8 +37,8 @@
       if (!(engToastLite.t > 0) || !engToastLite.text) return;
       engToastLite.t -= Q.DT;
       var w = Math.min(316, Q.api.width(engToastLite.text) + 10);
-      g.fillStyle = '#1d1d24'; g.fillRect(160 - w / 2, 18, w, 13); g.fillStyle = '#ffd23f'; g.fillRect(160 - w / 2, 18, w, 1);
-      Q.api.text(engToastLite.text.slice(0, 52), 160, 21, '#f6efe2', 1, 'center');
+      g.fillStyle = '#1d1d24'; g.fillRect((Q.W >> 1) - w / 2, 18, w, 13); g.fillStyle = '#ffd23f'; g.fillRect((Q.W >> 1) - w / 2, 18, w, 1);
+      Q.api.text(engToastLite.text.slice(0, 52), Q.W >> 1, 21, '#f6efe2', 1, 'center');
     }
     function engDrawBubble(g) {   // a sign's words in a speech bubble above it while he is near: cream, a dark outline, a tail down to the sign
       if (!(engBub.a > 0) || !engBub.text) return;
@@ -77,6 +77,7 @@
     }
 
     Q.defScene('level', {
+      wide: true,   // it fills a wider screen itself: the view grows, the HUD band and the fades span it (WIDESCREEN.md)
       enter: function (opts) {
         opts = opts || {};
         if ((opts.resume || !opts.level) && Q.level && Q.P) return;   // back from the pause menu: carry on where it was

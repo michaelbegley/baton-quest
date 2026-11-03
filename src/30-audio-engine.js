@@ -11,7 +11,7 @@
     //   bar: 8,          steps a bar (default div * 4; 6 with div 2 is 3/4). A '|' in a voice marks a bar, and Q.au.check() counts every bar.
     //   loop: true,      false: plays once (a jingle), then nothing until the next Q.music
     //   from: 0,         the step a loop goes back to: the steps before it are an intro, played once
-    //   swing: 0,        0 to 0.4: every second step comes that part of a step late (a lounge feel)
+    //   swing: 0,        0 to 0.45: every second step comes that part of a step late, and each note is held on that swung grid (the long eighth long, the short one short)
     //   vol: 1,          the whole song's level (times Q.au.MUSIC)
     //   join: 'final',   songs with the same join name and as many bars take over from each other at the next bar line, at the same bar (each at its own tempo)
     //   parts: 8,        a song in parts (one a world, 8 bars each here): started while a level of world n (1 to 4) is loaded, it starts at part n's first bar
@@ -26,7 +26,8 @@
     // The notes: one token a step, spaces between.
     //   C4 F#3 Bb5  a note (letter, # or b, octave; A4 is 440 Hz)    -  the note before holds one more step    .  a rest    |  a bar line (not a step)
     //   C4>G4       a note sliding to G4 over its length              C5!  louder     C5_  softer
-    // Drum tokens (a drum voice's vol is a level: 1 is the kit as made): k kick, s snare, h hat, o open hat, t tick, c clap, x crash, p paper, b blip, w wind.
+    // Drum tokens (a drum voice's vol is a level: 1 is the kit as made): k kick, s snare, h hat, o open hat, t tick, c clap, x crash, p paper, b blip, w wind,
+    // and the swing kit (builder 14, 2 Nov): r ride, f the hat's foot chick (beats 2 and 4), q ride and chick at once, u a brush swish.
     // For example, a song of one bar: bpm 120, a square voice with notes 'C4 E4 G4 - C5 . . . |' and a triangle voice (vol 0.035) with 'C2 - - - G2 - - - |'.
     // Helpers for writing songs: Q.au.rep('A2 A2 E3 A2', 4) repeats a run; Q.au.shift('C4 E4 G4', 2) moves a run up two semitones.
 
@@ -80,7 +81,11 @@
       x: function (api, v, at) { api.noise(0.7, 6500, 3000, 'highpass', 0.5, 0.014 * v, at); },
       p: function (api, v, at) { api.noise(0.05, 2200, 4200, 'bandpass', 0.9, 0.016 * v, at); },
       b: function (api, v, at) { api.tone(1760, 1760, 0.03, 'sine', 0.012 * v, at); },
-      w: function (api, v, at) { api.noise(0.9, 350, 1400, 'bandpass', 0.6, 0.01 * v, at); }
+      w: function (api, v, at) { api.noise(0.9, 350, 1400, 'bandpass', 0.6, 0.01 * v, at); },
+      r: function (api, v, at) { api.noise(0.22, 6400, 5600, 'bandpass', 3.5, 0.016 * v, at); api.noise(0.02, 9800, 9000, 'highpass', 0.7, 0.005 * v, at); },   // the ride: a metallic ping and the stick
+      f: function (api, v, at) { api.noise(0.03, 5200, 4600, 'bandpass', 1.8, 0.012 * v, at); },   // the hat's foot chick
+      q: function (api, v, at) { AU_DRUM.r(api, v, at); AU_DRUM.f(api, v, at); },   // ride and chick together, on 2 and 4
+      u: function (api, v, at) { api.noise(0.24, 2400, 5200, 'bandpass', 0.7, 0.008 * v, at); }   // a brush swish
     };
     Q.au.DRUM = AU_DRUM;
 
@@ -165,15 +170,17 @@
     }
     Q.au.duckAt = function (t) { return auDuckAt(Q.au, t); };
     function auStep(api, c, p, tick, abs, duck) {   // every voice's note that falls on this tick of a song, at the time abs on the audio clock
-      var k = Q.au.MUSIC * p.vol * duck, i, v, e, every, at;
+      var k = Q.au.MUSIC * p.vol * duck, i, v, e, every, at, len, s0;
       if (!(k > 0)) return;
       for (i = 0; i < p.voices.length; i++) {
         v = p.voices[i]; every = p.T / v.sub;
         if (tick % every) continue;
         e = v.ev[(tick / every) % v.n]; if (!e) continue;
         at = Math.max(0, auSnap(abs) - c.currentTime);   // its own time put between two samples (the same whatever the frame), then the clock read again just before
-        if (v.drum) e.d(api, v.vol * e.a * k, at);
-        else api.tone(e.f0, e.f1, Math.min(e.n * p.st / v.sub * v.gate, v.max), v.wave, v.vol * e.a * k, at);
+        if (v.drum) { e.d(api, v.vol * e.a * k, at); continue; }
+        len = e.n * p.st / v.sub;
+        if (p.swing && v.sub === 1) { s0 = tick / p.T; len += (((s0 + e.n) & 1) - (s0 & 1)) * p.swing * p.st; }   // swung: measured on the swung grid, so a long eighth rings long and a short one short
+        api.tone(e.f0, e.f1, Math.min(len * v.gate, v.max), v.wave, v.vol * e.a * k, at);
       }
     }
     function auSwap(A, p) {   // a joined song takes over on a bar line, at the same bar of the tune, at its own tempo from there

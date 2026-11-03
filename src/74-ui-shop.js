@@ -122,6 +122,11 @@
             U.text('A: BUY   B: LEAVE', 160, 186, '#7f8a9e', 1, 'center');
           }
           U.drawTalk(g);
+        },
+        sides: function (g) {   // a wide screen's sides (the engine clips to them): the map's board carried on, dimmed the same, the floor across
+          U.boardSides(g);
+          g.globalAlpha = 0.55; U.fill(g, 0, 0, Q.W, 200, '#05100d'); g.globalAlpha = 1;
+          U.fill(g, 0, 134, Q.W, 66, '#14201c'); U.fill(g, 0, 134, Q.W, 1, '#2e7a62');
         }
       });
     })();

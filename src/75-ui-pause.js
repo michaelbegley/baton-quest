@@ -40,10 +40,10 @@
         var s = Math.max(0, Math.floor(secs || 0)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, r = s % 60;
         return (h ? h + ':' + (m < 10 ? '0' : '') : '') + m + ':' + (r < 10 ? '0' : '') + r;
       };
-      U.under = function (g, from) {   // the scene it came from, drawn still, then a dark veil
+      U.under = function (g, from) {   // the scene it came from, drawn still (as the engine draws it: the level at the screen's width, a menu in its column), then a dark veil over the whole screen
         var sc = from && from !== 'pause' && from !== 'codex' ? Q.SCENE[from] : null;
-        if (sc && sc.draw) { try { sc.draw(g, Q); } catch (e) { if (!PA.warned) { PA.warned = true; Q.warn('pause: drawing ' + from + ' under the menu: ' + e); } } }
-        g.globalAlpha = 0.72; U.fill(g, 0, 0, 320, 200, '#07080c'); g.globalAlpha = 1;
+        if (sc && sc.draw) { try { if (Q.drawScene) Q.drawScene(g, from); else sc.draw(g, Q); } catch (e) { if (!PA.warned) { PA.warned = true; Q.warn('pause: drawing ' + from + ' under the menu: ' + e); } } }
+        g.globalAlpha = 0.72; U.fill(g, 0, 0, Q.W, 200, '#07080c'); g.globalAlpha = 1;
       };
       function choose(what) {
         if (what === 'RESUME') { resume(); return; }
@@ -61,6 +61,7 @@
         if (what === 'MAP') Q.go('map'); else Q.go('title');
       }
       Q.defScene('pause', {
+        wide: true,   // the scene under it at the screen's width, the veil and the header band across it, the menu in the centred 320 column
         enter: function (opts) { U.entered();
           opts = opts || {};
           PA.from = opts.from || (opts.back ? PA.from : 'level'); PA.ask = ''; PA.t = 0;
@@ -87,9 +88,13 @@
           if (U.press('a')) choose(items()[PA.sel]);
         },
         draw: function (g) {
-          var s = U.stat(), list = items(), i, x, y, n, ab = ['dash', 'hover', 'pound'], a, any = 0;
           U.under(g, PA.from);
-          U.fill(g, 0, 0, 320, 27, '#0b0c10'); U.fill(g, 0, 27, 320, 1, '#2a2c3a');   // a header of its own, so the HUD under it never shows through
+          U.fill(g, 0, 0, Q.W, 27, '#0b0c10'); U.fill(g, 0, 27, Q.W, 1, '#2a2c3a');   // a header of its own, so the HUD under it never shows through
+          Q.col(g, pauseMenu);
+        }
+      });
+      function pauseMenu(g) {   // the menu itself, in the centred 320 column (all of the screen on a 320 one)
+          var s = U.stat(), list = items(), i, x, y, n, ab = ['dash', 'hover', 'pound'], a, any = 0;
           U.text('PAUSED', 160, 8, '#ffffff', 2, 'center');
           n = U.starCount();   // GOLD STARS won (part 14.2), at the right of the header
           U.starIcon(g, 312 - U.width('STARS ' + n.n + '/' + n.all) - 15, 8, n.n > 0);
@@ -129,6 +134,5 @@
             U.text('YOUR GAME IS SAVED FIRST.', 160, y + 21, '#c3c7d4', 1, 'center');
             U.item('NO', 128, y + 40, PA.askSel === 0, false, 'center'); U.item('YES', 192, y + 40, PA.askSel === 1, false, 'center');
           }
-        }
-      });
+      }
     })();

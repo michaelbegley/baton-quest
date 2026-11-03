@@ -15,6 +15,8 @@
         TI.drift = []; TI.stars = []; TI.notes = [];
         for (i = 0; i < 18; i++) TI.drift.push({ x: r() * 340 - 10, y: r() * 200, vx: -(3 + r() * 6), vy: 2 + r() * 5, k: i % 3, ph: r() * 6.28 });
         for (i = 0; i < 44; i++) TI.stars.push({ x: Math.floor(r() * 320), y: Math.floor(r() * 160), ph: r() * 6.28 });
+        var r2 = Q.api && Q.api.rand ? Q.api.rand(29) : Math.random; TI.sstars = [];   // a wide screen's side stars: their own seed, so the middle's stay as they were
+        for (i = 0; i < 98; i++) TI.sstars.push({ x: Math.floor(r2() * Q.WMAX), y: Math.floor(r2() * 160), ph: r2() * 6.28 });
       }
       function items() {   // THE ENDING once won: see it again; FILE n (the file screen, 79) once any of the three files has a save
         var l = TI.has ? (TI.won ? ['START', 'CONTINUE', 'THE ENDING'] : ['START', 'CONTINUE']) : ['START'];
@@ -104,6 +106,17 @@
           }
           if (TI.leave) { g.globalAlpha = Q.clamp(TI.fade, 0, 1); U.fill(g, 0, 0, 320, 200, '#000000'); g.globalAlpha = 1; }
           U.drawTalk(g);
+        },
+        sides: function (g) {   // a wide screen's sides (the engine clips to them): the sky, stars of their own, the drift carried on from the middle every 340 px, the horizon, the same fade
+          var i, k, d, t = TI.t, ox = Q.OX, st = TI.sstars || [];
+          U.bands(g, SKY, 0, 8, Q.W);
+          U.fill(g, 0, 152, Q.W, 48, '#1a2350'); U.fill(g, 0, 152, Q.W, 1, '#2a3878');
+          for (i = 0; i < st.length; i++) { d = st[i]; g.fillStyle = Math.sin(t * 2 + d.ph) > 0.6 ? '#ffffff' : '#5d6a9e'; g.fillRect(d.x, d.y, 1, 1); }
+          g.save(); g.beginPath(); g.rect(0, 0, Q.W, 152); g.clip();
+          for (i = 0; i < TI.drift.length; i++) { d = TI.drift[i]; for (k = -1; k <= 1; k++) Q.spr(g, d.k === 0 ? 'u5-env' : d.k === 1 ? 'u5-tix' : 'u5-note', 0, ox + Math.round(d.x) + k * 340, Math.round(d.y + Math.sin(t + d.ph) * 2)); }
+          g.restore();
+          U.fill(g, 0, 179, Q.W, 15, '#10173a');
+          if (TI.leave) { g.globalAlpha = Q.clamp(TI.fade, 0, 1); U.fill(g, 0, 0, Q.W, 200, '#000000'); g.globalAlpha = 1; }
         },
         leave: function () { TI.notes = []; }
       });

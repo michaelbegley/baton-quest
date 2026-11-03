@@ -2,6 +2,17 @@
     // The numbers every part designs for, the registries every part fills when it loads, and safe stand-ins for the runtime functions the other parts make:
     // a missing part never stops the game (no sound, no text box, a magenta box where a sprite is missing). QUEST-API.md says what each one does and who makes it.
     Q.W = 320; Q.H = 200; Q.TILE = 16; Q.DT = 1 / 60; Q.HUD = 16;
+    Q.OX = 0; Q.WMAX = 712; Q.HUDW = 356;   // widescreen (WIDESCREEN.md): Q.W follows the runtime's api.W, 320 to 712; Q.OX is the left of the centred 320 column; the HUD keeps to a centred 16:9 band of Q.HUDW at most
+    Q.setW = function (w) {   // the screen's width (the engine sets it from api.W at the start of each frame); everything else follows it
+      w = Math.round(+w); if (!(w >= 320)) w = 320; if (w > Q.WMAX) w = Q.WMAX;
+      Q.W = w; Q.OX = (w - 320) >> 1; return w;
+    };
+    Q.col = function (g, fn) {   // draws fn(g) in the centred 320 column: inside, Q.W is 320 and x 0 is the column's left (on a 320 screen it only calls fn)
+      var w = Q.W, ox = Q.OX;
+      if (!(w > 320)) { fn(g); return; }
+      g.save(); g.translate(ox, 0); Q.W = 320; Q.OX = 0;
+      try { fn(g); } finally { Q.W = w; Q.OX = ox; g.restore(); }
+    };
     Q.HERO = {
       W: 10, H: 14, SPR_W: 16, SPR_H: 20,
       RUN: 110, ACC: 1000, AIRACC: 700, STOP: 1400,                       // px/s and px/s per second

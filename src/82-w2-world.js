@@ -59,7 +59,7 @@
       var p = (t + f.cyc * W2_FAN.CYCLE / 2) % W2_FAN.CYCLE, s = p < W2_FAN.ON ? 'G' : p < W2_FAN.ON + W2_FAN.WARN ? 'W' : 'I';
       f.on = s !== 'I';
       if (Q.tile(f.tx, f.ty) !== s) Q.setTile(f.tx, f.ty, s);
-      if (s !== f.state) { if (s === 'G' && f.state === 'I' && Math.abs(f.tx * 16 - Q.cam.x - 160) < 200 && Math.abs(f.ty * 16 - Q.cam.y - 100) < 140) Q.sfx('fan'); f.state = s; }
+      if (s !== f.state) { if (s === 'G' && f.state === 'I' && Math.abs(f.tx * 16 - Q.cam.x - Q.W / 2) < Q.W / 2 + 40 && Math.abs(f.ty * 16 - Q.cam.y - 100) < 140) Q.sfx('fan'); f.state = s; }   // a fan heard when it is about on screen (160 and 200 on a 320 one)
     }
     Q.w2.inAir = function (x, y, w, h) {   // the fan column a box is in (null if none)
       var st = Q.w2.st, i, f, ov;
@@ -93,7 +93,7 @@
       if (!st || st.lv !== Q.level) return;
       for (i = 0; i < st.fans.length; i++) {
         f = st.fans[i]; if (!f.on) continue;
-        x = f.x0 - camX; if (x < -16 || x > 320) continue;
+        x = f.x0 - camX; if (x < -16 || x > Q.W) continue;
         h = f.bot - f.top; if (h <= 0 || f.top - camY > 200 || f.bot - camY < 0) continue;
         g.fillStyle = f.state === 'W' ? 'rgba(255,90,70,0.06)' : 'rgba(143,240,230,0.07)'; g.fillRect(Math.round(x + 1), Math.round(f.top - camY), 14, h);
         for (k = 0; k < 7; k++) {

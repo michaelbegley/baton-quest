@@ -47,6 +47,11 @@
             U.item('TITLE', 160, 173, OV.sel === 1, false, 'center');
           }
           U.drawTalk(g);
+        },
+        sides: function (g) {   // a wide screen's sides (the engine clips to them): the sky, and the middle's drifting stars carried on every 320 px, so they cross the seams unbroken
+          var t = OV.t, i, x;
+          U.bands(g, OVSKY, 0, 10, Q.W);
+          for (i = 0; i < 24; i++) { x = (i * 53 + Math.floor(t * (4 + i % 3))) % 320; U.fill(g, Q.OX + x - 320, (i * 37) % 120, 1, 1, i % 4 ? '#3a4470' : '#6f7ab0'); U.fill(g, Q.OX + x + 320, (i * 37) % 120, 1, 1, i % 4 ? '#3a4470' : '#6f7ab0'); }
         }
       });
       var OVSKY = U.grad('#0a0d1c', '#1c2547', 20);
