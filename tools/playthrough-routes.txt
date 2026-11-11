@@ -119,9 +119,44 @@ rc1 r21 ra22 r2 rc1 r27 ra5 r13 l11 ra22 r2 rc1 r119 rc1 r3 ra13 r9 ra8 r2 rc1 r
 r126 ra1 rab1 ra20 r2 rc1 r36 rc1 r3 ra13 r35 l3 r3 _5 l1 _44 rc1 r131 u1 _28 a1 _1 a1 _1
 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1
 a1 _1 a1
-== w3-boss   # 1761 frames
+== w3-boss
 lc1 r11 ra5 r7 l9 la18 ra4 r11 _2 l1 r1 l4 r1 l1 r1 l1 r1 l1 r1 l1 r1 l1 r1 l1
 r1 l1 r1 l1 r1 _179 b1 _40 b1 _32 b1 _32 b1 _32 b1 _32 b1 _32 b1 _592 b1 _40 b1 _32
 b1 _32 b1 _32 b1 _32 b1 _32 b1 _118 b1 _40 b1 _32 b1 _32 b1 _32 b1 _32 b1 _94 a1 _1
 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1
 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _54
+== w4-1
+r1 _47 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1
+a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 rc1
+r11 ra22 r2 rc1 r27 ra22 r2 rc1 r27 ra22 r2 rc1 r21 ra8 r2 rc1 r16 ra8 r6 rc1 r18 ra8 r10 rc1
+r45 ra22 r2 rc1 r44 ra14 rc1 r23 rb1 r5 ra22 r2 rc1 r25 rb1 r4 ra14 r10 rc1 r22 ra22 r2 rc1 r24
+ra22 r2 rc1 r2 rb1 r4 lb1 l1 lb1 l1 lb1 l1 lb1 l16 _3 r2 ra22 r2 rc1 r24 ra14 rc1 r29 ra8
+r16 rc1 r19 ra22 r2 rc1 r36 ra22 r2 rc1 r21 ra8 r6 rc1 r18 ra8 r2 rc1 r9 rb1 r1 rb1 r1 rb1
+r1 rb1 r1 rb1 l1 lb1 l1 _2 rb1 r1 rb1 r1 rb1 r4 ra22 r2 rc1 r27 u1 _28 a1 _1 a1 _1
+a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1
+== w4-bonus
+rc1 r27 ra22 r2 rc1 r24 ra22 r2 rc1 r32 ra22 r2 rc1 r24 ra8 r16 rc1 r19 ra22 r2 rc1 r21 ra18 rac1
+ra3 r24 ra8 r10 rc1 r25 ra8 r10 rc1 r25 ra22 r2 rc1 r27 ra22 r2 rc1 r44 ra22 r2 rc1 r23 ra8 r16
+rc1 r19 ra22 r2 rc1 r33 u1 _28
+== w4-1b
+rc1 r1 ra22 r2 rc1 r55 ra22 r2 rc1 r32 ra22 r2 rc1 r34 ra22 r2 rc1 r32 ra22 r2 rc1 r90 u1 _28
+== w4-2
+rc1 r11 ra22 r2 rc1 r27 ra22 r2 rc1 r16 ra22 r2 rc1 r46 ra1 rab1 ra12 r10 rc1 r27 _6 a7 db1 _23
+ra2 rac1 ra5 r12 rc1 r13 ra22 r2 rc1 r21 ra22 r2 rc1 r16 ra22 r2 rc1 r24 ra8 r13 rb1 r2 rc1 r15
+ra11 r11 ra22 r2 rc1 r24 ra22 r2 rc1 r16 ra22 r2 rc1 r21 ra22 r2 rc1 r25 rb1 r4 _3 rab1 rc1 rab1
+rc1 rab1 ra1 rab1 ra1 rab1 ra1 rab1 r8 rc1 r1 rb1 r17 ra22 r2 rc1 r36 ra22 r2 rc1 r118 _5 r1 _2
+r1 _2 l20 _6 a7 db1 _31 ra2 rac1 ra5 r12 rc1 r13 rc1 r3 ra13 r21 ra22 r2 rc1 r21 ra22 r2 rc1
+r16 ra14 r4 rc1 r15 lc1 la13 l15 rc1 ra13 r9 la1 l11 _13 ra14 rc1 r23 ra22 r2 rc1 r27 ra11 r5 _31
+r6 ra22 r2 rc1 r24 ra22 r2 rc1 r108 u1 _28
+== w4-3   # 2522 frames
+rc1 r11 ra8 r10 rc1 r25 ra14 r4 rc1 r11 rc1 r3 ra5 r30 la22 l19 la22 l2 lc1 l16 lc1 l3 la13 l9
+la1 lb1 l14 _9 ra1 rab1 ra20 r2 rc1 r25 rb1 r5 ra22 r2 rc1 r12 rb1 r10 la22 l2 lc1 l16 la8 l23
+la22 l2 lc1 l16 rc1 ra13 r10 ra22 r2 rc1 r9 rb1 r12 la5 l17 _7 la14 l45 ra4 a7 _60 l3 _60 ra22
+r2 rc1 r42 la14 l4 lc1 l37 la1 l7 _17 a11 _60 l2 _60 ra22 r2 rc1 r42 la14 l4 lc1 l38 lb1 l5
+la1 l11 r13 ra6 la8 l9 ra3 r9 _2 r6 la22 l15 rc1 ra13 r9 la5 l13 r11 ra14 r4 rc1 r30 _6 a7
+db1 _18 r24 rc1 ra13 r9 la1 l11 r2 la14 l26 la60 l14 rc1 ra13 r23 la8 l6 lc1 l22 rc1 ra13 r23 la8
+l6 lc1 l22 rc1 ra13 r23 la6 lac1 la1 l21 la1 l11 _10 la14 lac1 la45 l14 ra14 r4 l5 ra14 r15 la8 l8
+_8 rc1 r3 ra13 r9 ra1 r11 _13 ra22 r2 rc1 r29 lc1 la13 l9 ra3 r19 _5 la14 l4 lc1 l9 lb1 l12
+la22 l2 lc1 l20 la6 ra5 r8 ra14 rac1 ra65 r19 rb1 r17 rb1 r9 ra6 la5 l8 la5 l1 r15 la22 l2 lc1
+l36 u1 _28 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1
+_1 a1 _1 a1 _1 a1
