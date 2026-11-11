@@ -22,7 +22,7 @@
       if (r && typeof r === 'object' && !Array.isArray(r)) for (k in r) if (engOwn(r, k)) out[k] = r[k];
       out.v = 1; sp = out.speed && typeof out.speed === 'object' && !Array.isArray(out.speed) ? out.speed : {}; out.speed = {};
       for (k in sp) if (engOwn(sp, k) && sp[k] && typeof sp[k] === 'object') {
-        e = sp[k]; out.speed[k] = { best: mdNum(e.best), split: mdNums(e.split), seg: mdNums(e.seg), medal: Q.clamp(e.medal | 0, 0, 3), runs: Math.max(0, e.runs | 0) };
+        e = sp[k]; out.speed[k] = { best: mdNum(e.best), split: mdNums(e.split), seg: mdNums(e.seg), medal: [1, 2, 3].indexOf(e.medal) >= 0 ? e.medal : 0, runs: Math.max(0, e.runs | 0) };   // B29: an odd medal is none (it was clamped, so 9 read as GOLD)
       }
       sc = out.score && typeof out.score === 'object' && !Array.isArray(out.score) ? out.score : {}; t = [];
       if (Array.isArray(sc.top)) for (i = 0; i < sc.top.length && t.length < 5; i++) {
@@ -163,10 +163,11 @@
         }
         return best && Q.damage(best, 99, 'cheat') ? best.id : false;
       }
+      if (what === 'hurt') { if (!Q.P) return false; Q.P.hurtT = 0; return Q.hurt(a || 1); }   // B29: a heart lost, as an enemy's touch costs one (the combo's reset), for checks
       if (what === 'ui') {   // B29: what the screens show, read only (each screen's own At), for checks
         var u = Q.ui, f = function (fn) { return typeof fn === 'function' ? fn() : null; };
         return { scene: Q.scene, toast: f(u.toastNow), talking: !!Q.talking(), modes: f(BT.modesAt), srun: f(u.srunAt), srec: f(u.srecAt), sres: f(u.sresAt),
-          hscore: f(u.hscoreAt), hres: f(u.hresAt) };
+          hscore: f(u.hscoreAt), hres: f(u.hresAt), title: f(u.titleAt), files: f(u.filesAt), players: f(BT.playersAt), arena: f(BT.arenaAt), fight: f(BT.fightAt) };
       }
       if (what === 'end') { if (mdOn()) mdEnd(); MD = null; return true; }
       if (what === 'go') return Q.go(a, b || {});
