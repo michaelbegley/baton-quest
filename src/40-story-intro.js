@@ -34,6 +34,7 @@
       { who: 'creep', text: 'PSST. QUICK ASK...' },
       { who: 'c3', text: 'LATER.' },
       { who: 'creep', text: '...THAT\'S FAIR.' },
+      { who: 'compass', text: 'NOTED. PARKED.' },   // B24: THE COMPASS parks SCOPE CREEP's last ask (it never fights it); the close-up of the ticket under LATER is still up
       { who: 'none', text: 'THE OFFICE CAT COMES IN BY THE CAT FLAP AND SITS RIGHT IN FRONT OF C1\'S WORK. C1 TYPES AROUND IT.', cue: 'cat' },
       { who: 'none', text: 'THE CONDUCTOR RAISES ITS BATON. THE KEYS CLICK IN TIME. THE 9F COMPUTER HUMS ITS ONE NOTE.', cue: 'baton' },
       { who: 'hero', text: '> KEEPING TIME.' }
@@ -49,6 +50,7 @@
       { who: 'none', text: 'C2, WITH PAUSE TO THINK' },
       { who: 'none', text: 'C3, WITH A FIRM HAND' },
       { who: 'none', text: 'THE FACILITATOR, AS A VOICE' },
+      { who: 'none', text: 'THE COMPASS, POINTING' },
       { who: 'none', text: 'VEND-9, AS A VENDING MACHINE' },
       { who: 'none', text: 'THE OFFICE CAT, AS ITSELF' },
       { who: 'none', text: 'AND' },

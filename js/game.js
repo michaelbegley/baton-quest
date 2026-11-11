@@ -41,7 +41,7 @@
       hover: { name: 'PAUSE TO THINK', from: 'c2', how: 'HOLD A WHILE FALLING TO HOVER' },
       pound: { name: 'FIRM HAND', from: 'c3', how: 'IN THE AIR, DOWN AND B TO POUND' }
     };
-    Q.WHO = { hero: 'THE CONDUCTOR', c1: 'C1', c2: 'C2', c3: 'C3', facil: 'FACILITATOR', creep: 'SCOPE CREEP', vend: 'VEND-9', cat: 'THE CAT', none: '' };
+    Q.WHO = { hero: 'THE CONDUCTOR', c1: 'C1', c2: 'C2', c3: 'C3', facil: 'FACILITATOR', compass: 'THE COMPASS', creep: 'SCOPE CREEP', vend: 'VEND-9', cat: 'THE CAT', none: '' };
 
     // ---------- the registries (filled when the files load; read when the game starts) ----------
     Q.SPRITE = {}; Q.TILEDEF = { 0: {} }; Q.BG = {}; Q.ENEMY = {}; Q.LEVEL = {}; Q.WORLD = {}; Q.SCRIPT = {}; Q.MEMO = {}; Q.SFX = {}; Q.SONG = {}; Q.SCENE = {};
@@ -2341,6 +2341,22 @@
       api.tone(1318.51, 1318.51, 0.6, 'sine', 0.02, 0.6);
       api.tone(1567.98, 1567.98, 0.5, 'sine', 0.02, 0.74);
     });
+    // ===== 40-story-compass.js =====
+    // ---------- 40-story-compass.js (B24, 11 Nov 2026): STORY: THE COMPASS meets the conductor on the map (the director's lore, its public canon only) ----------
+    // The Compass: a brass pocket compass with no face, the newest on the Ninth Floor, above the Facilitator: the Facilitator talks, the Compass points. Short and
+    // plain, the answer first; says a warning once, then lets you choose; calls its own guesses PROPOSALS; owns a miss in the same breath. It never goes into a level.
+    // Every text fits a box: at most 130 characters and 3 lines of 46 by Q.wrap, only the font's characters (as 40-story-intro.js).
+    // compass-meet: the first time a file opens the map (a new file, or an old one the first time after version 124), once per file (73-ui-map-compass.js keeps
+    // that in the save). Its cues, drawn in the map's top left corner by 73-ui-map-compass.js: 'box' (a small box comes up, marked THIS WAY UP), 'open' (it opens:
+    // the Compass stands there, its needle turning slowly: reading), 'sure' (the needle up and still), 'point' (it points at the one thing next; that spot blinks).
+    Q.defScript('compass-meet', [
+      { who: 'facil', text: 'CONDUCTOR? FACILITATOR HERE. A SMALL BOX CAME UP TO THE NINTH FLOOR AT MIDNIGHT. IT SAYS THIS WAY UP.', cue: 'box' },
+      { who: 'facil', text: 'INSIDE: THE COMPASS. BY MORNING IT HAD READ EVERY NOTE ON THE FLOOR, ALL 3,494, AND DRAWN ONE MAP.', cue: 'open' },
+      { who: 'compass', text: 'COMPASS CHECK. THE TEAM DOES THE WORK. I KEEP THE DIRECTION. LINE ONE IS THE ANSWER.', cue: 'sure' },
+      { who: 'compass', text: 'PRESS C ON THIS MAP: WHAT MOVED, WHAT SLIPPED, WHAT DRIFTED, AND THE ONE THING NEXT. I POINT AT IT.', cue: 'point' },
+      { who: 'facil', text: 'IT READ EVERYTHING. I ONLY SAID EVERYTHING.' },
+      { who: 'compass', text: 'WITHOUT WHAT YOU SAID, I HAD NOTHING TO READ.', cue: 'sure' }
+    ]);
     // ===== 40-story-intro.js =====
     // ---------- 40-story-intro.js: STORY (builder 2): the intro, the ending and the credits ----------
     // Every text fits a box: at most 130 characters and 3 lines of 46 by Q.wrap; only the font's characters (lab/quest/LORE.md has the voices).
@@ -2378,6 +2394,7 @@
       { who: 'creep', text: 'PSST. QUICK ASK...' },
       { who: 'c3', text: 'LATER.' },
       { who: 'creep', text: '...THAT\'S FAIR.' },
+      { who: 'compass', text: 'NOTED. PARKED.' },   // B24: THE COMPASS parks SCOPE CREEP's last ask (it never fights it); the close-up of the ticket under LATER is still up
       { who: 'none', text: 'THE OFFICE CAT COMES IN BY THE CAT FLAP AND SITS RIGHT IN FRONT OF C1\'S WORK. C1 TYPES AROUND IT.', cue: 'cat' },
       { who: 'none', text: 'THE CONDUCTOR RAISES ITS BATON. THE KEYS CLICK IN TIME. THE 9F COMPUTER HUMS ITS ONE NOTE.', cue: 'baton' },
       { who: 'hero', text: '> KEEPING TIME.' }
@@ -2393,6 +2410,7 @@
       { who: 'none', text: 'C2, WITH PAUSE TO THINK' },
       { who: 'none', text: 'C3, WITH A FIRM HAND' },
       { who: 'none', text: 'THE FACILITATOR, AS A VOICE' },
+      { who: 'none', text: 'THE COMPASS, POINTING' },
       { who: 'none', text: 'VEND-9, AS A VENDING MACHINE' },
       { who: 'none', text: 'THE OFFICE CAT, AS ITSELF' },
       { who: 'none', text: 'AND' },
