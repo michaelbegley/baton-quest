@@ -3,6 +3,7 @@
     // Play waits while a box is up. Start opens the pause scene (from the level), and the level scene's enter with resume carries on. No hearts: the over scene, with a retry.
     var engBub = { text: '', tx: 0, ty: 0, a: 0, want: false }, engGen = 0, engDoor = null, engDoorOpen = -1, engSignIdx = {}, engArena = null, engDeadGone = false, engQuiet = false, engDarkCv = null, engSignAt = -1;
     function engSay(id, done) { if (id && engOwn(Q.SCRIPT, id) && !engQuiet) Q.say(id, done); else if (done) done(); }
+    Q.sayStory = engSay;   // version 126: story talk from a world's own code (SCOPE CREEP's phase lines): Q.say, quiet when story talk is off (GAME MODES' runs)
     function engSeed(s) {   // Q.rand for a level: the same numbers each time it starts, for this game's seed (Q.SAVE.seed)
       var h = 2166136261, i; s = String(s) + ':' + ((Q.SAVE && Q.SAVE.seed) || 1);
       for (i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = (h * 16777619) >>> 0; }

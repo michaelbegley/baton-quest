@@ -80,14 +80,14 @@
       B.phase++; B.act = 'rest'; B.actT = 0; B.ev = 0; B.qi = -1; B.open = false; B.slam = false; B.charge = 0;
       w4Clear(); Q.sfx('roar'); Q.shake(5, 0.5); Q.flash('#ffffff', 0.15);
       Q.spawn('pickup', B.hx - 4, B.hy + 20, { kind: 'heart', vx: (Q.rand() - 0.5) * 80, vy: -160 });   // a kind heart at each new phase
-      if (B.phase === 2) { B.bigEye = Q.spawn('creep-bigeye', B.hx - 12, B.hy - 17, {}); Q.music('final2'); Q.say('w4-phase2'); }
+      if (B.phase === 2) { B.bigEye = Q.spawn('creep-bigeye', B.hx - 12, B.hy - 17, {}); Q.music('final2'); Q.sayStory('w4-phase2'); }   // 126: not in a HIGH SCORE or SPEED RUN run
       if (B.phase === 3) {
         B.core = Q.spawn('creep-core', B.hx - 9, B.hy + 9, {}); Q.music('final3'); B.beatT = 0; B.pauseT = 1.5; B.paused = false;
         B.shield = { x: 44, y: 112, w: 84, h: 8, up: false, hp: 0, typing: 0, wait: 0.3 };
         B.agents = [Q.spawn('agent', 36, 130, { who: 'c1' }), Q.spawn('agent', 252, 82, { who: 'c2' }), Q.spawn('agent', 276, 130, { who: 'c3' })];
         for (i = 0; i < 3; i++) if (B.agents[i]) { B.agents[i].free = true; Q.fx('confetti', B.agents[i].x + 5, B.agents[i].y, { n: 14 }); }
         if (B.agents[0]) B.agents[0].face = 1;
-        Q.sfx('warp'); Q.say('w4-phase3');
+        Q.sfx('warp'); Q.sayStory('w4-phase3');
       }
     }
 
