@@ -1,0 +1,39 @@
+# Baton Quest playthrough routes (B31): keys pressed each frame, run-length coded (l r u d a b s c; _ none), one segment a level
+== boot
+_150 a1 _40 a1 _60 s1 _30 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1
+== w1-1
+r31 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 r78 ra22 r14 ra22 r14 ra22 r47 rb1 r90
+rb1 r42 ra22 r107 ra22 r57 ra22 r19 rb1 r78 ra22 r11 ra22 r14 ra22 r17 ra22 r24 rb1 r62 ra22 r15 rb1 r96
+ra22 r14 ra22 r37 ra22 r20 ra22 r6 ra1 r31 rb1 r73 ra11 r19 ra22 r98 rb1 r83 u1 _28
+== w1-2
+r65 ra22 r14 ra22 r14 ra22 r27 rb1 r168 ra22 r11 ra22 r64 rb1 r83 u1 _28 a1 _1 a1 _1 a1 _1 a1
+_1 a1 _1 a1 _1 a1 _1 a1
+== w1-bonus
+r149 ra22 r22 ra22 r33 ra8 rab1 ra13 r8 ra22 r33 rab1 ra21 r15 rb1 r6 ra22 r179 rb1 r183 u1 _28
+== w1-2b
+r1 ra22 r17 ra22 r17 ra14 r32 ra18 r12 _7 ra22 r61 ra1 rab1 ra20 r125 ra22 r14 rb1 r59 ra3 r100 ra22 r11
+ra22 r23 ra22 r162 ra1 rab1 ra20 r16 rb1 r1 rb1 r1 rb1 r51 ra22 r11 ra22 r23 u1 _28
+== w1-3
+r49 ra22 r58 ra22 r17 ra22 r6 ra22 r38 ra22 r6 ra22 r58 ra3 rab1 ra18 r123 ra22 r22 ra8 r23 _58 a1 _9
+b1 _14 r3 _17 ra22 r2 rb1 r10 ra8 r23 la8 l43 la22 l36 ra11 r22 ra1 r11 l13 ra1 r7 _92 l35 ra11
+r22 ra1 r11 l13 _1 ra1 r7 _46 a1 _24 a1 _49 r2 _60 l37 ra11 r22 ra1 r11 l13 _1 ra1 r7 _50
+a1 _24 a1 _48 r2 _60 l37 ra11 r22 ra1 r11 l13 _1 ra1 r7 _60 la11 l27 ra11 r17 rb1 r1 _22 ra1
+r11 _60 l36 ra11 r22 ra1 r11 l13 _1 ra1 r7 _21 a1 _24 a14 _14 b1 _4 r2 _60 l37 ra11 r22 ra1
+r11 l13 _1 ra1 r7 _41 a1 _24 a1 _49 r2 _60 l37 ra11 r22 ra1 r11 l13 _1 ra1 r7 _52 a1 _24
+ra5 r3 _105 la22 l11 la11 l7 r15 _2 l2 la3 l9 r15 _2 l6 _60 ra14 r11 rb1 r12 ra22 r40 la22 l17
+la22 l40 ra11 r22 ra1 r7 _44 a1 _24 ra1 r3 _108 l39 ra11 r22 ra1 r11 l13 _1 ra1 r7 _38 a1 _24
+a1 _48 r3 ra22 r36 la14 l21 la22 l35 ra22 r17 ra22 r14 ra8 r22 _1 ra8 r16 la5 l24 la22 l20 la3 l15
+r9 la11 l39 la22 l18 ra14 r21 ra22 r18 ra5 r24 ra22 r36 la22 l17 la22 l40 ra22 r17 ra22 r168 ra22 r34 ra1
+rab1 ra20 r47 ra22 r57 ra22 r56 ra22 r14 ra22 r64 ra22 r121 u1 _28 a1 _1 a1 _1 a1 _1 a1 _1 a1
+_1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1
+== w1-boss   # 2737 frames
+r29 _3 l4 _72 l16 r10 l8 r7 b1 r16 _2 l5 _94 l16 r10 l8 r7 b1 r16 _2 l5 _88 l16 r10
+l8 r7 b1 r16 _2 l5 _82 l16 r10 l8 r7 b1 r16 _2 l6 _75 l16 r10 l8 r7 b1 r16 _78 l16
+r10 l8 r7 b1 r15 _74 l16 r10 l8 r7 b1 r16 _2 l5 _63 l16 r10 l8 r7 b1 r16 _2 l5 _59
+l16 r10 l8 r7 b1 r16 _2 l5 _56 l16 r10 l8 r7 b1 r16 _2 l6 _54 l16 r10 l8 r8 b1 r15
+_3 l4 _54 r16 l10 r8 l7 b1 l17 _4 r2 _52 l16 r10 l8 r7 b1 r17 _57 l16 r10 l8 r7 b1
+r16 _2 l5 _50 l16 r10 l8 r7 b1 r16 _2 l5 _49 l16 r10 l8 r7 b1 r16 _2 l6 _47 l16 r10
+l8 r7 b1 r16 _54 l16 r10 l8 r7 b1 r15 _27 l16 r10 l8 r7 b1 r16 _2 l5 _17 l16 r10 l8
+r18 _2 l19 r11 l10 r9 b1 _94 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1
+a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1
+a1 _1 a1 _1 a1 _54
