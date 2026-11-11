@@ -12,8 +12,8 @@ const fs = require('fs'), path = require('path');
 const { copy } = require('./replay.js');
 const ROOT = path.join(__dirname, '..');
 const KEYS = ['left', 'right', 'up', 'down', 'a', 'b', 'start', 'c'], CH = 'lrudabsc';
-const STORY = ['w1-1', 'w1-2', 'w1-bonus', 'w1-3', 'w1-boss', 'w2-1', 'w2-bonus', 'w2-2', 'w2-3', 'w2-boss', 'w3-1', 'w3-2', 'w3-bonus', 'w3-3', 'w3-boss',
-  'w4-1', 'w4-2', 'w4-bonus', 'w4-3', 'w4-boss'];   // the 20, in the order the story meets them (a secret level inside the level whose door leads to it)
+const STORY = ['w1-1', 'w1-2', 'w1-bonus', 'w1-3', 'w1-boss', 'w2-1', 'w2-bonus', 'w2-2', 'w2-3', 'w2-boss', 'w3-1', 'w3-bonus', 'w3-2', 'w3-3', 'w3-boss',
+  'w4-1', 'w4-bonus', 'w4-2', 'w4-3', 'w4-boss'];   // the 20, in the order the story meets them (a secret level inside the level whose door leads to it: 1-2, 2-1, 3-1, 4-1)
 const MOVES = { 1: [], 2: ['dash'], 3: ['dash', 'hover'], 4: ['dash', 'hover', 'pound'] };   // each world's moves from its bosses (QUICK KEYS, PAUSE TO THINK, FIRM HAND)
 
 function routes(file) {   // [{ name, keys: [[held]...] }] from the run-length text
