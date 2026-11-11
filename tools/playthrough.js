@@ -42,10 +42,10 @@ function play(code, segs, onFrame) {   // the keys into a fresh copy; per level:
     if (st.god) throw new Error('god mode seen at frame ' + f);
     const here = st.screen === 'level' ? st.level : '';
     if (here && !byId[here]) { byId[here] = { id: here, from: f, to: null, moves: (st.abilities || []).slice(), falls0: st.falls, bonus: /-bonus$/.test(here) }; seen.push(here); }
-    if (here && lastLv && here !== lastLv && byId[lastLv].bonus && byId[lastLv].to === null) { const v = byId[lastLv]; v.to = f - 1; v.end = { hp: v.hp1, falls: st.falls - v.falls0 }; }   // a secret level left by its E
-    if (here) { lastLv = here; byId[here].hp1 = st.hp; byId[here].lastIn = f; if (byId[here].to === null) byId[here].n = (byId[here].n || 0) + 1; }   // n: the frames spent in it; lastIn: its last frame
+    if (here && lastLv && here !== lastLv && byId[lastLv].bonus && byId[lastLv].to === null) { const v = byId[lastLv]; v.to = f - 1; v.end = { hp: v.hp1, max: v.max1, falls: st.falls - v.falls0 }; }   // a secret level left by its E
+    if (here) { lastLv = here; byId[here].hp1 = st.hp; byId[here].max1 = st.maxHp; byId[here].lastIn = f; if (byId[here].to === null) byId[here].n = (byId[here].n || 0) + 1; }   // n: the frames spent in it; lastIn: its last frame
     if (here && st.t !== byId[here].t1) { byId[here].t1 = st.t; byId[here].tAt = f; }   // tAt: the last frame its clock ran (it stops as he goes in at a door, or as a boss is beaten)
-    for (const id of st.cleared || []) if (!done[id]) { done[id] = true; const v = byId[id]; if (v && v.to === null) { v.to = f; v.end = { hp: st.hp, falls: st.falls - v.falls0 }; } }
+    for (const id of st.cleared || []) if (!done[id]) { done[id] = true; const v = byId[id]; if (v && v.to === null) { v.to = f; v.end = { hp: v.hp1, max: v.max1, falls: st.falls - v.falls0 }; } }   // his hearts as he left it (not the next level's)
     if (onFrame) onFrame(f, st, k);
   }
   return { seen: seen.map((id) => byId[id]), frames: f, st, errors: G.errors };
@@ -94,7 +94,7 @@ function main() {
     const w = +id[1], n = v.n || 0, extra = v.moves.filter((m) => MOVES[w].indexOf(m) < 0);   // any move his world has not given him yet (a secret's FOLLOW UP too)
     const inOrder = p.seen.indexOf(v) >= order; order = p.seen.indexOf(v);
     say(v.to !== null && !extra.length && inOrder, id + ': ' + (v.to === null ? 'NOT FINISHED' : 'finished') + ', frames ' + v.from + ' to ' + (v.to === null ? '-' : v.to) + ' (' + n + ' frames in it, ' + (n / 60).toFixed(1) + ' s)' +
-      ', moves [' + v.moves.join(' ') + ']' + (extra.length ? ' NOT THIS WORLD\'S: ' + extra.join(' ') : '') + (v.end ? ', hearts ' + v.end.hp + (v.end.falls !== undefined ? ', falls ' + v.end.falls : '') : '') + (inOrder ? '' : ', OUT OF ORDER'));
+      ', moves [' + v.moves.join(' ') + ']' + (extra.length ? ' NOT THIS WORLD\'S: ' + extra.join(' ') : '') + (v.end ? ', hearts ' + v.end.hp + ' of ' + v.end.max + (v.end.falls !== undefined ? ', falls ' + v.end.falls : '') : '') + (inOrder ? '' : ', OUT OF ORDER'));
   }
   say(p.errors.length === 0, 'no game errors (' + p.errors.length + ')');
   console.log('\nplayed ' + p.frames + ' frames (' + (p.frames / 60 / 60).toFixed(1) + ' min of play) in ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s; ' + done.length + ' of ' + STORY.length + ' levels finished; at the end: ' + p.st.screen + ' ' + (p.st.level || ''));
