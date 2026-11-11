@@ -41,7 +41,7 @@
       hover: { name: 'PAUSE TO THINK', from: 'c2', how: 'HOLD A WHILE FALLING TO HOVER' },
       pound: { name: 'FIRM HAND', from: 'c3', how: 'IN THE AIR, DOWN AND B TO POUND' }
     };
-    Q.WHO = { hero: 'THE CONDUCTOR', c1: 'C1', c2: 'C2', c3: 'C3', facil: 'FACILITATOR', creep: 'SCOPE CREEP', vend: 'VEND-9', cat: 'THE CAT', none: '' };
+    Q.WHO = { hero: 'THE CONDUCTOR', c1: 'C1', c2: 'C2', c3: 'C3', facil: 'FACILITATOR', compass: 'THE COMPASS', creep: 'SCOPE CREEP', vend: 'VEND-9', cat: 'THE CAT', none: '' };
 
     // ---------- the registries (filled when the files load; read when the game starts) ----------
     Q.SPRITE = {}; Q.TILEDEF = { 0: {} }; Q.BG = {}; Q.ENEMY = {}; Q.LEVEL = {}; Q.WORLD = {}; Q.SCRIPT = {}; Q.MEMO = {}; Q.SFX = {}; Q.SONG = {}; Q.SCENE = {};
@@ -614,6 +614,90 @@
         '................ ...kkkkkkkkkk... ...kkkkkkkkkk...'
       ]
     ]);
+    // ===== 22-art-compass.js =====
+    // ---------- 22-art-compass.js (B24, 11 Nov 2026): THE COMPASS, the newest on the Ninth Floor (ART) ----------
+    // A brass pocket compass the size of a desk clock: a glass face over a dark dial, a red-and-white needle, a little ring on top, three short brass feet.
+    // No face and no body, like the Facilitator: its needle is its face. Up and still: sure. A wobble: something drifted. A slow spin: reading. Pointing: the one thing next.
+    //   face-compass (12 by 12): its icon in the text box, like the Facilitator's 'facil'. Frame 0 the needle up and still; frame 1 a hair off (the box shows 1 and 0
+    //     in turn while it types, so the needle twitches as it talks, and stands still and sure when it is done). The name 'face-' only puts it in the middle of the
+    //     portrait frame (70-ui-text.js drawFace), as the Facilitator's bubble is; the Compass has no face.
+    //   compass-body (15 by 18): the whole thing without its needle. Q.art.compass(g, x, y, ang, k) draws it at k times its size with the needle at ang (radians,
+    //     0 up, clockwise), red to ang and white behind; the needle is a line of whole pixels from the middle of the glass, and never leaves the glass.
+    //   compass-box (15 by 12): the box it came in, marked THIS WAY UP (frame 0 shut, frame 1 its flaps open), for its first scene on the map.
+    (function () {
+      var PAL = Q.art.pal({ B: '#ffe9a0', b: '#d9a83a', o: '#9a6a1e', O: '#6e4a12', g: '#24324c', G: '#1a2438', r: '#e0443a', c: '#f6efe2' });
+      Q.art.def('face-compass', 12, 12, PAL, [
+        [
+          '.....kkk.... .....kkk....',
+          '....kB.ok... ....kB.ok...',
+          '...kkkkkkk.. ...kkkkkkk..',
+          '..kBBBbbbok. ..kBBBbbbok.',
+          '.kBgggrgggok .kBggggrggok',
+          '.kBgggrgggok .kBgggrgggok',
+          '.kbgggbgggok .kbgggbgggok',
+          '.kbgggcggGok .kbgggcggGok',
+          '.kbGggcgGGok .kbGgcggGGok',
+          '..kboooooOk. ..kboooooOk.',
+          '...kkkkkkk.. ...kkkkkkk..',
+          '...oo.o.oo.. ...oo.o.oo..'
+        ]
+      ]);
+      var BODY = [
+        '......kkk......',
+        '.....kB.ok.....',
+        '......kbk......',
+        '.....kkkkk.....',
+        '...kkBBBbbkk...',
+        '..kBBBkkkbbbk..',
+        '..kBkkgggkkbk..',
+        '.kBBkgggggkbok.',
+        '.kBkgggggggkok.',
+        '.kbkgggggggkok.',
+        '.kbkgggggggkok.',
+        '.kbbkgggGGkook.',
+        '..kbkkGGGkkok..',
+        '..kbookkkoook..',
+        '...kkoooookk...',
+        '..kbkkkkkkkok..',
+        '..kbk.kbk.kok..',
+        '..kkk.kkk.kkk..'
+      ];
+      Q.art.def('compass-body', 15, 18, PAL, [BODY]);
+      Q.art.def('compass-box', 15, 12, Q.art.pal({ Y: '#e2b77c', y: '#c8955a', q: '#9a6a3a', t: '#efe2bd' }), [
+        [
+          'kkkkkkkkkkkkkkk kYk.........kYk',
+          'kYYYYYYtYYYYYYk kYYk.......kYYk',
+          'kYYYYYYtYYYYYYk .kYYk.....kYYk.',
+          'kkkkkkkkkkkkkkk kkkkkkkkkkkkkkk',
+          'kyyyyyykyyyyyqk kyyyyyykyyyyyqk',
+          'kyyyyykkkyyyyqk kyyyyykkkyyyyqk',
+          'kyyyykkkkkyyyqk kyyyykkkkkyyyqk',
+          'kyyyyyykyyyyyqk kyyyyyykyyyyyqk',
+          'kyyyyyykyyyyyqk kyyyyyykyyyyyqk',
+          'kyyyyyyyyyyyyqk kyyyyyyyyyyyyqk',
+          'kqqqqqqqqqqqqqk kqqqqqqqqqqqqqk',
+          'kkkkkkkkkkkkkkk kkkkkkkkkkkkkkk'
+        ]
+      ]);
+      var CX = 7, CY = 9, LEN = 3, GLASS = {}, y, x, ch;   // the middle of the glass, the needle's half length, and which pixels are glass
+      for (y = 0; y < BODY.length; y++) for (x = 0; x < BODY[y].length; x++) { ch = BODY[y].charAt(x); if (ch === 'g' || ch === 'G') GLASS[x + ',' + y] = true; }
+      Q.art.COMPASS = { w: 15, h: 18, cx: CX, cy: CY };   // for callers that aim the needle: the glass's middle pixel, from the body's top left
+      function dot(g, x0, y0, px, py, k, col) { if (!GLASS[px + ',' + py]) return; g.fillStyle = col; g.fillRect(x0 + px * k, y0 + py * k, k, k); }
+      function half(g, x0, y0, ex, ey, k, col) {   // whole pixels from the middle out to ex, ey (a line with no gaps), only on the glass
+        var n = Math.max(Math.abs(ex), Math.abs(ey)), i;
+        for (i = 1; i <= n; i++) dot(g, x0, y0, CX + Math.floor(ex * i / n + 0.5), CY + Math.floor(ey * i / n + 0.5), k, col);
+      }
+      Q.art.compass = function (g, x, y, ang, k) {   // the whole compass at x, y (its top left), k times its size (a whole number), the needle at ang
+        k = Math.max(1, Math.round(k || 1)); x = Math.round(x); y = Math.round(y);
+        if (k === 1) Q.spr(g, 'compass-body', 0, x, y);
+        else { g.save(); g.translate(x, y); g.scale(k, k); Q.spr(g, 'compass-body', 0, 0, 0); g.restore(); }
+        dot(g, x, y, 5, 7, k, '#8fa6c8');   // a glint on the glass, under the needle
+        var a = +ang || 0, ex = Math.floor(Math.sin(a) * LEN + 0.5), ey = Math.floor(-Math.cos(a) * LEN + 0.5);
+        half(g, x, y, -ex, -ey, k, '#f6efe2');   // the white half behind
+        half(g, x, y, ex, ey, k, '#e0443a');   // the red half, to where it points
+        g.fillStyle = '#d9a83a'; g.fillRect(x + CX * k, y + CY * k, k, k);   // the brass pin
+      };
+    })();
     // ===== 22-art-items.js =====
     // ---------- 22-art-items.js: the shared items (ART, builder 3): facil, note, token, bigtoken, heart, memo ----------
     // The door, the mug, the sign, the cat and VEND-9 are in 22-art-items-b.js and 22-art-items-c.js.
@@ -2257,6 +2341,22 @@
       api.tone(1318.51, 1318.51, 0.6, 'sine', 0.02, 0.6);
       api.tone(1567.98, 1567.98, 0.5, 'sine', 0.02, 0.74);
     });
+    // ===== 40-story-compass.js =====
+    // ---------- 40-story-compass.js (B24, 11 Nov 2026): STORY: THE COMPASS meets the conductor on the map (the director's lore, its public canon only) ----------
+    // The Compass: a brass pocket compass with no face, the newest on the Ninth Floor, above the Facilitator: the Facilitator talks, the Compass points. Short and
+    // plain, the answer first; says a warning once, then lets you choose; calls its own guesses PROPOSALS; owns a miss in the same breath. It never goes into a level.
+    // Every text fits a box: at most 130 characters and 3 lines of 46 by Q.wrap, only the font's characters (as 40-story-intro.js).
+    // compass-meet: the first time a file opens the map (a new file, or an old one the first time after version 124), once per file (73-ui-map-compass.js keeps
+    // that in the save). Its cues, drawn in the map's top left corner by 73-ui-map-compass.js: 'box' (a small box comes up, marked THIS WAY UP), 'open' (it opens:
+    // the Compass stands there, its needle turning slowly: reading), 'sure' (the needle up and still), 'point' (it points at the one thing next; that spot blinks).
+    Q.defScript('compass-meet', [
+      { who: 'facil', text: 'CONDUCTOR? FACILITATOR HERE. A SMALL BOX CAME UP TO THE NINTH FLOOR AT MIDNIGHT. IT SAYS THIS WAY UP.', cue: 'box' },
+      { who: 'facil', text: 'INSIDE: THE COMPASS. BY MORNING IT HAD READ EVERY NOTE ON THE FLOOR, ALL 3,494, AND DRAWN ONE MAP.', cue: 'open' },
+      { who: 'compass', text: 'COMPASS CHECK. THE TEAM DOES THE WORK. I KEEP THE DIRECTION. LINE ONE IS THE ANSWER.', cue: 'sure' },
+      { who: 'compass', text: 'PRESS C ON THIS MAP: WHAT MOVED, WHAT SLIPPED, WHAT DRIFTED, AND THE ONE THING NEXT. I POINT AT IT.', cue: 'point' },
+      { who: 'facil', text: 'IT READ EVERYTHING. I ONLY SAID EVERYTHING.' },
+      { who: 'compass', text: 'WITHOUT WHAT YOU SAID, I HAD NOTHING TO READ.', cue: 'sure' }
+    ]);
     // ===== 40-story-intro.js =====
     // ---------- 40-story-intro.js: STORY (builder 2): the intro, the ending and the credits ----------
     // Every text fits a box: at most 130 characters and 3 lines of 46 by Q.wrap; only the font's characters (lab/quest/LORE.md has the voices).
@@ -2294,6 +2394,7 @@
       { who: 'creep', text: 'PSST. QUICK ASK...' },
       { who: 'c3', text: 'LATER.' },
       { who: 'creep', text: '...THAT\'S FAIR.' },
+      { who: 'compass', text: 'NOTED. PARKED.' },   // B24: THE COMPASS parks SCOPE CREEP's last ask (it never fights it); the close-up of the ticket under LATER is still up
       { who: 'none', text: 'THE OFFICE CAT COMES IN BY THE CAT FLAP AND SITS RIGHT IN FRONT OF C1\'S WORK. C1 TYPES AROUND IT.', cue: 'cat' },
       { who: 'none', text: 'THE CONDUCTOR RAISES ITS BATON. THE KEYS CLICK IN TIME. THE 9F COMPUTER HUMS ITS ONE NOTE.', cue: 'baton' },
       { who: 'hero', text: '> KEEPING TIME.' }
@@ -2309,6 +2410,7 @@
       { who: 'none', text: 'C2, WITH PAUSE TO THINK' },
       { who: 'none', text: 'C3, WITH A FIRM HAND' },
       { who: 'none', text: 'THE FACILITATOR, AS A VOICE' },
+      { who: 'none', text: 'THE COMPASS, POINTING' },
       { who: 'none', text: 'VEND-9, AS A VENDING MACHINE' },
       { who: 'none', text: 'THE OFFICE CAT, AS ITSELF' },
       { who: 'none', text: 'AND' },
@@ -6184,6 +6286,7 @@
         return M.c;
       }
       U.mapAt = function () { return { at: M.at, walk: M.walk, stop: STOPS[M.at].n, stops: count() }; };   // for checks: where he stands (stop 0 is the shop)
+      U.mapSpot = function (n) { for (var i = 0; i < STOPS.length; i++) if (STOPS[i].n === n) return { x: STOPS[i].x, y: STOPS[i].y, shown: i < count() }; return null; };   // B24: a stop's pad (THE COMPASS points at it)
       function route(a, b) {   // a trace from stop a to stop b: along, a 45 degree turn, along (or b's own way there)
         var dx = b.x - a.x, dy = b.y - a.y, d = Math.abs(dy), m = a.x + dx / 2;
         if (b.via) return [[a.x, a.y]].concat(b.via, [[b.x, b.y]]);
@@ -6257,6 +6360,7 @@
           U.mapKeep = false; U.lastWorld = 0; U.lastStop = '';
           M.at = Q.clamp(M.at | 0, 0, reach()); M.walk = false; M.fade = 0; M.going = 0; M.talker = '';
           partyStep(0, true);
+          if (U.compassReset) U.compassReset();   // B24: THE COMPASS's check starts closed (73-ui-map-compass-b.js)
           Q.music('map');
         },
         update: function (dt) {
@@ -6277,6 +6381,7 @@
             }
             return;
           }
+          if (U.compassMap && U.compassMap(dt)) return;   // B24: THE COMPASS: its first scene once a file, C for a COMPASS CHECK, and the check while it is open
           if (U.press('right') || U.held('right')) dir = 1; else if (U.press('left') || U.held('left')) dir = -1;
           if (dir > 0 && M.at + 1 <= reach()) { startWalk(M.at + 1); return; }
           if (dir < 0 && M.at > 0) { startWalk(M.at - 1); return; }
@@ -6326,8 +6431,10 @@
           Q.spr(g, U.hero(), fr, Math.round(pos[0]) - 8, Math.round(pos[1]) - 20, flip);
           Q.boss = null; Q.ui.hud(g, Q); Q.boss = b;
           drawInfo(g, t);
+          if (U.compassMapDraw) U.compassMapDraw(g, t, 0);   // B24: THE COMPASS in its corner, with its C
           if (M.going) { g.globalAlpha = Q.clamp(M.fade, 0, 1); U.fill(g, 0, 0, 320, 200, '#000000'); g.globalAlpha = 1; }
           U.drawTalk(g);
+          if (U.compassMapDraw) U.compassMapDraw(g, t, 1);   // B24: the COMPASS CHECK, over everything while it is open
         },
         sides: function (g) {   // a wide screen's sides (the engine clips to them): more board, the HUD's band carried across, and the same fade
           U.boardSides(g);
@@ -6336,7 +6443,7 @@
         }
       });
       function drawInfo(g, t) {   // the bar at the bottom: where he stands and what he can do there
-        if (Q.talking()) return;
+        if (Q.talking() || (U.compassIsOpen && U.compassIsOpen())) return;   // B24: the bar steps aside while the COMPASS CHECK is open
         var s = STOPS[M.walk ? M.to : M.at], st, hint, blurb = Q.story && Q.story.world && Q.story.world[s.n];
         U.box(g, 4, 160, 312, 37, '#2ec4b6', '#10151d');
         if (s.n === 0) {
@@ -6455,6 +6562,341 @@
       U.pad = function (g, x, y, lit) {   // where the conductor stands on the path: a round pad on the board
         f(g, x - 7, y - 1, 15, 4, '#1d1d24'); f(g, x - 6, y - 2, 13, 5, '#1d1d24');
         f(g, x - 6, y - 1, 13, 3, lit ? '#c9a640' : '#3c5a52'); f(g, x - 4, y - 1, 9, 1, lit ? '#ffe9a0' : '#557a70');
+      };
+    })();
+    // ===== 73-ui-map-compass.js =====
+    // ---------- 73-ui-map-compass.js (B24, 11 Nov 2026): THE COMPASS's voice in the text box, its record, and the COMPASS CHECK's four lines (UI) ----------
+    // The check is worked out from the save alone: MOVED (what changed since this file's last check), SLIPPED (what was left behind in cleared levels: memos, the
+    // cat, a secret door; the save keeps no tokens by level, so it does not tell tokens), DRIFTED (play time since the last new level cleared, or since anything
+    // new once the story is done: a level, a secret level or a gold star; NOTHING. GOOD. under ten minutes) and ONE THING NEXT (the next level to clear; after the
+    // story the next secret door, THE ROOT FOLDER, then the next gold star), with the stop on the map it points at. The drawing is 73-ui-map-compass-b.js.
+    // Its own small record, Q.SAVE.compass: met (1 once its first scene has played), seen (what it saw at the last check), lvN and lvAt (the story levels cleared,
+    // and the play time when that last grew), newN and newAt (the same for levels, secret levels and stars together), warned (the time it last said DRIFTED for).
+    // U.compassKeep writes that record alone into this file's stored copy, read fresh from the store as U.setOpt and the stopwatch do (never Q.api.load(), which
+    // hands back the live save), so a check never saves progress: version 120's lesson. The game's own saves carry the record too, as part of Q.SAVE.
+    (function () {
+      var U = Q.ui, CP = U.cp = { DRIFT: 600 };   // ten minutes of play
+      U.WHO.compass = { edge: '#d9a83a', name: '#ffe9a0', spr: 'face-compass', cps: 38, stop: 0.3 };   // brass; it types steadily and stops at a full stop
+      var tickN = 0;
+      Q.defSfx('type-compass', function (api) { var f = (tickN++ & 1) ? 1568 : 1175; api.tone(f, f, 0.025, 'triangle', 0.03); });   // a soft tick, like a needle settling
+      function own(o, k) { return !!o && Object.prototype.hasOwnProperty.call(o, k); }
+      function num(v) { v = +v; return v > 0 && isFinite(v) ? v : 0; }
+      CP.rec = function (make) {   // this file's record (made when asked), or null
+        var s = Q.SAVE, r;
+        if (!s || typeof s !== 'object') return null;
+        r = s.compass;
+        if (!r || typeof r !== 'object' || Array.isArray(r)) { if (!make) return null; r = s.compass = { v: 1 }; }
+        return r;
+      };
+      U.compassKeep = function () {   // the record alone into the stored copy of this file; nothing else in the store changes
+        var s = Q.SAVE, r = CP.rec(false), raw = null, f;
+        if (!r || !engRaw || typeof engRaw.load !== 'function' || typeof engRaw.save !== 'function') return false;
+        try { raw = engRaw.load(); } catch (e) { raw = null; }
+        if (!raw || !raw.files3 || !raw.files || raw.files.length !== 3 || (raw.cur | 0) !== engFilesGet().cur) return false;
+        f = raw.files[raw.cur | 0];
+        if (!f || typeof f !== 'object') return false;   // nothing of this file stored yet: its first save carries the record
+        if (s.watch && f.watch && s.watch.run !== f.watch.run) return false;   // another play-through's save (a new game not saved yet): left alone
+        f.compass = JSON.parse(JSON.stringify(r));
+        try { engRaw.save(raw); } catch (e2) { return false; }
+        return true;
+      };
+      // ---- what the save says ----
+      var CATLV = null;
+      function catLevels() {   // each world's level where the office cat hides (an @ in its map), worked out once
+        var w, i, L, id, j;
+        if (CATLV) return CATLV;
+        CATLV = {};
+        for (w = 1; w <= 4; w++) for (i = 0; i < 3; i++) {
+          id = 'w' + w + '-' + (i + 1); L = own(Q.LEVEL, id) ? Q.LEVEL[id] : null;
+          if (L && L.map) for (j = 0; j < L.map.length; j++) if (String(L.map[j]).indexOf('@') >= 0) { CATLV[w] = id; break; }
+        }
+        return CATLV;
+      }
+      function secretsFound(s) { var n = 0, k, d, f = s.flags || {}; for (k in Q.LEVEL) if (own(Q.LEVEL, k) && (d = Q.LEVEL[k]) && d.bonus && d.world >= 1 && d.world <= 4 && f['bonus-' + k]) n++; return n; }
+      CP.facts = function (s) {   // the counts a check compares
+        var f = { levels: 0, memos: U.memoCount(s), cats: 0, secrets: secretsFound(s), stars: U.starCount(s).n, lv: s.lv | 0 || 1, won: s.won ? 1 : 0, saved: '' }, l = U.parLevels(), i, k;
+        for (i = 0; i < l.length; i++) if (s.cleared && s.cleared[l[i]]) f.levels++;
+        for (k = 1; k <= 4; k++) if (s.flags && s.flags['cat' + k]) f.cats++;
+        for (k = 1; k <= 3; k++) if ((s.saved || []).indexOf('c' + k) >= 0) f.saved += 'c' + k;
+        return f;
+      };
+      function bump() {   // a level, a secret level or a star: if it is new, the play time it came at
+        var s = Q.SAVE, r = CP.rec(true), f, p;
+        if (!r) return;
+        f = CP.facts(s); p = f.levels + f.secrets + f.stars;
+        if (typeof r.lvN !== 'number') r.lvN = f.levels; else if (f.levels > r.lvN) { r.lvN = f.levels; r.lvAt = num(s.time); }
+        if (typeof r.newN !== 'number') r.newN = p; else if (p > r.newN) { r.newN = p; r.newAt = num(s.time); }
+      }
+      Q.on('level', bump); Q.on('secret', bump); Q.on('star', bump);
+      var newGame0 = Q.newGame;
+      Q.newGame = function () {   // a new file is measured from its first step
+        var r = newGame0.apply(this, arguments);
+        if (Q.SAVE) Q.SAVE.compass = { v: 1, lvN: 0, lvAt: 0, newN: 0, newAt: 0 };
+        return r;
+      };
+      // ---- the words ----
+      function ref(id) { var m = /^w([1-4])-([1-3])$/.exec(id); return m ? m[1] + '-' + m[2] : String(id).toUpperCase(); }   // 1-2, as the game names its levels
+      function lname(id) { var L = own(Q.LEVEL, id) ? Q.LEVEL[id] : null; return L && L.name ? String(L.name).toUpperCase() : ref(id); }
+      function many(n, one, more) { return n === 1 ? one : n + ' ' + more; }
+      function wrapN(s, w) { return Q.wrap(s, w).length; }
+      function fit(head, items, w) {   // head and the items that fit on one line of w, in their order (one too long is passed over), then a full stop
+        var s = head + items[0], i;
+        for (i = 1; i < items.length; i++) if ((s + ', ' + items[i] + '.').length <= w) s += ', ' + items[i];
+        return s + '.';
+      }
+      function agentsBack(list) { return list.length === 3 ? 'ALL THREE BACK' : list.length === 2 ? list[0] + ' AND ' + list[1] + ' BACK' : list[0] + ' IS BACK'; }
+      CP.moved = function (r, f) {
+        var seen = r && r.seen, items = [], d, back = [], k;
+        if (!seen || typeof seen !== 'object') {
+          if (!f.levels && !f.memos && !f.stars) return 'FIRST CHECK. A CLEAN SLATE.';
+          if (f.levels) items.push(many(f.levels, 'A LEVEL', 'LEVELS'));
+          if (f.memos) items.push(many(f.memos, 'A MEMO', 'MEMOS'));
+          if (f.stars) items.push(many(f.stars, 'A GOLD STAR', 'GOLD STARS'));
+          return fit('FIRST CHECK: ', items, 35);
+        }
+        if (f.won && !seen.won) items.push('THE STORY IS DONE');
+        for (k = 1; k <= 3; k++) if (f.saved.indexOf('c' + k) >= 0 && String(seen.saved || '').indexOf('c' + k) < 0) back.push('C' + k);
+        if (back.length) items.push(agentsBack(back));
+        if ((d = f.levels - num(seen.levels)) > 0) items.push(many(d, 'A LEVEL', 'LEVELS'));
+        if ((d = f.secrets - num(seen.secrets)) > 0) items.push(many(d, 'A SECRET LEVEL', 'SECRET LEVELS'));
+        if ((d = f.memos - num(seen.memos)) > 0) items.push(many(d, 'A MEMO', 'MEMOS'));
+        if ((d = f.cats - num(seen.cats)) > 0) items.push(d === 1 ? 'THE CAT FOUND' : 'THE CAT ' + d + ' TIMES');
+        if ((d = f.stars - num(seen.stars)) > 0) items.push(many(d, 'A GOLD STAR', 'GOLD STARS'));
+        if (f.lv > num(seen.lv)) items.push('LV ' + f.lv);
+        return items.length ? fit('', items, 35) : 'NOTHING SINCE THE LAST CHECK.';
+      };
+      CP.left = function (s) {   // what was left behind in cleared levels: { memos: [refs], memoN, cats: [refs], doors: [refs] }
+        var out = { memos: [], memoN: 0, cats: [], doors: [] }, cat = catLevels(), w, i, id, L, j, miss, m = s.memos || {}, fl = s.flags || {};
+        for (w = 1; w <= 4; w++) for (i = 1; i <= 3; i++) {
+          id = 'w' + w + '-' + i; L = own(Q.LEVEL, id) ? Q.LEVEL[id] : null;
+          if (!L || !(s.cleared && s.cleared[id])) continue;
+          miss = 0; if (L.memos) for (j = 0; j < L.memos.length; j++) if (L.memos[j] && !m[L.memos[j]]) miss++;
+          if (miss) { out.memos.push(ref(id)); out.memoN += miss; }
+          if (cat[w] === id && !fl['cat' + w]) out.cats.push(ref(id));
+          if (L.secret && own(Q.LEVEL, L.secret) && !fl['bonus-' + L.secret]) out.doors.push(ref(id));
+        }
+        return out;
+      };
+      CP.slipped = function (s) {   // at most two lines of 35: the places, or only counts where the places do not fit
+        var o = CP.left(s), short = { memos: false, cats: false, doors: false }, txt, i, ORDER = ['memos', 'doors', 'cats'];
+        function say() {
+          var p = [];
+          if (o.memoN) p.push(short.memos ? many(o.memoN, 'A MEMO', 'MEMOS') + ' IN ' + many(o.memos.length, 'A LEVEL.', 'LEVELS.') : (o.memoN === 1 ? 'A MEMO: ' : 'MEMOS: ') + o.memos.join(', ') + '.');
+          if (o.cats.length) p.push(short.cats ? 'THE CAT IN ' + many(o.cats.length, 'A WORLD.', 'WORLDS.') : 'THE CAT: ' + o.cats.join(', ') + '.');
+          if (o.doors.length) p.push(short.doors ? many(o.doors.length, 'A SECRET DOOR.', 'SECRET DOORS.') : (o.doors.length === 1 ? 'A SECRET DOOR: ' : 'SECRET DOORS: ') + o.doors.join(', ') + '.');
+          return p.join(' ');
+        }
+        if (!o.memoN && !o.cats.length && !o.doors.length) return 'NOTHING LEFT BEHIND.';
+        txt = say();
+        for (i = 0; i < ORDER.length && wrapN(txt, 35) > 2; i++) { short[ORDER[i]] = true; txt = say(); }   // too long: the memos, then the doors, then the cat go to counts
+        return txt;
+      };
+      function span(sec) { var m = Math.floor(sec / 60); return m < 100 ? m + ' MIN' : Math.floor(m / 60) + ' H'; }
+      CP.drifted = function (r, s, f) {   // { text, base, first }: base is the play time it measures from
+        var base = f.won ? r && r.newAt : r && r.lvAt, d;
+        if (!r || typeof base !== 'number') return { text: 'FIRST CHECK. MEASURING FROM NOW.', first: true };
+        d = num(s.time) - base;
+        if (d < CP.DRIFT) return { text: 'NOTHING. GOOD.', base: base };
+        if (r.warned === base) return { text: span(d) + ' NOW. YOUR CALL.', base: base, drift: true, again: true };
+        return { text: span(d) + (f.won ? ', NOTHING NEW. SAID ONCE.' : ', NO NEW LEVEL. SAID ONCE.'), base: base, drift: true };
+      };
+      CP.drifting = function () {   // for the map's little compass: has the play time passed the mark since anything new? (read from the record, a cheap look)
+        var s = Q.SAVE, r = CP.rec(false), base;
+        if (!s || !r) return false;
+        base = s.won ? r.newAt : r.lvAt;
+        return typeof base === 'number' && num(s.time) - base >= CP.DRIFT;
+      };
+      var BOSS_STAR = { 1: 'c1', 2: 'c2', 3: 'c3', 4: 'shipped' };
+      var STAR_AT = { 'clean-level': 2, 'clean-boss': 1, 'no-fall': 3, spam: 1, encore: 'encore', 'encore-clean': 'encore', bowtie: 0, coffee: 0, hold: null, all: null };
+      function firstSentence(t) { var i = t.indexOf('. '); return i > 0 ? t.slice(0, i + 1) : t; }
+      function fitBar(t, name) {   // B28: a gold star's words for the bar (two lines of 42 after ONE THING NEXT): cut at the first comma, else its name, if too long
+        var i;
+        if (wrapN('ONE THING NEXT  GOLD STAR: ' + t, 42) > 2 && (i = t.indexOf(', ')) > 0) t = t.slice(0, i) + '.';
+        return wrapN('ONE THING NEXT  GOLD STAR: ' + t, 42) > 2 ? String(name || 'A GOLD STAR').toUpperCase() + '.' : t;
+      }
+      CP.next = function (s) {   // { text, at }: at is a stop (1 to 4, 0 VEND-9's shop, 'encore', 'root'), 'here' (where he stands) or null (no spot: the needle stands up)
+        var l = U.parLevels(), i, id, w, m, fl = s.flags || {}, ids, t, cat = catLevels(), k, o, secret = false;
+        if (!s.won) {
+          for (i = 0; i < l.length; i++) if (!(s.cleared && s.cleared[l[i]])) break;
+          if (i < l.length) {
+            id = l[i]; w = Math.floor(i / 4) + 1;
+            if (i % 4 === 3) { t = Q.STARTEXT[BOSS_STAR[w]]; return { text: t && t.how ? String(t.how).toUpperCase() : 'THE BOSS OF ' + U.worldName(w) + '.', at: w }; }
+            return { text: ref(id) + ', ' + lname(id) + '.', at: w };
+          }
+        }
+        for (w = 1; w <= 4; w++) for (i = 1; i <= 3; i++) {   // the story is done: the first secret door not found yet
+          id = 'w' + w + '-' + i; m = own(Q.LEVEL, id) ? Q.LEVEL[id] : null;
+          if (m && m.secret && own(Q.LEVEL, m.secret) && !fl['bonus-' + m.secret]) return { text: 'THE SECRET DOOR IN ' + ref(id) + ', ' + lname(id) + '.', at: w };
+        }
+        if (Q.rootOpen() && !U.starWon('root', s)) return { text: 'THE ROOT FOLDER. IT IS OPEN NOW.', at: 'root' };
+        ids = U.starIds();
+        for (i = 0; i < ids.length; i++) {
+          k = ids[i]; if (k === 'all' || U.starWon(k, s)) continue;
+          t = U.starText(k); if (t.secret) { secret = true; continue; }
+          return { text: 'GOLD STAR: ' + fitBar(firstSentence(t.how || t.name), t.name), at: CP.starAt(k, s, cat) };
+        }
+        if (secret) return { text: 'ONE SECRET STAR LEFT. THAT ONE IS YOURS TO FIND.', at: null };
+        o = U.starWon('all', s) || !own(Q.STAR, 'all');
+        return { text: o ? 'NOTHING. THAT IS EVERY STAR.' : 'GOLD STAR: ' + firstSentence(U.starText('all').how || 'STAR EMPLOYEE.'), at: null };
+      };
+      CP.starAt = function (k, s, cat) {   // where a gold star is won, as a stop
+        var m = /^memos-([1-4])$/.exec(k), w, i, L, fl = s.flags || {};
+        if (m) return +m[1];
+        if (own(STAR_AT, k)) return STAR_AT[k];
+        if (k === 'memos-all') for (w = 1; w <= 4; w++) if (U.memoCount(s, w) < 6) return w;
+        if (k === 'cat' || k === 'cats') for (w = 1; w <= 4; w++) if (!fl['cat' + w] && cat[w]) return w;
+        if (k === 'par' || k === 'par-all') { L = U.parLevels(); for (i = 0; i < L.length; i++) if (!U.underPar(L[i])) return Math.floor(i / 4) + 1; }
+        if (k === 'secrets') for (w = 1; w <= 4; w++) for (i = 1; i <= 3; i++) { L = Q.LEVEL['w' + w + '-' + i]; if (L && L.secret && !fl['bonus-' + L.secret]) return w; }
+        return 'here';   // anywhere will do: where he stands
+      };
+    })();
+    // ===== 73-ui-map-compass-b.js =====
+    // ---------- 73-ui-map-compass-b.js (B24, 11 Nov 2026): THE COMPASS on the map: its corner, its first scene, the C button and the COMPASS CHECK (UI) ----------
+    // The map (73-ui-map.js) calls four hooks: U.compassReset() as it enters; U.compassMap(dt) each step while he stands (true: it took the step); U.compassMapDraw
+    // (g, t, 0) before the text box and (g, t, 1) after it; and U.compassIsOpen() (the bar at the bottom steps aside while the check is open).
+    // The corner: the Compass stands in the map's top left corner (as a compass rose sits in a map's corner), its needle up and still (sure), or wobbling once the
+    // play time since anything new passes ten minutes (drift); under it a C key cap: the prompt. C opens the COMPASS CHECK: C on a keyboard (or L), C on the
+    // handheld, the left or top button or a bumper on a controller (the map had no use for C: C is the dash, and nobody dashes on a map). B closes it (C, A or Start too).
+    // The check: B20's window (71-ui-menu.js) with brass brackets, docked at the top when the spot is low on the map, else at the bottom, so the spot stays in sight
+    // (B28: docked at the top, one that would cover the low stops' chips, their numbers or ticks, sits over the HUD's band instead, from y 1).
+    // Its needle turns slowly (reading) while the four lines come in, then swings to the one thing next, and the spot blinks in yellow brackets. It saves only its record.
+    (function () {
+      var U = Q.ui, CP = U.cp, K = U.mk, CK = { open: false, t: 0, lines: null, next: null, dock: 'top', meet: null, ang: 0, want: 0, vel: 0, at0: 0, drift: false, driftAt: -9 };
+      var CX = 4, CY = 20;   // the corner compass's top left (the glass's middle is 7, 9 from there)
+      var TOP = 17, PX = 4, PW = 312, CPX = PX + 6, TX = PX + 46, VX = TX + 48, RX = PX + PW - 6;   // the check: under the HUD at the top, as wide as the map's bar;
+      var ROWW = Math.floor((RX - VX + 1) / 6), NEXTW = Math.floor((RX - 4 - TX + 1) / 6);   // its compass, labels, words and right edge: 35 letters a line, 42 in the bar
+      var CHIP = 144 - 36 - 12 - 4;   // B28: a docked-top check ends by here, above the low stops' chips (73-ui-map-art.js: 32 by 24, centred 36 above a pad at 144; its tick from 93)
+      function now() { return U.now(); }
+      function spot(at) {   // a stop's place on the map (the middle of where one stands), or null
+        var n = at === 'here' ? (U.mapAt ? U.mapAt().stop : 1) : at, p = n === null || n === undefined || !U.mapSpot ? null : U.mapSpot(n);
+        return p && p.shown ? { x: p.x, y: p.y - 10, n: n } : null;
+      }
+      function aim(gx, gy, p) { return p ? Math.atan2(p.x - gx, -(p.y - gy)) : 0; }   // the needle's angle from a glass at gx, gy to p (0 up, clockwise)
+      function turnTo(a, b) { var d = (b - a) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return d; }
+      U.compassIsOpen = function () { return CK.open; };
+      U.compassReset = function () { CK.open = false; CK.meet = null; };
+      // ---- the check: worked out once as it opens; its record then holds what it saw ----
+      function check() {
+        var s = Q.SAVE, r = CP.rec(true), f = CP.facts(s), dr = CP.drifted(r, s, f), nx = CP.next(s), p;
+        CK.lines = { moved: CP.moved(r, f), slipped: CP.slipped(s), drifted: dr.text, next: nx.text };
+        CK.next = nx; p = spot(nx.at);
+        CK.dock = p && p.y + 10 >= 120 ? 'top' : 'bottom';
+        r.seen = { levels: f.levels, memos: f.memos, cats: f.cats, secrets: f.secrets, stars: f.stars, lv: f.lv, won: f.won, saved: f.saved };
+        r.at = +s.time || 0;
+        if (dr.first) { r.lvN = f.levels; r.lvAt = r.at; r.newN = f.levels + f.secrets + f.stars; r.newAt = r.at; }   // a file from before: measured from now on
+        if (dr.drift) r.warned = dr.base;   // said once; the next check says YOUR CALL
+        U.compassKeep();
+        return true;
+      }
+      function openCheck() { check(); CK.open = true; CK.t = 0; CK.ang = 0; CK.vel = 0; CK.want = 0; K.reopen('compass'); K.snd('open'); }
+      function closeCheck() { CK.open = false; K.snd('back'); }
+      // ---- the step: the first scene, then C ----
+      U.compassMap = function (dt) {
+        var r;
+        if (CK.open) {
+          CK.t += dt;
+          if (CK.t > 0.15 && (U.press('b') || U.press('c') || U.press('a') || U.press('start'))) closeCheck();
+          return true;
+        }
+        r = CP.rec(true);
+        if (r && !r.met && Q.SCRIPT['compass-meet']) {   // the first time this file opens the map: once (kept in the record at once, so it never plays twice)
+          r.met = 1; U.compassKeep();
+          CK.meet = { cue: '', at: now(), lineAt: now() };
+          Q.say('compass-meet', function () { CK.meet = null; }, function (i, line) { if (CK.meet) { if (line.cue) { CK.meet.cue = line.cue; CK.meet.at = now(); } CK.meet.lineAt = now(); } });
+          return true;
+        }
+        if (U.press('c')) { openCheck(); return true; }
+        return false;
+      };
+      // ---- the needle: a spring toward where it wants to be (a slow turn while it reads) ----
+      function needle(dt, want, reading) {
+        if (reading) { CK.ang += dt * 4.2; CK.vel = 4.2; return CK.ang; }
+        var d = turnTo(CK.ang, want);
+        CK.vel += (d * 90 - CK.vel * 11) * dt; CK.ang += CK.vel * dt;
+        return CK.ang;
+      }
+      // ---- drawing ----
+      function keycap(g, x, y) { U.box(g, x, y, 11, 11, '#d9a83a', '#2a2210'); U.text('C', x + 3, y + 2, '#ffe9a0'); }
+      function brackets(g, x, y, w, h, col) {
+        var a = 5;
+        U.fill(g, x, y, a, 1, col); U.fill(g, x, y, 1, a, col); U.fill(g, x + w - a, y, a, 1, col); U.fill(g, x + w - 1, y, 1, a, col);
+        U.fill(g, x, y + h - 1, a, 1, col); U.fill(g, x, y + h - a, 1, a, col); U.fill(g, x + w - a, y + h - 1, a, 1, col); U.fill(g, x + w - 1, y + h - a, 1, a, col);
+      }
+      function marker(g, p, t) {   // the spot it points at: yellow brackets round the stop (its chip or sign and its pad), blinking
+        if (!p || Math.floor(t * 3) % 3 === 2) return;
+        brackets(g, p.x - 21, p.y - 44, 42, 53, '#1d1d24'); brackets(g, p.x - 20, p.y - 45, 40, 53, '#ffd23f');
+      }
+      function corner(g, t) {   // the Compass in its corner and the C under it, or its first scene
+        var m = CK.meet, a = 0, k, by, p;
+        if (m) {
+          k = now() - m.at;
+          if (m.cue === 'box' || !m.cue) {   // a small box comes up and lands, marked THIS WAY UP
+            by = m.cue ? Math.min(CY + 6, -14 + k * 160) : -20;
+            if (m.cue && k > 0.25 && k < 0.4) by -= 2;
+            Q.spr(g, 'compass-box', 0, CX, Math.round(by));
+            return;
+          }
+          if (m.cue === 'open') {   // it opens; the Compass rises out of it, its needle turning: reading
+            if (k < 0.7) { g.globalAlpha = Q.clamp(1 - k / 0.7, 0, 1); Q.spr(g, 'compass-box', 1, CX, CY + 6 + Math.round(k * 10)); g.globalAlpha = 1; }
+            Q.art.compass(g, CX, CY + Math.max(0, Math.round(6 - k * 12)), now() * 2.6, 1);
+            return;
+          }
+          if (m.cue === 'point') { p = spot(CP.next(Q.SAVE).at); a = aim(CX + 7.5, CY + 9.5, p); marker(g, p, t); }
+          Q.art.compass(g, CX, CY, a + (m.cue === 'point' ? Math.sin(Math.max(0, 0.6 - k) * 18) * Math.max(0, 0.6 - k) * 0.5 : 0), 1);
+          return;
+        }
+        if (now() - CK.driftAt > 1) { CK.drift = CP.drifting(); CK.driftAt = now(); }   // looked at once a second
+        Q.art.compass(g, CX, CY, CK.drift ? Math.sin(now() * 9) * 0.45 : 0, 1);
+        if (!Q.talking()) keycap(g, CX + 2, CY + 21 + (Math.floor(t * 2) % 2));
+      }
+      function panel(g, t, dt) {
+        var L = CK.lines, rows = [], i, j, h, top, nx, p = spot(CK.next && CK.next.at);
+        rows.push(['MOVED', Q.wrap(L.moved, ROWW)], ['SLIPPED', Q.wrap(L.slipped, ROWW).slice(0, 2)], ['DRIFTED', Q.wrap(L.drifted, ROWW)]);
+        nx = Q.wrap('ONE THING NEXT  ' + L.next, NEXTW).slice(0, 2);
+        for (i = 0, j = 0; i < rows.length; i++) j += rows[i][1].length;
+        h = 19 + 3 + j * 10 + 3 + nx.length * 9 + 6 + 5;
+        top = CK.top = CK.dock === 'top' ? (TOP + h <= CHIP ? TOP : 1) : 197 - h;   // B28: a tall one goes over the HUD (all of it), so the chip it points at stays in sight
+        CK.h = h;
+        CK.want = aim(CPX + 15, top + 41, p);   // from the middle of its glass at twice its size
+        needle(dt, CK.want, CK.t < 0.7);
+        if (CK.t >= 0.7) marker(g, p, t);
+        K.window(g, PX, top, PW, h, 'COMPASS CHECK', 'compass', function (inner) {
+          var yy = inner.top + 3, n = 0;
+          U.text('B: CLOSE', PX + PW - 18, top + 5, K.C.muted, 1, 'right');
+          Q.art.compass(g, CPX, inner.top + 3, CK.ang, 2);
+          for (i = 0; i < rows.length; i++) {
+            if (CK.t < 0.12 + i * 0.13) break;   // the lines come in one at a time while it reads
+            U.text(rows[i][0], TX, yy, '#e8c46a');
+            for (j = 0; j < rows[i][1].length; j++) U.text(rows[i][1][j], VX, yy + j * 10, '#f6efe2');
+            yy += rows[i][1].length * 10; n++;
+          }
+          if (n === rows.length && CK.t >= 0.6) {
+            K.bar(g, TX - 4, yy + 5, RX - (TX - 4), { h: nx.length * 9 + 4 });
+            for (j = 0; j < nx.length; j++) {   // its label in brown on the bar, the answer in ink
+              if (j === 0 && nx[0].indexOf('ONE THING NEXT') === 0) { U.text('ONE THING NEXT', TX, yy + 5, '#7a4a12'); U.text(nx[0].slice(14), TX + 84, yy + 5, '#0b0c10'); }
+              else U.text(nx[j], TX, yy + 5 + j * 9, '#0b0c10');
+            }
+          }
+        }, { accent: '#d9a83a' });
+      }
+      var lastT = -1;
+      U.compassMapDraw = function (g, t, layer) {
+        var dt = lastT < 0 ? 0 : Q.clamp(now() - lastT, 0, 0.05);
+        if (layer === 0) { if (!CK.open) corner(g, t); return; }
+        lastT = now();
+        if (CK.open && CK.lines) panel(g, t, dt);
+      };
+      // ---- for checks (99-main.js cheat.compass): its state, and a few moves a check needs ----
+      U.compassCheat = function (what) {
+        var r = CP.rec(false), p = CK.next ? spot(CK.next.at) : null;
+        if (what === 'map') { Q.go('map'); return Q.scene; }
+        if (what === 'new') { Q.newGame(); Q.go('map'); return Q.scene; }
+        if (what === 'forget') { if (Q.SAVE) delete Q.SAVE.compass; CK.meet = null; return true; }
+        if (what === 'open') { if (Q.scene !== 'map' || CK.open || Q.talking()) return false; openCheck(); return true; }
+        if (what === 'close') { if (CK.open) closeCheck(); return true; }
+        return { scene: Q.scene, open: CK.open, t: Math.round(CK.t * 100) / 100, lines: CK.lines, next: CK.next, spot: p, dock: CK.dock, top: CK.top, bottom: CK.top === undefined ? null : CK.top + CK.h, glass: CK.top === undefined ? null : { x: CPX + 15, y: CK.top + 41 }, angle: Math.round(CK.ang * 1000) / 1000,
+          want: Math.round(CK.want * 1000) / 1000, meet: CK.meet ? CK.meet.cue : null, talk: U.talkAt ? U.talkAt() : null, rec: r ? JSON.parse(JSON.stringify(r)) : null,
+          drifting: CP.drifting(), stopAt: U.mapAt ? U.mapAt() : null, name: U.whoName('compass'), face: U.whoFace('compass') };
       };
     })();
     // ===== 74-ui-shop.js =====
@@ -16621,6 +17063,7 @@
       won: function () { var s = engSave(), k; s.won = true; for (k in Q.LEVEL) if (engOwn(Q.LEVEL, k) && Q.LEVEL[k].bonus && Q.LEVEL[k].world >= 1) s.flags['bonus-' + k] = true; Q.saveGame(); return Q.encoreOpen() && Q.rootOpen(); },
       encore: function () { if (!Q.encoreOpen()) engCheat.won(); return Q.encore(); },
       root: function () { if (!Q.rootOpen()) engCheat.won(); return Q.startLevel('root-1'); },
+      compass: function (what) { return Q.ui.compassCheat ? Q.ui.compassCheat(what) : false; },   // B24: THE COMPASS for checks (73-ui-map-compass-b.js): its state, or 'map', 'new', 'open', 'close', 'forget'
       mode: function (what, a, b) { return Q.modeCheat ? Q.modeCheat(what, a, b) : null; }   // version 125 (B27): GAME MODES' runs, for checks (97-modes.js)
     };
 

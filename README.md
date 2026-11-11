@@ -4,6 +4,8 @@ A small platforming RPG. SCOPE CREEP, a tangle of just one more thing, has wrapp
 
 **Play it:** https://michaelbegley.github.io/baton-quest/
 
+THE COMPASS, the newest on the ninth floor, waits in the corner of the map: press C there for a COMPASS CHECK (what moved, what slipped, what drifted, and the one thing next).
+
 It is in beta: things will keep changing, and your saves carry over every update.
 
 GAME MODES (on the main menu) has BATTLE: up to four conductors in one arena, last one standing: you and CPUs, up to four controllers on one screen, or friends online (one device hosts; friends join with its 6-letter code or its link; the host can remove anyone from the lobby). HIGH SCORE plays all 16 stages from the start on three tries, with combos up to X5 and a TOP 5 of three-letter names. SPEED RUN races one world, or all 16, on one clock, with splits against your best and a medal against par. Both keep their records in your browser beside your three files, and a run never changes a file.

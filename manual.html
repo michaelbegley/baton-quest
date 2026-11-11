@@ -460,6 +460,14 @@
       <p>A helpful voice in a speech bubble. Knows where everything is and how everything works, and will happily tell you. Press A to move a chat along, or set TEXT to FAST in the pause menu.</p>
     </div>
   </div>
+  <div class="cast">
+    <div class="pic small"><img data-px="compass" data-s="5" alt="The Compass, a brass pocket compass on three short feet"></div>
+    <div>
+      <h3>THE COMPASS</h3>
+      <p>The newest on the ninth floor, and above the facilitator: a brass pocket compass with no face, only a needle. The facilitator talks; the Compass points. Press C on the map for a COMPASS CHECK.</p>
+      <div class="stat">SAYS IT ONCE. THEN LETS YOU CHOOSE.</div>
+    </div>
+  </div>
 </section>
 
 <!-- 6: the cast, 2 -->
@@ -841,7 +849,7 @@
 <script>
 (function () {
   'use strict';
-  var SIZES = {"bigtoken":[12,12],"bug":[12,12],"c1-cheer":[16,20],"c1-trapped":[16,20],"c2-cheer":[16,20],"c2-trapped":[16,20],"c3-cheer":[16,20],"c3-trapped":[16,20],"cat":[16,12],"door":[16,24],"face-creep":[16,16],"facil":[12,12],"flag":[14,18],"heart":[8,8],"hero":[16,20],"hero-charge":[16,20],"hero-cheer":[16,20],"hero-dash":[16,20],"hero-gold":[16,20],"hero-hover":[16,20],"hero-jump":[16,20],"hero-pound":[16,20],"hero-run":[16,20],"hero-swing":[16,20],"ic-baton":[12,12],"ic-dash":[12,12],"ic-hover":[12,12],"ic-memofinder":[12,12],"ic-note":[12,12],"ic-pound":[12,12],"ic-walljump":[12,12],"invite":[16,16],"limiter":[16,16],"logo":[196,98],"memo":[8,10],"miss":[14,14],"mug":[16,16],"nice":[10,10],"note":[8,8],"ooo":[16,14],"ping":[12,12],"push":[12,12],"shot-battle":[320,200],"shot-map":[320,200],"shot-menu":[320,200],"shot-modes":[320,200],"shot-options":[320,200],"shot-title":[320,200],"shot-w1-1":[320,200],"shot-w2-1":[320,200],"shot-w3-1":[320,200],"shot-w4-1":[320,200],"sign":[16,16],"spam":[14,12],"spark":[10,10],"spinner":[14,14],"ticket":[14,12],"timeout":[14,14],"token":[8,8],"unsub":[14,16],"urgent":[14,12],"vend":[32,48]};
+  var SIZES = {"bigtoken":[12,12],"bug":[12,12],"c1-cheer":[16,20],"c1-trapped":[16,20],"c2-cheer":[16,20],"c2-trapped":[16,20],"c3-cheer":[16,20],"c3-trapped":[16,20],"cat":[16,12],"door":[16,24],"compass":[15,18],"face-creep":[16,16],"facil":[12,12],"flag":[14,18],"heart":[8,8],"hero":[16,20],"hero-charge":[16,20],"hero-cheer":[16,20],"hero-dash":[16,20],"hero-gold":[16,20],"hero-hover":[16,20],"hero-jump":[16,20],"hero-pound":[16,20],"hero-run":[16,20],"hero-swing":[16,20],"ic-baton":[12,12],"ic-dash":[12,12],"ic-hover":[12,12],"ic-memofinder":[12,12],"ic-note":[12,12],"ic-pound":[12,12],"ic-walljump":[12,12],"invite":[16,16],"limiter":[16,16],"logo":[196,98],"memo":[8,10],"miss":[14,14],"mug":[16,16],"nice":[10,10],"note":[8,8],"ooo":[16,14],"ping":[12,12],"push":[12,12],"shot-battle":[320,200],"shot-map":[320,200],"shot-menu":[320,200],"shot-modes":[320,200],"shot-options":[320,200],"shot-title":[320,200],"shot-w1-1":[320,200],"shot-w2-1":[320,200],"shot-w3-1":[320,200],"shot-w4-1":[320,200],"sign":[16,16],"spam":[14,12],"spark":[10,10],"spinner":[14,14],"ticket":[14,12],"timeout":[14,14],"token":[8,8],"unsub":[14,16],"urgent":[14,12],"vend":[32,48]};
   var root = document.documentElement, book = document.getElementById('book'), stage = document.getElementById('stage');
   var pages = [].slice.call(document.querySelectorAll('#pages > .page')), N = pages.length;
   var hint = document.getElementById('hint'), where = document.getElementById('where');

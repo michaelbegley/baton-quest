@@ -36,7 +36,7 @@
       hover: { name: 'PAUSE TO THINK', from: 'c2', how: 'HOLD A WHILE FALLING TO HOVER' },
       pound: { name: 'FIRM HAND', from: 'c3', how: 'IN THE AIR, DOWN AND B TO POUND' }
     };
-    Q.WHO = { hero: 'THE CONDUCTOR', c1: 'C1', c2: 'C2', c3: 'C3', facil: 'FACILITATOR', creep: 'SCOPE CREEP', vend: 'VEND-9', cat: 'THE CAT', none: '' };
+    Q.WHO = { hero: 'THE CONDUCTOR', c1: 'C1', c2: 'C2', c3: 'C3', facil: 'FACILITATOR', compass: 'THE COMPASS', creep: 'SCOPE CREEP', vend: 'VEND-9', cat: 'THE CAT', none: '' };
 
     // ---------- the registries (filled when the files load; read when the game starts) ----------
     Q.SPRITE = {}; Q.TILEDEF = { 0: {} }; Q.BG = {}; Q.ENEMY = {}; Q.LEVEL = {}; Q.WORLD = {}; Q.SCRIPT = {}; Q.MEMO = {}; Q.SFX = {}; Q.SONG = {}; Q.SCENE = {};
