@@ -1,0 +1,83 @@
+# Baton Quest playthrough, the rest (B32): keys pressed each frame after the story's routes end (tools/playthrough-routes.txt), in the same file,
+# run-length coded (l r u d a b s c; _ none), one segment a step: THE FOLLOW-UP in SPAM TOWER, THE ENCORE, THE ROOT FOLDER's five rooms
+== post
+a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1
+a1 _1 a1 _1 a1 _1 s1 _9 s1 _9 s1 _9 s1 _9 s1 _9 s1 _9 s1 _9 s1 _9 s1 _9
+s1 _9 s1 _9 s1 _9 s1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1
+a1 _1 a1 _1 a1 _1 a1 _1 a1 _3 s1 _9 s1 _9 s1 _9 s1 _9 s1 _9 a1 _9 a1 _9
+a1 _8
+== w1-1
+l1 _47 l1 _46 l1 _46 l1 _46 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1
+a1 _1 a1 _1 a1 _1 rc1 r88 ra22 r2 rc1 r21 ra22 r2 rc1 r36 ra2 rab1 ra19 r2 rc1 r37 ra22 r2
+rc1 r24 ra22 r2 rc1 r63 ra22 r2 rc1 r38 ra22 r2 rc1 r75 ra8 r10 rc1 r25 ra22 r2 rc1 r16 ra22 r2
+rc1 r73 ra22 r2 rc1 r90 rc1 ra13 r18 ra22 r2 rc1 r54 ra22 r6 ra22 r2 rc1 r16 ra22 r2 rc1 r108 ra22
+r2 rc1 r70 u1 _28
+== w1-2
+rc1 r44 ra8 r10 rc1 r25 ra22 r2 rc1 r30 ra1 rab1 ra20 r2 rc1 r128 ra22 r2 rc1 r76 ra1 rab1 ra6 r2
+rc1 r26 ra22 r2 rc1 r27 rc1 ra13 r34 ra14 r16 _5 ra6 rac1 ra15 r49 ra1 rab1 ra20 r2 rc1 r101 ra22 r2
+rc1 r80 rb1 r108 ra22 r2 rc1 r27 ra14 r10 rc1 r153 ra1 rab1 ra20 r2 rc1 r49 ra22 r2 rc1 r37 u1 _28
+== w1-3
+rc1 r48 ra14 rc1 r26 ra8 r2 rc1 r62 ra22 r2 rc1 r46 ra22 r2 rc1 r32 ra22 r2 rc1 r83 ra13 r1 ra1
+a10 l1 la1 a10 r1 ra1 a10 l1 la1 a10 r1 ra1 a10 l1 la1 a10 r1 ra1 a8 _1 a1 _1 a1 _1
+a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _79 s1 _20 u1 _10 u1 _10 a1 _10 r1 _10
+a1 _2
+== encore
+r1 _46 r1 _46 r1 _46 r1 _47 r1 _88 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1
+a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1
+a1 _1 a1 r29 _3 l4 _72 l16 r10 l8 r7 b1 r16 _2 l5 _94 l16 r10 l8 r7 b1 r16 _2 l5
+_88 l16 r10 l8 r7 b1 r16 _2 l5 _82 l16 r10 l8 r7 b1 r16 _2 l6 _75 l16 r10 l8 r7 b1
+r16 _78 l16 r10 l8 r7 b1 r15 _42 l16 r10 l8 r7 b1 r16 _2 l5 _26 l16 r10 l8 r18 _2 l19
+r11 l10 r9 b1 _93 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 rc1 r11 ra14 r10 rc1 r25 ra12 la6
+l8 la12 ra14 r11 _2 l5 r1 ra3 r9 l12 _2 r6 _100 l7 _2 r7 _2 l3 _92 ra1 r11 l14 _2 r7
+_2 l2 _94 la18 r13 _2 l7 _2 r2 _26 a5 _17 ra2 rac1 ra5 r6 l4 _4 l6 la1 l1 _1 ra1 _1
+r2 rc1 r4 l14 _2 r6 _5 b1 la18 r15 _2 l7 _2 r3 _106 ra1 r11 l14 _2 r7 _98 la18 r13 _2
+l7 _2 r2 _26 a5 _17 ra2 rac1 ra5 r6 l4 _4 l6 la1 l1 _1 ra1 _1 r2 rc1 r4 l14 _2 r6
+_5 b1 l12 _2 r6 _133 ra1 r11 l14 _2 r7 _98 la18 r13 la22 l8 _5 la8 l2 lc1 l20 ra1 r14 ra8
+r2 rc1 r34 b1 la22 l13 la8 l2 lc1 l20 ra3 r11 _2 l1 ra8 r2 rc1 r22 ra16 a2 _13 a5 _17 la22
+l2 lc1 l18 ra2 rac1 ra19 r20 b1 r7 _2 l7 _2 r2 _31 l7 _2 r7 _76 ra1 r11 l14 _2 r6 _86
+la18 r13 _2 l6 _53 ra1 r11 l14 _2 r7 _85 la18 r13 _2 l7 _9 a5 _17 ra2 rac1 ra5 r6 l4 _4
+l6 la1 l1 _1 ra1 _1 r2 rc1 r4 l14 _2 r6 _5 b1 l12 _2 r6 _69 a5 _17 ra2 rac1 ra5 r6
+l4 _4 l6 la1 l1 _1 ra1 _1 r2 rc1 r4 l14 _2 r6 _5 b1 la18 r15 _2 l7 _2 r3 _112 ra1
+r11 l14 _2 r7 _64 la18 r13 la22 l8 _5 la8 l2 lc1 l20 ra1 r14 ra8 r2 rc1 r34 b1 r7 _2 l6
+_85 la22 l2 lc1 l18 ra8 r10 rc1 r25 l30 ra22 r11 b1 _93 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1
+a1 lc1 r11 ra5 r7 l9 la18 ra4 r11 _2 l1 r1 l4 r1 l1 r1 l1 r1 l1 r1 l1 r1 l1 r1
+l1 r1 l1 r1 l1 r1 _179 b1 _40 b1 _32 b1 _32 b1 _32 b1 _592 b1 _40 b1 _32 b1 _32 b1
+_118 b1 _40 b1 _32 b1 _32 b1 _32 b1 _93 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 rc1 l11
+_1 l1 _7 r4 ra8 r27 _2 l6 _68 a1 _24 a11 _120 b1 _50 ra11 rab1 ra5 rbc1 r1 rbc1 r1 rbc1 r1
+rb1 r1 rb1 r1 rb1 rc1 rb1 r1 rb1 r1 rb1 r26 _2 l1 _2 l2 _1 l2 _10 b1 _19 b1 _19 b1
+_19 b1 _19 b1 _19 b1 _19 b1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1
+a1 _1 a1 r39 _2 l7 _103 a1 _24 a3 b1 _17 b1 _5 l89 _2 r12 _5 r5 _3 r1 _1 la14 l21
+_1 r6 _2 la2 _1 l19 _2 r11 _2 l7 _123 la8 l4 r4 rc1 r1 rc1 r1 rc1 r6 rc1 r3 ra3 rab1
+ra12 r10 rc1 r34 _2 l8 _5 l33 b1 l13 _5 l6 b1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1
+a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 l16 _2 r7 _2 l2
+_72 r1 b1 l1 r1 _12 b1 _19 b1 _19 b1 _19 b1 _19 b1 _19 b1 _94 a1 _1 a1 _1 a1 _1
+a1 _1 a1 _1 a1 _1 a1 _100 a1
+== root-1
+r1 _76 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1
+a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1
+a1 _1 a1 _1 a1 _1 a1 _1 a1 rc1 r82 ra22 r2 rc1 r27 ra14 r10 rc1 r25 ra22 r2 rc1 r122 rab1
+ra1 rab1 ra1 rab1 ra1 rab1 ra1 rab1 ra1 rbc1 r1 rb1 r4 rc1 r58 rab1 ra5 rac1 ra1 r45 ra4 rc1 _6 rc1
+l15 r7 ra2 rac1 ra5 r2 rb1 r10 _2 ra14 r21 ra14 r21 _12 l3 _5 ra22 r66 ra8 r8 _8 ra26 r38 ra3
+r22 rb1 r4 _5 l1 _19 l1 _19 l1 _19 l1 _19 l1 _2 a7 db1 _26 r44 ra1 rc1 ra1 rc1 ra2 rab1
+ra1 rab1 ra1 rbc1 r1 rb1 r1 rb1 r1 rb1 rc1 r41 ra5 r11 _6 u1 _28 a1 _1 a1 _1 a1 _1 a1
+_1 a1 _1 a1
+== root-2
+rc1 r27 ra14 r15 ra1 r3 _27 r3 ra20 r5 _3 l7 _175 r10 ra6 r34 ra2 r4 _2 l8 _30 a2 ra54 r20
+_2 l9 _38 r29 ra26 r4 _19 l1 r75 rb1 r5 ra14 r7 rb1 r2 rc1 r103 ra1 r15 _15 r18 ra22 r2 rc1
+r46 ra10 rac1 ra11 r49 _205 r4 ra20 r13 _3 l7 _103 r10 ra6 r31 _3 l7 _48 a2 ra54 r11 _2 l8 _5
+r98 u1 _28 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1
+== root-3
+rc1 r53 ra18 r10 _1 rc1 r34 _3 l7 _35 rc1 r46 _12 r8 _8 r7 _6 r1 _1 l18 ra17 r25 _1 r37
+_88 rc1 r11 _10 r5 _92 rc1 r11 _10 r6 _92 rc1 r11 _10 r5 _93 rc1 r11 _10 r6 _92 rc1 r11 _10
+r5 rc1 r11 _10 r45 ra14 r24 ra11 a2 la7 l2 _60 l31 _2 r1 rc1 r11 ra17 r30 rc1 r23 _1 r8 _28
+ra14 r18 _1 r7 ra20 r17 _2 l5 _1 rc1 r11 ra17 r22 _1 la11 l7 r134 u1 _28 a1 _1 a1 _1 a1
+_1 a1 _1 a1 _1 a1 _1 a1 _1 a1
+== root-4
+rc1 r45 ra1 rb1 r20 _3 r3 ra18 r8 ra1 r11 _22 r11 ra2 rac1 ra5 r14 ra1 rab1 ra9 r41 _6 a7 db1
+_32 r85 ra6 rac1 ra1 r16 rb1 r4 _2 r80 ra18 r8 ra1 r11 _22 r11 ra6 rac1 ra1 r17 rb1 r4 _2 r20
+ra1 rb1 r2 _21 r24 _5 l1 _2 l1 _2 r30 _5 l1 _5 l1 _2 r30 _6 a7 db1 _32 r99 ra14 r10
+rc1 r34 ra22 r2 rc1 r38 ra1 rab1 ra20 _17 l5 ra18 r8 ra1 r21 _12 r10 u1 _28
+== root-5   # 333 frames
+rc1 r70 ra22 r2 rc1 r24 ra3 r156 _2 l6 _3 u1 _2 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1
+_1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a2 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1
+_1 a1 _1 a1
