@@ -6755,13 +6755,15 @@
     // The corner: the Compass stands in the map's top left corner (as a compass rose sits in a map's corner), its needle up and still (sure), or wobbling once the
     // play time since anything new passes ten minutes (drift); under it a C key cap: the prompt. C opens the COMPASS CHECK: C on a keyboard (or L), C on the
     // handheld, the left or top button or a bumper on a controller (the map had no use for C: C is the dash, and nobody dashes on a map). B closes it (C, A or Start too).
-    // The check: B20's window (71-ui-menu.js) with brass brackets, docked at the top when the spot is low on the map, else at the bottom, so the spot stays in sight.
+    // The check: B20's window (71-ui-menu.js) with brass brackets, docked at the top when the spot is low on the map, else at the bottom, so the spot stays in sight
+    // (B28: docked at the top, a tall one rises over the HUD's band as far as it must to end above the low stops' chips, their numbers and ticks).
     // Its needle turns slowly (reading) while the four lines come in, then swings to the one thing next, and the spot blinks in yellow brackets. It saves only its record.
     (function () {
       var U = Q.ui, CP = U.cp, K = U.mk, CK = { open: false, t: 0, lines: null, next: null, dock: 'top', meet: null, ang: 0, want: 0, vel: 0, at0: 0, drift: false, driftAt: -9 };
       var CX = 4, CY = 20;   // the corner compass's top left (the glass's middle is 7, 9 from there)
       var TOP = 17, PX = 4, PW = 312, CPX = PX + 6, TX = PX + 46, VX = TX + 48, RX = PX + PW - 6;   // the check: under the HUD at the top, as wide as the map's bar;
       var ROWW = Math.floor((RX - VX + 1) / 6), NEXTW = Math.floor((RX - 4 - TX + 1) / 6);   // its compass, labels, words and right edge: 35 letters a line, 42 in the bar
+      var CHIP = 144 - 36 - 12 - 4;   // B28: a docked-top check ends by here, above the low stops' chips (73-ui-map-art.js: 32 by 24, centred 36 above a pad at 144; its tick from 93)
       function now() { return U.now(); }
       function spot(at) {   // a stop's place on the map (the middle of where one stands), or null
         var n = at === 'here' ? (U.mapAt ? U.mapAt().stop : 1) : at, p = n === null || n === undefined || !U.mapSpot ? null : U.mapSpot(n);
@@ -6851,7 +6853,7 @@
         nx = Q.wrap('ONE THING NEXT  ' + L.next, NEXTW).slice(0, 2);
         for (i = 0, j = 0; i < rows.length; i++) j += rows[i][1].length;
         h = 19 + 3 + j * 10 + 3 + nx.length * 9 + 6 + 5;
-        top = CK.top = CK.dock === 'top' ? TOP : 197 - h;
+        top = CK.top = CK.dock === 'top' ? Math.max(1, Math.min(TOP, CHIP - h)) : 197 - h;   // B28: a tall one rises over the HUD, so the chip it points at stays in sight
         CK.want = aim(CPX + 15, top + 41, p);   // from the middle of its glass at twice its size
         needle(dt, CK.want, CK.t < 0.7);
         if (CK.t >= 0.7) marker(g, p, t);
