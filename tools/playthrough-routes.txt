@@ -148,7 +148,7 @@ rc1 rab1 ra1 rab1 ra1 rab1 ra1 rab1 r8 rc1 r1 rb1 r17 ra22 r2 rc1 r36 ra22 r2 rc
 r1 _2 l20 _6 a7 db1 _31 ra2 rac1 ra5 r12 rc1 r13 rc1 r3 ra13 r21 ra22 r2 rc1 r21 ra22 r2 rc1
 r16 ra14 r4 rc1 r15 lc1 la13 l15 rc1 ra13 r9 la1 l11 _13 ra14 rc1 r23 ra22 r2 rc1 r27 ra11 r5 _31
 r6 ra22 r2 rc1 r24 ra22 r2 rc1 r108 u1 _28
-== w4-3   # 2522 frames
+== w4-3
 rc1 r11 ra8 r10 rc1 r25 ra14 r4 rc1 r11 rc1 r3 ra5 r30 la22 l19 la22 l2 lc1 l16 lc1 l3 la13 l9
 la1 lb1 l14 _9 ra1 rab1 ra20 r2 rc1 r25 rb1 r5 ra22 r2 rc1 r12 rb1 r10 la22 l2 lc1 l16 la8 l23
 la22 l2 lc1 l16 rc1 ra13 r10 ra22 r2 rc1 r9 rb1 r12 la5 l17 _7 la14 l45 ra4 a7 _60 l3 _60 ra22
@@ -160,3 +160,15 @@ _8 rc1 r3 ra13 r9 ra1 r11 _13 ra22 r2 rc1 r29 lc1 la13 l9 ra3 r19 _5 la14 l4 lc1
 la22 l2 lc1 l20 la6 ra5 r8 ra14 rac1 ra65 r19 rb1 r17 rb1 r9 ra6 la5 l8 la5 l1 r15 la22 l2 lc1
 l36 u1 _28 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1
 _1 a1 _1 a1 _1 a1
+== w4-boss   # 1786 frames
+rc1 l11 _1 l1 _7 r4 ra8 r27 _2 l6 _68 a1 _24 a11 _120 b1 _50 ra11 rab1 ra5 rbc1 r1 rbc1 r1
+rbc1 r1 rb1 r1 rb1 r1 rb1 rc1 rb1 r1 rb1 r1 rb1 r26 _2 l1 _2 l2 _1 l2 _10 b1 _19 b1
+_19 b1 _19 b1 _19 b1 _19 b1 _19 b1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1
+a1 _1 a1 _1 a1 r39 _2 l7 _103 a1 _24 a3 b1 _17 b1 _5 l89 _2 r12 _5 r5 _3 r1 _1
+la14 l21 _1 r6 _2 la2 _1 l19 _2 r11 _2 l7 _123 la8 l4 r4 rc1 r1 rc1 r1 rc1 r6 rc1 r3
+ra3 rab1 ra12 r10 rc1 r34 _2 l8 _5 l33 b1 l13 _5 l6 b1 _1 a1 _1 a1 _1 a1 _1 a1 _1
+a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 l16 _2 r7
+_2 l2 _72 r1 b1 l1 r1 _12 b1 _19 b1 _19 b1 _19 b1 _19 b1 _19 b1 _94 a1 _1 a1 _1
+a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1
+a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _114 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1
+a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1
