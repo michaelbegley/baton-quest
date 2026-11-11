@@ -155,6 +155,14 @@
       if (what === 'rec') return JSON.parse(JSON.stringify(mdRec()));
       if (what === 'door') { d = engSpots && engSpots.doors && engSpots.doors[0]; if (!d || !Q.P) return false; return engCheat.to(d.tx, d.ty); }
       if (what === 'stage') return mdOn() ? mdStageDone() : false;
+      if (what === 'hit') {   // the nearest enemy that a swing could beat, beaten (Q.damage, as a swing does): for a score check
+        var best = null, bd = 1e9, i, e, dd;
+        for (i = 0; i < Q.ents.length; i++) {
+          e = Q.ents[i]; if (!e || e.dead || !e.def || !Q.P || engOwn(ENG_READY, e.id) || e.def.boss || e.def.nohit || !(e.hp > 0)) continue;
+          dd = Math.abs(e.x - Q.P.x) + Math.abs(e.y - Q.P.y); if (dd < bd) { bd = dd; best = e; }
+        }
+        return best && Q.damage(best, 99, 'cheat') ? best.id : false;
+      }
       if (what === 'end') { if (mdOn()) mdEnd(); MD = null; return true; }
       if (what === 'go') return Q.go(a, b || {});
       return null;
