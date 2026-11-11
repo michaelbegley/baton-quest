@@ -16,6 +16,7 @@
         return M.c;
       }
       U.mapAt = function () { return { at: M.at, walk: M.walk, stop: STOPS[M.at].n, stops: count() }; };   // for checks: where he stands (stop 0 is the shop)
+      U.mapSpot = function (n) { for (var i = 0; i < STOPS.length; i++) if (STOPS[i].n === n) return { x: STOPS[i].x, y: STOPS[i].y, shown: i < count() }; return null; };   // B24: a stop's pad (THE COMPASS points at it)
       function route(a, b) {   // a trace from stop a to stop b: along, a 45 degree turn, along (or b's own way there)
         var dx = b.x - a.x, dy = b.y - a.y, d = Math.abs(dy), m = a.x + dx / 2;
         if (b.via) return [[a.x, a.y]].concat(b.via, [[b.x, b.y]]);
@@ -89,6 +90,7 @@
           U.mapKeep = false; U.lastWorld = 0; U.lastStop = '';
           M.at = Q.clamp(M.at | 0, 0, reach()); M.walk = false; M.fade = 0; M.going = 0; M.talker = '';
           partyStep(0, true);
+          if (U.compassReset) U.compassReset();   // B24: THE COMPASS's check starts closed (73-ui-map-compass-b.js)
           Q.music('map');
         },
         update: function (dt) {
@@ -109,6 +111,7 @@
             }
             return;
           }
+          if (U.compassMap && U.compassMap(dt)) return;   // B24: THE COMPASS: its first scene once a file, C for a COMPASS CHECK, and the check while it is open
           if (U.press('right') || U.held('right')) dir = 1; else if (U.press('left') || U.held('left')) dir = -1;
           if (dir > 0 && M.at + 1 <= reach()) { startWalk(M.at + 1); return; }
           if (dir < 0 && M.at > 0) { startWalk(M.at - 1); return; }
@@ -158,8 +161,10 @@
           Q.spr(g, U.hero(), fr, Math.round(pos[0]) - 8, Math.round(pos[1]) - 20, flip);
           Q.boss = null; Q.ui.hud(g, Q); Q.boss = b;
           drawInfo(g, t);
+          if (U.compassMapDraw) U.compassMapDraw(g, t, 0);   // B24: THE COMPASS in its corner, with its C
           if (M.going) { g.globalAlpha = Q.clamp(M.fade, 0, 1); U.fill(g, 0, 0, 320, 200, '#000000'); g.globalAlpha = 1; }
           U.drawTalk(g);
+          if (U.compassMapDraw) U.compassMapDraw(g, t, 1);   // B24: the COMPASS CHECK, over everything while it is open
         },
         sides: function (g) {   // a wide screen's sides (the engine clips to them): more board, the HUD's band carried across, and the same fade
           U.boardSides(g);
@@ -168,7 +173,7 @@
         }
       });
       function drawInfo(g, t) {   // the bar at the bottom: where he stands and what he can do there
-        if (Q.talking()) return;
+        if (Q.talking() || (U.compassIsOpen && U.compassIsOpen())) return;   // B24: the bar steps aside while the COMPASS CHECK is open
         var s = STOPS[M.walk ? M.to : M.at], st, hint, blurb = Q.story && Q.story.world && Q.story.world[s.n];
         U.box(g, 4, 160, 312, 37, '#2ec4b6', '#10151d');
         if (s.n === 0) {

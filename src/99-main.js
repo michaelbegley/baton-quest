@@ -134,7 +134,8 @@
       star: function (id) { return engStarWin(id); },
       won: function () { var s = engSave(), k; s.won = true; for (k in Q.LEVEL) if (engOwn(Q.LEVEL, k) && Q.LEVEL[k].bonus && Q.LEVEL[k].world >= 1) s.flags['bonus-' + k] = true; Q.saveGame(); return Q.encoreOpen() && Q.rootOpen(); },
       encore: function () { if (!Q.encoreOpen()) engCheat.won(); return Q.encore(); },
-      root: function () { if (!Q.rootOpen()) engCheat.won(); return Q.startLevel('root-1'); }
+      root: function () { if (!Q.rootOpen()) engCheat.won(); return Q.startLevel('root-1'); },
+      compass: function (what) { return Q.ui.compassCheat ? Q.ui.compassCheat(what) : false; }   // B24: THE COMPASS for checks (73-ui-map-compass-b.js): its state, or 'map', 'new', 'open', 'close', 'forget'
     };
 
     NFX.arcade.add({
