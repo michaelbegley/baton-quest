@@ -89,10 +89,13 @@
   $('savePaste').addEventListener('click', function () { $('pasteBox').hidden = false; $('pasteText').value = ''; $('pasteText').focus(); });
   $('pasteGo').addEventListener('click', function () { offer($('pasteText').value); });
   function drop() { pending = null; $('askBox').hidden = true; msg('NOTHING CHANGED.'); }
+  function modesOf(text) { var o = null; try { o = JSON.parse(text); } catch (e) { o = null; } return o && o.modes && typeof o.modes === 'object' && !Array.isArray(o.modes) ? o.modes : null; }
   function restore() {   // YES: the game saves where it is and closes, the backup goes in (what it replaces is kept), and the game opens again from it
     if (!pending) return '';
-    var A = window.NFX && window.NFX.arcade, old = read();
+    var A = window.NFX && window.NFX.arcade, old = read(), here;
     try { if (A) A.stop(); } catch (e) {}   // first the game saves where it is and closes, so it cannot write over the restored files
+    here = modesOf(read());   // version 125 (B27): GAME MODES' records belong to this browser; a restore keeps them as they are (a browser with none takes the backup's)
+    if (here) pending.modes = here;
     try { if (old) localStorage.setItem(BEFORE, old); localStorage.setItem(KEY, JSON.stringify(pending)); } catch (e) { msg('COULD NOT SAVE IN THIS BROWSER.'); return 'COULD NOT SAVE IN THIS BROWSER.'; }
     pending = null; $('askBox').hidden = true; $('pasteBox').hidden = true;
     try { if (A) A.open('quest'); } catch (e) {}

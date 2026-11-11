@@ -1,5 +1,6 @@
     // ---------- 59-engine-files.js (ENGINE, the director's, 2 Nov): three save files, like the old cartridges (QUEST-API 14.10 item 10) ----------
-    // The runtime keeps one stored thing per game (api.save, api.load). Version 116 stores a bundle in it: { files3: 1, cur: 0 to 2, files: [save or null x 3] }.
+    // The runtime keeps one stored thing per game (api.save, api.load). Version 116 stores a bundle in it: { files3: 1, cur: 0 to 2, files: [save or null x 3] }
+    // (version 125 adds modes, GAME MODES' records, kept and written by 97-modes.js; nothing here changes them).
     // A save from before (one plain save) becomes FILE 1 the first time it loads. Everyone else's Q.api.load() and Q.api.save() keep working: they read and
     // write the current file (engWrapApi in 99-main.js uses engFileLoad and engFileSave). Q.files() describes the three for the file screen (79-ui-files.js);
     // Q.useFile(n) makes FILE n current (its save becomes Q.SAVE); Q.eraseFile(n) empties one. Nothing here touches another game's storage.
@@ -10,6 +11,7 @@
       try { raw = engRaw && engRaw.load ? engRaw.load() : null; } catch (e) { raw = null; }
       if (raw && raw.files3 && raw.files && raw.files.length === 3) b = { files3: 1, cur: Q.clamp(raw.cur | 0, 0, 2), files: [raw.files[0] || null, raw.files[1] || null, raw.files[2] || null] };
       else b = { files3: 1, cur: 0, files: [raw && typeof raw === 'object' ? raw : null, null, null] };   // the one save from before version 116 is FILE 1
+      if (raw && raw.files3 && raw.modes && typeof raw.modes === 'object' && !Array.isArray(raw.modes)) b.modes = raw.modes;   // B27: GAME MODES' records ride along beside the files (97-modes.js)
       engFB = b; return b;
     }
     function engFilesStore() { try { if (engRaw && engRaw.save) engRaw.save(engFilesGet()); } catch (e) { return false; } return true; }

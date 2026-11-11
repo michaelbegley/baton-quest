@@ -1,6 +1,6 @@
     // ---------- 96-battle-menus.js: GAME MODES and BATTLE MODE's splash card (B16; BATTLE.md) ----------
-    // 'modes' (GAME MODES): BATTLE (live), HIGH SCORE and SPEED RUN (each in a light red COMING SOON ribbon whose ends fold behind the button; A on one plays
-    // 'nope' and says COMING SOON, nothing starts); B: the title. Its own scene, so a later main menu can open it with Q.go('modes').
+    // 'modes' (GAME MODES): BATTLE, HIGH SCORE and SPEED RUN (version 125, B27: all three live; a mode not in yet wears a light red COMING SOON ribbon whose
+    // ends fold behind the button, and A on it plays 'nope'); A opens a mode's own screen; B: the title. Its own scene, so a main menu can open it with Q.go('modes').
     // 'bsplash': the card when battle starts; A, START or a short wait: the players; B: GAME MODES. BT.S, the battle's setup, is kept only while the game
     // is open (never in the save: BATTLE MODE writes nothing the adventure keeps).
     BT.S = { slots: [{ on: true, who: 'human', pad: 1, col: 0, name: 0 }, { on: true, who: 'cpu', pad: 2, col: 1, name: 1 }, { on: true, who: 'cpu', pad: 3, col: 2, name: 2 }, { on: true, who: 'cpu', pad: 4, col: 3, name: 3 }],
@@ -44,10 +44,10 @@
     };
     (function () {
       var U = Q.ui, MO = { sel: 0, t: 0, soon: 0, soonAt: -1 };
-      var MODES = [
-        { id: 'battle', name: 'BATTLE', line: 'UP TO 4 CONDUCTORS, ONE ARENA', live: true },
-        { id: 'score', name: 'HIGH SCORE', line: 'A SCORE TO BEAT', live: false },
-        { id: 'speed', name: 'SPEED RUN', line: 'A RACE AGAINST THE CLOCK', live: false }
+      var MODES = [   // each mode's own screen (go); version 125 (B27): HIGH SCORE and SPEED RUN are in (97-modes-score.js, 97-modes-speed.js)
+        { id: 'battle', name: 'BATTLE', line: 'UP TO 4 CONDUCTORS, ONE ARENA', live: true, go: 'bsplash' },
+        { id: 'score', name: 'HIGH SCORE', line: 'POINTS AND COMBOS: A TOP 5', live: true, go: 'hscore' },   // each line 30 letters at most (182 px in its box)
+        { id: 'speed', name: 'SPEED RUN', line: 'A WORLD OR ALL 16 ON ONE CLOCK', live: true, go: 'srun' }
       ];
       var BX = 46, BW = 228, BH = 40, BY = [36, 84, 132];
       function icon(g, id, x, y, t) {
@@ -64,7 +64,7 @@
           if (k & B.down) { MO.sel = (MO.sel + 1) % MODES.length; Q.sfx('move'); }
           if (k & B.b) { Q.sfx('back'); Q.go('title'); return; }
           if (k & (B.a | B.start)) {
-            if (MODES[MO.sel].live) { Q.sfx('select'); Q.go('bsplash'); }
+            if (MODES[MO.sel].live) { Q.sfx('select'); Q.go(MODES[MO.sel].go || 'bsplash'); }
             else { Q.sfx('nope'); MO.soon = 1.4; MO.soonAt = MO.sel; }   // not yet: nothing starts
           }
         },

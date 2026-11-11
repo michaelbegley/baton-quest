@@ -134,7 +134,8 @@
       star: function (id) { return engStarWin(id); },
       won: function () { var s = engSave(), k; s.won = true; for (k in Q.LEVEL) if (engOwn(Q.LEVEL, k) && Q.LEVEL[k].bonus && Q.LEVEL[k].world >= 1) s.flags['bonus-' + k] = true; Q.saveGame(); return Q.encoreOpen() && Q.rootOpen(); },
       encore: function () { if (!Q.encoreOpen()) engCheat.won(); return Q.encore(); },
-      root: function () { if (!Q.rootOpen()) engCheat.won(); return Q.startLevel('root-1'); }
+      root: function () { if (!Q.rootOpen()) engCheat.won(); return Q.startLevel('root-1'); },
+      mode: function (what, a, b) { return Q.modeCheat ? Q.modeCheat(what, a, b) : null; }   // version 125 (B27): GAME MODES' runs, for checks (97-modes.js)
     };
 
     NFX.arcade.add({
