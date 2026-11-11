@@ -15763,7 +15763,7 @@
       if (Q.ui.cancel) Q.ui.cancel(); if (Q.ui.clearToasts) Q.ui.clearToasts();
       if (K.begin) K.begin(MD);
       if (!mdStage(0)) { mdEnd(); return false; }
-      if (K.go) Q.toast(K.go(MD), 1.8);
+      if (K.toast) Q.toast(K.toast(MD), 1.8);   // B29: the kinds name it toast (it was called as go, so it never showed)
       return true;
     }
     function mdStage(i) { MD.i = i; MD.at = -1; return Q.startLevel(MD.route.stages[i]); }
@@ -15853,6 +15853,11 @@
           dd = Math.abs(e.x - Q.P.x) + Math.abs(e.y - Q.P.y); if (dd < bd) { bd = dd; best = e; }
         }
         return best && Q.damage(best, 99, 'cheat') ? best.id : false;
+      }
+      if (what === 'ui') {   // B29: what the screens show, read only (each screen's own At), for checks
+        var u = Q.ui, f = function (fn) { return typeof fn === 'function' ? fn() : null; };
+        return { scene: Q.scene, toast: f(u.toastNow), talking: !!Q.talking(), modes: f(BT.modesAt), srun: f(u.srunAt), srec: f(u.srecAt), sres: f(u.sresAt),
+          hscore: f(u.hscoreAt), hres: f(u.hresAt) };
       }
       if (what === 'end') { if (mdOn()) mdEnd(); MD = null; return true; }
       if (what === 'go') return Q.go(a, b || {});
