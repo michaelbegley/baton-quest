@@ -1,0 +1,22 @@
+# SCOPE CREEP lines check (B31): keys held each frame after each run's setup (tools/creep_lines.js), run-length coded (l r u d a b s c; _ none)
+== adventure   # 1601 frames
+a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1
+a1 _1 a1 rc1 l11 _1 l1 _7 r4 ra8 r27 _2 l6 _68 a1 _24 a11 _171 ra22 r2 rc1 r36 la22 l17
+b1 _6 r1 l1 r1 l1 r5 l1 r1 l1 r1 l1 b1 r6 l1 ra14 r16 _5 l1 b1 _19 b1 _19 b1
+a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 r38 _2 l6 _101 a1
+_24 la8 l2 lc1 l52 _2 r6 _43 r6 _5 r1 _1 la14 l21 _2 r8 _16 lc1 la13 l21 r40 _2 l6 _62
+ra22 r2 rc1 r39 _2 l6 _2 l1 _1 ra14 r21 _2 l77 b1 l12 _2 r1 l1 r1 l1 r5 l1 b1 r6
+l1 ra14 r21 l1 b1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1
+_1 a1 _1 a1 _1 a1 _1 a1 _1 a1 _1 a1 l25 _2 r7 _72 b1 _19 b1 _19 b1 _19 b1 _19
+b1 _19 b1 _3
+== speed   # 1541 frames
+rc1 l11 _1 l1 _7 r4 ra8 r27 _2 l6 _68 a1 _24 a11 _171 ra22 r2 rc1 r36 la22 l17 b1 _6 r1
+l1 r1 l1 r5 l1 r1 l1 r1 l1 b1 r6 l1 ra14 r16 _5 l1 b1 _19 b1 _19 b1 r38 _2 l6
+_101 a1 _24 la8 l2 lc1 l52 _2 r6 _43 r6 _5 r1 _1 la14 l21 _2 r8 _16 lc1 la13 l21 r40 _2
+l6 _62 ra22 r2 rc1 r39 _2 l6 _2 l1 _1 ra14 r21 _2 l77 b1 l12 _2 r1 l1 r1 l1 r5 l1
+b1 r6 l1 ra14 r21 l1 b1 l25 _2 r7 _72 b1 _19 b1 _19 b1 _19 b1 _19 b1 _19 b1 _19 b1
+== score   # 1414 frames
+r30 _2 l6 _98 a1 _24 a11 _171 ra22 r34 la5 l13 r11 l1 b1 _19 b1 _19 b1 _19 b1 _19 b1 r38
+_2 l6 _110 a1 _24 a1 _24 la22 l58 _2 r14 _6 r6 _5 r6 _5 r5 _3 r4 _2 a1 _25 r6 _5
+r2 _140 a1 _24 ra5 r68 la1 l21 _3 b1 r6 l1 r1 l1 _3 l5 _2 b1 l9 _3 l5 _2 b1 l23
+_2 r6 _70 b1 _14 b1 _19 b1 _19 b1 _19 b1 _19 b1 _19 b1
