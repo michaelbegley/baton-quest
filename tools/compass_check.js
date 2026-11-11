@@ -103,7 +103,7 @@ function four(t, tag, c, e) { ['moved', 'slipped', 'drifted', 'next'].forEach((k
     four(t, 'D. ' + name, c, CL.EXPECT[name]);
     t.ok(c.next && c.next.at === at && settled(c, at), 'D. ' + name + ': the needle settles on stop ' + at + ': ' + c.angle + ' rad', { spot: c.spot, angle: c.angle, want: c.want });
     t.ok(c.dock === dock, 'D. ' + name + ': the panel docks at the ' + dock, c.dock);
-    if (dock === 'top') t.ok(c.bottom <= 92 && c.top === Math.max(1, Math.min(17, 92 - (c.bottom - c.top))), 'D. ' + name + ': docked at the top it ends by y 92, above the low stops\' chips (' + c.top + ' to ' + c.bottom + ')', [c.top, c.bottom]);
+    if (dock === 'top') t.ok(c.bottom <= 95 && c.top === (17 + (c.bottom - c.top) <= 92 ? 17 : 1), 'D. ' + name + ': docked at the top it ends above the low stops\' chips, under the HUD if it fits, else over it (' + c.top + ' to ' + c.bottom + ')', [c.top, c.bottom]);
     const corners = [[c.spot.x - 20, c.spot.y + 7], [c.spot.x + 19, c.spot.y + 7], [c.spot.x - 16, c.spot.y + 7], [c.spot.x + 15, c.spot.y + 7]];   // the brackets' bottom corners (marker(): 40 by 53 from spot.x - 20, spot.y - 45)
     let lit = 0;
     for (let k = 0; k < 12; k++) {

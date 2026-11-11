@@ -5,7 +5,7 @@
     // play time since anything new passes ten minutes (drift); under it a C key cap: the prompt. C opens the COMPASS CHECK: C on a keyboard (or L), C on the
     // handheld, the left or top button or a bumper on a controller (the map had no use for C: C is the dash, and nobody dashes on a map). B closes it (C, A or Start too).
     // The check: B20's window (71-ui-menu.js) with brass brackets, docked at the top when the spot is low on the map, else at the bottom, so the spot stays in sight
-    // (B28: docked at the top, a tall one rises over the HUD's band as far as it must to end above the low stops' chips, their numbers and ticks).
+    // (B28: docked at the top, one that would cover the low stops' chips, their numbers or ticks, sits over the HUD's band instead, from y 1).
     // Its needle turns slowly (reading) while the four lines come in, then swings to the one thing next, and the spot blinks in yellow brackets. It saves only its record.
     (function () {
       var U = Q.ui, CP = U.cp, K = U.mk, CK = { open: false, t: 0, lines: null, next: null, dock: 'top', meet: null, ang: 0, want: 0, vel: 0, at0: 0, drift: false, driftAt: -9 };
@@ -102,7 +102,7 @@
         nx = Q.wrap('ONE THING NEXT  ' + L.next, NEXTW).slice(0, 2);
         for (i = 0, j = 0; i < rows.length; i++) j += rows[i][1].length;
         h = 19 + 3 + j * 10 + 3 + nx.length * 9 + 6 + 5;
-        top = CK.top = CK.dock === 'top' ? Math.max(1, Math.min(TOP, CHIP - h)) : 197 - h;   // B28: a tall one rises over the HUD, so the chip it points at stays in sight
+        top = CK.top = CK.dock === 'top' ? (TOP + h <= CHIP ? TOP : 1) : 197 - h;   // B28: a tall one goes over the HUD (all of it), so the chip it points at stays in sight
         CK.h = h;
         CK.want = aim(CPX + 15, top + 41, p);   // from the middle of its glass at twice its size
         needle(dt, CK.want, CK.t < 0.7);
