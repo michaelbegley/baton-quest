@@ -112,7 +112,7 @@
           return;
         }
         if (R.n) for (i = 0; i < R.stages.length; i++) { U.text(U.mdLabel(R.stages[i]), x, y + i * 10, U.worldCol ? U.worldCol(R.n) : C.teal); U.text(U.mdFit(U.mdName(R.stages[i]), 20), x + 40, y + i * 10, C.help); }
-        else { U.text('ALL 16 STAGES, BACK TO BACK:', x, y, C.help); U.text('1-1 TO 4-BOSS. THE MOVES COME', x, y + 10, C.help); U.text('FROM THE BOSSES, AS IN THE STORY.', x, y + 20, C.help); }
+        else { m = Q.wrap('ALL 16 STAGES BACK TO BACK, 1-1 TO 4-BOSS. EACH AGENT HE SAVES TEACHES A MOVE, AS IN THE STORY.', 27); for (i = 0; i < m.length && i < 4; i++) U.text(m[i], x, y + i * 10, C.help); }   // B29: 27 letters a line fit the window (it ran past it)
         y = 95; U.fill(g, x, y - 4, r - x, 1, C.hi);
         U.text('PAR', x, y, C.muted); U.text(U.mss(R.par), r, y, C.cream, 1, 'right');
         for (i = 0; i < 3; i++) {
@@ -159,16 +159,16 @@
         U.text('SUM OF BEST SEGMENTS ' + (all && sob > 0 ? U.mdTime(sob) : '-'), 14, 84, all && sob > 0 ? '#ffd23f' : C.muted);
         U.text('PAR ' + U.mss(R.par), 306, 84, C.muted, 1, 'right');
         U.fill(g, 12, 93, 296, 1, C.hi);
-        if (two) { for (i = 0; i < 2; i++) { U.text('SPLIT', 106 + i * 148, 97, C.dim, 1, 'right'); U.text('BEST SEG', 154 + i * 148, 97, C.dim, 1, 'right'); } }
-        else { U.text('YOUR BEST RUN', 14, 97, C.dim); U.text('SPLIT', 206, 97, C.dim, 1, 'right'); U.text('SEGMENT', 256, 97, C.dim, 1, 'right'); U.text('BEST SEG', 306, 97, C.dim, 1, 'right'); }
+        if (two) { for (i = 0; i < 2; i++) { U.text('SPLIT', 100 + i * 148, 97, C.dim, 1, 'right'); U.text('BEST SEG', 154 + i * 148, 97, C.dim, 1, 'right'); } }   // B29: the columns spaced so the headers do not touch
+        else { U.text('YOUR BEST RUN', 14, 97, C.dim); U.text('SPLIT', 205, 97, C.dim, 1, 'right'); U.text('SEGMENT', 255, 97, C.dim, 1, 'right'); U.text('BEST', 306, 97, C.dim, 1, 'right'); }   // the best segment (gold): BEST SEG is wider than its column
         for (i = 0; i < n; i++) {
           x = two ? (i < 8 ? 14 : 162) : 14; y = 108 + (two ? i % 8 : i) * (two ? 8 : 12);
           seg = e.split[i] > 0 ? e.split[i] - (i ? e.split[i - 1] || 0 : 0) : 0; col = e.seg[i] > 0 && seg > 0 && Math.abs(seg - e.seg[i]) < 0.002 ? '#ffd23f' : C.cream;
           U.text(U.mdLabel(R.stages[i]), x, y, U.worldCol ? U.worldCol(Q.LEVEL[R.stages[i]] ? Q.LEVEL[R.stages[i]].world : 1) : C.teal);
-          if (two) { U.text(e.split[i] > 0 ? U.mdTime(e.split[i]) : '-', x + 92, y, C.cream, 1, 'right'); U.text(e.seg[i] > 0 ? U.mdTime(e.seg[i]) : '-', x + 140, y, '#ffd23f', 1, 'right'); continue; }
+          if (two) { U.text(e.split[i] > 0 ? U.mdTime(e.split[i]) : '-', x + 86, y, C.cream, 1, 'right'); U.text(e.seg[i] > 0 ? U.mdTime(e.seg[i]) : '-', x + 140, y, '#ffd23f', 1, 'right'); continue; }
           U.text(U.mdFit(U.mdName(R.stages[i]), 17), x + 40, y, C.help);
-          U.text(e.split[i] > 0 ? U.mdTime(e.split[i]) : '-', 206, y, C.cream, 1, 'right');
-          U.text(seg > 0 ? U.mdTime(seg) : '-', 256, y, col, 1, 'right');
+          U.text(e.split[i] > 0 ? U.mdTime(e.split[i]) : '-', 205, y, C.cream, 1, 'right');   // the name (17 letters, to 155), then three times 9 px apart
+          U.text(seg > 0 ? U.mdTime(seg) : '-', 255, y, col, 1, 'right');
           U.text(e.seg[i] > 0 ? U.mdTime(e.seg[i]) : '-', 306, y, '#ffd23f', 1, 'right');
         }
       }

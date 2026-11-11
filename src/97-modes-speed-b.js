@@ -60,7 +60,7 @@
             continue;
           }
           y = 51 + i * 24;
-          U.text(U.mdLabel(r.stages[i]), 148, y, C.help); U.text(U.mdFit(U.mdName(r.stages[i]), 20), 186, y, C.dim);
+          U.text(U.mdLabel(r.stages[i]), 148, y, C.help); U.text(U.mdFit(U.mdName(r.stages[i]), 20), 190, y, C.dim);   // B29: 4 px clear of 1-BOSS
           U.text(U.mdTime(r.split[i]), 262, y + 10, col, 1, 'right');
           if (pb) U.text(U.mdDelta(d), 308, y + 10, col, 1, 'right');
           else if (r.gold[i] && !r.first) U.text('BEST', 308, y + 10, col, 1, 'right');
