@@ -25,7 +25,7 @@ function seed(save, settings) {   // once per tab (a reload keeps what the game 
 const PAD = "(function(){var b=[],i;for(i=0;i<17;i++)b.push({pressed:false,touched:false,value:0});" +   // a stand-in controller 1, its buttons set by the check
   "window.__pad={id:'stand-in pad',index:0,connected:true,mapping:'standard',timestamp:0,axes:[0,0,0,0],buttons:b};" +
   "Object.defineProperty(navigator,'getGamepads',{configurable:true,value:function(){return [window.__pad,null,null,null];}});})();";
-async function open(name, o) { o = o || {}; return T.start({ name, init: { content: seed(o.save, o.settings) + (o.pad ? PAD : '') }, context: o.context }); }
+async function open(name, o) { o = o || {}; return T.start({ name, init: { content: seed(o.save, o.settings) + (o.pad ? PAD : '') }, context: o.context }); }   // o: save, settings, context, pad
 async function close(t) { const s = await t.state(); t.ok(!s.errors && s.warns === 0, t.name + ': no engine errors or warnings', { errors: s.errors, warns: s.warns }); await t.done(); pass += t.pass; fail += t.fail; }
 const info = (t) => t.cheat('compass', 'info');
 async function toMap(t) {   // from the boot splash or the title: A until the map is up (CONTINUE is the menu's first line when a save is stored)
@@ -91,16 +91,25 @@ function four(t, tag, c, e) { ['moved', 'slipped', 'drifted', 'next'].forEach((k
   await t.press('KeyX'); await t.wait(300);
   const at0 = (await info(t)).stopAt.at; await t.key('left', 120); await t.wait(1600);
   t.ok((await info(t)).stopAt.at === at0 - 1, 'C. left still walks the map', [at0, (await info(t)).stopAt]);
+  await t.cheat('save'); st = await stored(t);   // the positive control for the tokens check: the game's own save does store them, and the read sees it
+  t.ok(st.tokens === pre.tokens + 50 && diff(pre, st).indexOf('tokens') >= 0, 'C. control: the game\'s own save stores the 50 tokens, and the store read sees the change', [st.tokens, diff(pre, st)]);
   await close(t);
 
-  // D: FRESH and DONE
+  // D: FRESH and DONE (at 320, WIDESCREEN off, so the canvas's pixels are the map's own)
   for (const [name, at, dock] of [['FRESH', 1, 'top'], ['DONE', 4, 'bottom']]) {
-    t = await open('D ' + name, { save: CL.files[name]() });
+    t = await open('D ' + name, { save: CL.files[name](), settings: { wide: 'off' } });
     t.ok(await toMap(t), 'D. ' + name + ': the map'); await scene(t);
     await t.press('KeyC'); await t.wait(2000); c = await info(t);
     four(t, 'D. ' + name, c, CL.EXPECT[name]);
     t.ok(c.next && c.next.at === at && settled(c, at), 'D. ' + name + ': the needle settles on stop ' + at + ': ' + c.angle + ' rad', { spot: c.spot, angle: c.angle, want: c.want });
     t.ok(c.dock === dock, 'D. ' + name + ': the panel docks at the ' + dock, c.dock);
+    const corners = [[c.spot.x - 20, c.spot.y + 7], [c.spot.x + 19, c.spot.y + 7], [c.spot.x - 16, c.spot.y + 7], [c.spot.x + 15, c.spot.y + 7]];   // the brackets' bottom corners (marker(): 40 by 53 from spot.x - 20, spot.y - 45)
+    let lit = 0;
+    for (let k = 0; k < 12; k++) {
+      if (await t.eval((p) => { const g = document.getElementById('screen').getContext('2d'); return p.every((q) => { const d = g.getImageData(q[0], q[1], 1, 1).data; return d[0] === 255 && d[1] === 210 && d[2] === 63; }); }, corners)) lit++;
+      await t.wait(100);
+    }
+    t.ok(lit >= 3 && lit <= 11, 'D. ' + name + ': the spot blinks in yellow brackets (lit in ' + lit + ' of 12 frames)', lit);
     await t.press('KeyX'); await t.wait(300); t.ok(!(await info(t)).open, 'D. ' + name + ': B closes it');
     await close(t);
   }
