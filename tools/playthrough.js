@@ -46,8 +46,8 @@ function saved(G) {   // the file the game saved last (the store's bundle: its c
   return null;
 }
 function playRest(G, rest, f, onFrame) {   // the rest, in the same copy after the story: its segments' frames, the levels it is in, and its three ends
-  const R = { segs: [], levels: [], dj: null, encore: { from: null, fights: [], won: null }, root: { rooms: [], read: null, map: null }, f0: f };
-  let st = null, lastLv = '', stars0 = -1;
+  const R = { segs: [], levels: [], dj: null, kicks: 0, encore: { from: null, fights: [], won: null }, root: { rooms: [], read: null, map: null }, f0: f };
+  let st = null, lastLv = '', stars0 = -1, prev = null;
   for (const s of rest) {
     const seg = { name: s.name, from: f + 1, to: null, end: '' };
     for (const k of s.keys) {
@@ -56,7 +56,9 @@ function playRest(G, rest, f, onFrame) {   // the rest, in the same copy after t
       const here = st.screen === 'level' ? st.level : '';
       if (here && here !== lastLv) R.levels.push({ id: here, from: f, encore: !!st.encore, seg: s.name });
       if (here) { R.levels[R.levels.length - 1].to = f; lastLv = here; } else if (st.screen !== 'pause') lastLv = '';
-      if (!R.dj && (st.abilities || []).indexOf('doublejump') >= 0) R.dj = { f, level: here, moves: st.abilities.slice(), seg: s.name };
+      if (!R.dj && here === 'w1-3' && prev && !prev.ground && !st.ground && st.vy < -280 && Math.abs(st.vx) >= 130) R.kicks++;   // PUSHBACK's kick: up 300, away 150, in the air
+      if (!R.dj && (st.abilities || []).indexOf('doublejump') >= 0) R.dj = { f, level: here, moves: st.abilities.slice(), seg: s.name, kicks: R.kicks };
+      prev = st;
       if (st.encore && R.encore.from === null) R.encore.from = f;
       if (st.screen === 'encore' && R.encore.won === null) R.encore.won = f;
       if (here === 'root-5' && stars0 < 0) stars0 = st.stars;
@@ -96,9 +98,9 @@ function restLines(p, say) {   // the rest's checks, from play()'s rest; returns
   console.log('\nthe rest, in the same file from frame ' + (R.f0 + 1) + ':');
   for (const s of R.segs) console.log('     ' + s.name + ': ' + fr(s.from, s.to) + ', at its end: ' + s.end);
   const w13 = lv('w1-3').find((v) => R.dj && R.dj.f >= v.from && R.dj.f <= v.to), had = R.dj ? R.dj.moves.filter((m) => m !== 'doublejump') : [];
-  let ok = !!R.dj && !!w13 && had.indexOf('walljump') >= 0 && !!S.abilities && S.abilities.indexOf('doublejump') >= 0;
+  let ok = !!R.dj && !!w13 && had.indexOf('walljump') >= 0 && R.dj.kicks > 0 && !!S.abilities && S.abilities.indexOf('doublejump') >= 0;
   say(ok, '1 THE FOLLOW-UP: ' + (R.dj ? 'FOLLOW UP learned at frame ' + R.dj.f + ' in ' + (R.dj.level || 'NO LEVEL') + (w13 ? ' (in it from frame ' + w13.from + ', ' + w13.seg + ' segment)' : '') +
-    ', his moves before it [' + had.join(' ') + ']' : 'FOLLOW UP NOT LEARNED') + '; the saved file knows it: ' + (S.abilities && S.abilities.indexOf('doublejump') >= 0 ? 'yes' : 'NO'));
+    ' after ' + R.dj.kicks + ' wall kicks (PUSHBACK), his moves before it [' + had.join(' ') + ']' : 'FOLLOW UP NOT LEARNED') + '; the saved file knows it: ' + (S.abilities && S.abilities.indexOf('doublejump') >= 0 ? 'yes' : 'NO'));
   if (ok) ends++;
   const E = R.encore, order = E.fights.map((v) => v.id).join(' ');
   ok = E.from !== null && E.won !== null && order === ENCORE.join(' ') && S.encore > 0;
