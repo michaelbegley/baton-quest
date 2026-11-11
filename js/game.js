@@ -6707,6 +6707,11 @@
       var BOSS_STAR = { 1: 'c1', 2: 'c2', 3: 'c3', 4: 'shipped' };
       var STAR_AT = { 'clean-level': 2, 'clean-boss': 1, 'no-fall': 3, spam: 1, encore: 'encore', 'encore-clean': 'encore', bowtie: 0, coffee: 0, hold: null, all: null };
       function firstSentence(t) { var i = t.indexOf('. '); return i > 0 ? t.slice(0, i + 1) : t; }
+      function fitBar(t, name) {   // B28: a gold star's words for the bar (two lines of 42 after ONE THING NEXT): cut at the first comma, else its name, if too long
+        var i;
+        if (wrapN('ONE THING NEXT  GOLD STAR: ' + t, 42) > 2 && (i = t.indexOf(', ')) > 0) t = t.slice(0, i) + '.';
+        return wrapN('ONE THING NEXT  GOLD STAR: ' + t, 42) > 2 ? String(name || 'A GOLD STAR').toUpperCase() + '.' : t;
+      }
       CP.next = function (s) {   // { text, at }: at is a stop (1 to 4, 0 VEND-9's shop, 'encore', 'root'), 'here' (where he stands) or null (no spot: the needle stands up)
         var l = U.parLevels(), i, id, w, m, fl = s.flags || {}, ids, t, cat = catLevels(), k, o, secret = false;
         if (!s.won) {
@@ -6726,7 +6731,7 @@
         for (i = 0; i < ids.length; i++) {
           k = ids[i]; if (k === 'all' || U.starWon(k, s)) continue;
           t = U.starText(k); if (t.secret) { secret = true; continue; }
-          return { text: 'GOLD STAR: ' + firstSentence(t.how || t.name), at: CP.starAt(k, s, cat) };
+          return { text: 'GOLD STAR: ' + fitBar(firstSentence(t.how || t.name), t.name), at: CP.starAt(k, s, cat) };
         }
         if (secret) return { text: 'ONE SECRET STAR LEFT. THAT ONE IS YOURS TO FIND.', at: null };
         o = U.starWon('all', s) || !own(Q.STAR, 'all');
