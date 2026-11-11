@@ -109,7 +109,7 @@
         if (it === 'CONTINUE') return 'CARRY ON IN FILE ' + n;
         if (it === 'NEW GAME') return FE.has ? 'START OVER IN FILE ' + n : 'START FILE ' + n + ' FROM THE TOP';
         if (String(it).indexOf('FILE ') === 0) return 'THREE FILES, LIKE OLD CARTRIDGES';
-        if (it === 'GAME MODES') return FE.modes() ? 'BATTLE, AND MORE ON THE WAY' : 'COMING SOON';
+        if (it === 'GAME MODES') return FE.modes() ? 'BATTLE, HIGH SCORE, SPEED RUN' : 'COMING SOON';   // version 125 (B27): all three are in
         if (it === 'OPTIONS') return 'MUSIC, TEXT SPEED, THE CONTROLS';
         if (it === 'EXTRAS') return 'THE CODEX, GOLD STARS, CREDITS';
         return '';

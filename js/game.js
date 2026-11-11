@@ -4683,7 +4683,8 @@
     Q.on('fall', function (d) { if (engEnc) engEnc.hits += d.n | 0; });
     // ===== 59-engine-files.js =====
     // ---------- 59-engine-files.js (ENGINE, the director's, 2 Nov): three save files, like the old cartridges (QUEST-API 14.10 item 10) ----------
-    // The runtime keeps one stored thing per game (api.save, api.load). Version 116 stores a bundle in it: { files3: 1, cur: 0 to 2, files: [save or null x 3] }.
+    // The runtime keeps one stored thing per game (api.save, api.load). Version 116 stores a bundle in it: { files3: 1, cur: 0 to 2, files: [save or null x 3] }
+    // (version 125 adds modes, GAME MODES' records, kept and written by 97-modes.js; nothing here changes them).
     // A save from before (one plain save) becomes FILE 1 the first time it loads. Everyone else's Q.api.load() and Q.api.save() keep working: they read and
     // write the current file (engWrapApi in 99-main.js uses engFileLoad and engFileSave). Q.files() describes the three for the file screen (79-ui-files.js);
     // Q.useFile(n) makes FILE n current (its save becomes Q.SAVE); Q.eraseFile(n) empties one. Nothing here touches another game's storage.
@@ -4694,6 +4695,7 @@
       try { raw = engRaw && engRaw.load ? engRaw.load() : null; } catch (e) { raw = null; }
       if (raw && raw.files3 && raw.files && raw.files.length === 3) b = { files3: 1, cur: Q.clamp(raw.cur | 0, 0, 2), files: [raw.files[0] || null, raw.files[1] || null, raw.files[2] || null] };
       else b = { files3: 1, cur: 0, files: [raw && typeof raw === 'object' ? raw : null, null, null] };   // the one save from before version 116 is FILE 1
+      if (raw && raw.files3 && raw.modes && typeof raw.modes === 'object' && !Array.isArray(raw.modes)) b.modes = raw.modes;   // B27: GAME MODES' records ride along beside the files (97-modes.js)
       engFB = b; return b;
     }
     function engFilesStore() { try { if (engRaw && engRaw.save) engRaw.save(engFilesGet()); } catch (e) { return false; } return true; }
@@ -6043,7 +6045,7 @@
         if (it === 'CONTINUE') return 'CARRY ON IN FILE ' + n;
         if (it === 'NEW GAME') return FE.has ? 'START OVER IN FILE ' + n : 'START FILE ' + n + ' FROM THE TOP';
         if (String(it).indexOf('FILE ') === 0) return 'THREE FILES, LIKE OLD CARTRIDGES';
-        if (it === 'GAME MODES') return FE.modes() ? 'BATTLE, AND MORE ON THE WAY' : 'COMING SOON';
+        if (it === 'GAME MODES') return FE.modes() ? 'BATTLE, HIGH SCORE, SPEED RUN' : 'COMING SOON';   // version 125 (B27): all three are in
         if (it === 'OPTIONS') return 'MUSIC, TEXT SPEED, THE CONTROLS';
         if (it === 'EXTRAS') return 'THE CODEX, GOLD STARS, CREDITS';
         return '';
@@ -14980,8 +14982,8 @@
     })();
     // ===== 96-battle-menus.js =====
     // ---------- 96-battle-menus.js: GAME MODES and BATTLE MODE's splash card (B16; BATTLE.md) ----------
-    // 'modes' (GAME MODES): BATTLE (live), HIGH SCORE and SPEED RUN (each in a light red COMING SOON ribbon whose ends fold behind the button; A on one plays
-    // 'nope' and says COMING SOON, nothing starts); B: the title. Its own scene, so a later main menu can open it with Q.go('modes').
+    // 'modes' (GAME MODES): BATTLE, HIGH SCORE and SPEED RUN (version 125, B27: all three live; a mode not in yet wears a light red COMING SOON ribbon whose
+    // ends fold behind the button, and A on it plays 'nope'); A opens a mode's own screen; B: the title. Its own scene, so a main menu can open it with Q.go('modes').
     // 'bsplash': the card when battle starts; A, START or a short wait: the players; B: GAME MODES. BT.S, the battle's setup, is kept only while the game
     // is open (never in the save: BATTLE MODE writes nothing the adventure keeps).
     BT.S = { slots: [{ on: true, who: 'human', pad: 1, col: 0, name: 0 }, { on: true, who: 'cpu', pad: 2, col: 1, name: 1 }, { on: true, who: 'cpu', pad: 3, col: 2, name: 2 }, { on: true, who: 'cpu', pad: 4, col: 3, name: 3 }],
@@ -15025,10 +15027,10 @@
     };
     (function () {
       var U = Q.ui, MO = { sel: 0, t: 0, soon: 0, soonAt: -1 };
-      var MODES = [
-        { id: 'battle', name: 'BATTLE', line: 'UP TO 4 CONDUCTORS, ONE ARENA', live: true },
-        { id: 'score', name: 'HIGH SCORE', line: 'A SCORE TO BEAT', live: false },
-        { id: 'speed', name: 'SPEED RUN', line: 'A RACE AGAINST THE CLOCK', live: false }
+      var MODES = [   // each mode's own screen (go); version 125 (B27): HIGH SCORE and SPEED RUN are in (97-modes-score.js, 97-modes-speed.js)
+        { id: 'battle', name: 'BATTLE', line: 'UP TO 4 CONDUCTORS, ONE ARENA', live: true, go: 'bsplash' },
+        { id: 'score', name: 'HIGH SCORE', line: 'POINTS AND COMBOS: A TOP 5', live: true, go: 'hscore' },   // each line 30 letters at most (182 px in its box)
+        { id: 'speed', name: 'SPEED RUN', line: 'A WORLD OR ALL 16 ON ONE CLOCK', live: true, go: 'srun' }
       ];
       var BX = 46, BW = 228, BH = 40, BY = [36, 84, 132];
       function icon(g, id, x, y, t) {
@@ -15045,7 +15047,7 @@
           if (k & B.down) { MO.sel = (MO.sel + 1) % MODES.length; Q.sfx('move'); }
           if (k & B.b) { Q.sfx('back'); Q.go('title'); return; }
           if (k & (B.a | B.start)) {
-            if (MODES[MO.sel].live) { Q.sfx('select'); Q.go('bsplash'); }
+            if (MODES[MO.sel].live) { Q.sfx('select'); Q.go(MODES[MO.sel].go || 'bsplash'); }
             else { Q.sfx('nope'); MO.soon = 1.4; MO.soonAt = MO.sel; }   // not yet: nothing starts
           }
         },
@@ -15686,6 +15688,801 @@
       d0 = sc.draw; sc.padLatched = true;
       sc.draw = function (g, Qx) { BT.padLatch(); return d0.call(sc, g, Qx); };
     });
+    // ===== 97-modes.js =====
+    // ---------- 97-modes.js (B27 GAME MODES, 11 Nov): SPEED RUN and HIGH SCORE's engine: their records, the sandbox a run plays in, and its flow ----------
+    // A run replays the adventure's own levels as they are, under rules the run sets when it starts and puts back when it ends:
+    //  - a save of its own: Q.SAVE is the run's (a new conductor with the LV and moves its route gives, the mode's own seed so every run meets the same
+    //    level, every gold star marked so none is won, the player's settings with the stopwatch off); the file's save is put back, untouched, at the end;
+    //  - nothing is written while it runs: Q.api.save (so Q.saveGame) and the runtime's own save do nothing until it ends, so the three files and their
+    //    play time stay byte for byte as they were (the stopwatch does not run either); only mdStore writes, and only the records;
+    //  - no story talk (engQuiet), a coffee mug is a CHECKPOINT (it saves nothing), and the run's own pause (mpause) and game over (the kind's over).
+    // The records live in the stored bundle beside the files, as bundle.modes (59-engine-files.js carries them; js/saves.js keeps this browser's on a
+    // restore). A run belongs to one opening of the game (MD.raw): closed and opened again, it is gone and its hooks do nothing.
+    // The run's clock counts what a level's own clock counts (58-engine-sprint.js), step by step: a level step with no text box while the level's clock
+    // runs. So the pause, a text box, a door's fade and a beaten boss's moment stop it; falls, game overs and secret rooms do not. Research and sources:
+    // the scratchpad's b27/RESEARCH.md. The kinds (97-modes-speed.js, 97-modes-score.js) give the routes, the scoring, the results and the records' shape.
+    var MD = null, MD_KIND = {}, MD_SEED = 125, mdRecB = null, mdRecO = null;
+    function mdOn() { return !!MD && !!engRaw && MD.raw === engRaw; }   // a run of this opening of the game
+    function mdNum(v) { v = +v; return v > 0 && isFinite(v) ? Math.round(v * 1000) / 1000 : 0; }
+    function mdNums(a, n) { var out = [], i; for (i = 0; i < (n === undefined ? (Array.isArray(a) ? Math.min(a.length, 64) : 0) : n); i++) out.push(Array.isArray(a) ? mdNum(a[i]) : 0); return out; }
+    function mdName(s) { s = String(s || '').toUpperCase(); return /^[A-Z]{3}$/.test(s) ? s : 'AAA'; }   // three letters, A to Z
+
+    // ---------- the records: { v, speed: { route: { best, split, seg, medal, runs } }, score: { top: [{ n, s, at, clear }], last, runs } } ----------
+    function mdRecFix(r) {   // the records made whole: anything odd is dropped, never guessed; a key it does not know is kept as it is
+      var out = {}, k, sp, sc, e, i, t;
+      if (r && typeof r === 'object' && !Array.isArray(r)) for (k in r) if (engOwn(r, k)) out[k] = r[k];
+      out.v = 1; sp = out.speed && typeof out.speed === 'object' && !Array.isArray(out.speed) ? out.speed : {}; out.speed = {};
+      for (k in sp) if (engOwn(sp, k) && sp[k] && typeof sp[k] === 'object') {
+        e = sp[k]; out.speed[k] = { best: mdNum(e.best), split: mdNums(e.split), seg: mdNums(e.seg), medal: [1, 2, 3].indexOf(e.medal) >= 0 ? e.medal : 0, runs: Math.max(0, e.runs | 0) };   // B29: an odd medal is none (it was clamped, so 9 read as GOLD)
+      }
+      sc = out.score && typeof out.score === 'object' && !Array.isArray(out.score) ? out.score : {}; t = [];
+      if (Array.isArray(sc.top)) for (i = 0; i < sc.top.length && t.length < 5; i++) {
+        e = sc.top[i]; if (!e || typeof e !== 'object' || !(e.s >= 0)) continue;
+        t.push({ n: mdName(e.n), s: Math.min(9999999, Math.floor(+e.s)), at: String(e.at || '').toUpperCase().slice(0, 8), clear: e.clear ? 1 : 0 });
+      }
+      t.sort(function (a, b) { return b.s - a.s; });
+      out.score = { top: t, last: mdName(sc.last), runs: Math.max(0, sc.runs | 0) };
+      return out;
+    }
+    function mdRec() {   // the records, read once for each start of the game from the bundle; a browser with none has empty ones, stored only once a run is recorded
+      var b = engFilesGet();
+      if (mdRecB !== b) { mdRecB = b; mdRecO = mdRecFix(b.modes); if (b.modes) b.modes = mdRecO; }
+      return mdRecO;
+    }
+    function mdStore() {   // the records into the stored bundle: read fresh, only its modes set, written with the runtime's own save (the files are not touched)
+      var rec = mdRec(), b = engFilesGet(), raw = null, out, save = MD && MD.raw === engRaw ? MD.rawSave0 : engRaw && engRaw.save;
+      b.modes = rec;   // the bundle in memory carries them too, so the adventure's next save keeps them
+      if (!engRaw || typeof engRaw.load !== 'function' || typeof save !== 'function') return false;
+      try { raw = engRaw.load(); } catch (e) { raw = null; }
+      if (raw && raw.files3 && raw.files && raw.files.length === 3) out = raw;
+      else out = { files3: 1, cur: b.cur, files: [raw && typeof raw === 'object' ? raw : null, null, null] };   // nothing stored yet, or one save from before version 116 (as FILE 1, as it was)
+      out.modes = rec;
+      try { save.call(engRaw, out); } catch (e2) { return false; }
+      return true;
+    }
+
+    // ---------- the sandbox ----------
+    function mdKitSave(kit, kind) {   // the run's own save: a new conductor at the route's LV (engFix gives the hearts and power that XP earns, as the story does) with its moves
+      var s = engFresh(), id, opt = Q.SAVE && Q.SAVE.opt;
+      s.seed = MD_SEED; s.lv = 1; s.xp = Q.LV[Q.clamp((kit.lv | 0) - 1, 0, Q.LV.length - 1)] || 0;
+      s = engFix(s); s.hp = s.maxHp;
+      s.abilities = (kit.moves || []).slice();
+      for (id in Q.STAR) if (engOwn(Q.STAR, id)) s.stars[id] = true;   // no gold star is won in a run (its toast would say one was)
+      try { s.opt = opt && typeof opt === 'object' ? JSON.parse(JSON.stringify(opt)) : {}; } catch (e) { s.opt = {}; }
+      s.opt.watch = 'off'; s.mode = kind;   // the player's settings (text speed, music), with the stopwatch plate off: the run has its own clock
+      return s;
+    }
+    function mdStart(kind, routeId) {   // a new run from its first stage (false: no such kind or route)
+      var K = engOwn(MD_KIND, kind) ? MD_KIND[kind] : null, R = K && K.route ? K.route(routeId) : null;
+      if (!K || !R || !R.stages || !R.stages.length || !engRaw || !Q.api) return false;
+      if (mdOn()) mdEnd(); else MD = null;
+      MD = { raw: engRaw, kind: kind, K: K, route: R, i: 0, t: 0, split: [], live: true, at: -1, st: {}, save0: Q.SAVE, apiSave0: Q.api.save, rawSave0: engRaw.save };
+      Q.api.save = function () { return true; };   // the files' save does nothing while the run plays (so Q.saveGame, a coffee mug, a closing game save nothing)
+      engRaw.save = function () {};   // nor anything straight to the store (the stopwatch's swKeep, a setting): only mdStore writes, the records alone
+      Q.SAVE = mdKitSave(R.kit || {}, kind); Q.rand = engSeed('quest'); engCheatPhysics(); engQuiet = true;
+      if (Q.ui.cancel) Q.ui.cancel(); if (Q.ui.clearToasts) Q.ui.clearToasts();
+      if (K.begin) K.begin(MD);
+      if (!mdStage(0)) { mdEnd(); return false; }
+      if (K.toast) Q.toast(K.toast(MD), 1.8);   // B29: the kinds name it toast (it was called as go, so it never showed)
+      return true;
+    }
+    function mdStage(i) { MD.i = i; MD.at = -1; return Q.startLevel(MD.route.stages[i]); }
+    function mdStageDone() {   // a stage's door, or its boss beaten (after the arena's moment): its split, then the next stage or the end
+      var i = MD.i;
+      if (!MD.live || MD.at === i) return true;
+      MD.at = i; MD.split[i] = MD.t;
+      if (MD.K.stage) MD.K.stage(MD, i);
+      if (i + 1 < MD.route.stages.length) return mdStage(i + 1);
+      return mdFinish('clear');
+    }
+    function mdFinish(how) {   // the run is over ('clear': every stage done; 'over': its last try spent): the kind's results and records, stored, then out of the sandbox
+      var K = MD.K, res;
+      MD.live = false;
+      res = K.finish ? K.finish(MD, how) || {} : {};
+      mdStore(); mdEnd();
+      if (!Q.go(K.results, { r: res })) Q.go('modes');
+      return true;
+    }
+    function mdEnd() {   // out of the sandbox: everything the run set is put back, and the file's save is Q.SAVE again, as it was
+      var R = MD;
+      MD = null;
+      if (!R || R.raw !== engRaw) return;   // a run from an earlier opening: the game has started again since, and nothing of it is left
+      engLeaveLevel();   // the run's level closes while its own save is still Q.SAVE (its hearts go there, not to the file)
+      Q.api.save = R.apiSave0; engRaw.save = R.rawSave0;
+      Q.SAVE = R.save0; engQuiet = false; engCheatPhysics(); Q.rand = engSeed('quest');
+      if (Q.ui.cancel) Q.ui.cancel(); if (Q.ui.clearToasts) Q.ui.clearToasts();
+    }
+    function mdOver(opts) {   // the run's game over: the kind says end (HIGH SCORE's last try) or go on: the engine's retry, at the last checkpoint with full hearts
+      var retry = opts && typeof opts.retry === 'function' ? opts.retry : null;
+      if (MD.K.over && MD.K.over(MD) === 'end') return mdFinish('over');
+      if (retry) retry(); else mdStage(MD.i);
+      return true;
+    }
+
+    // ---------- the hooks: each does what it did before unless a run of this opening is on ----------
+    var mdGo0 = Q.go, mdDone0 = Q.levelDone, mdWatch0 = Q.watchStep, mdToast0 = Q.toast, mdStartLevel0 = Q.startLevel;
+    Q.go = function (id, opts) {
+      if (mdOn() && MD.live && Q.scene === 'level') {
+        if (id === 'pause') id = 'mpause';   // the run's own pause (97-modes-hud.js): RESUME, RESTART, QUIT
+        else if (id === 'over') return mdOver(opts);
+      }
+      return mdGo0.call(this, id, opts);
+    };
+    Q.levelDone = function () {
+      var lv = Q.level;
+      if (!mdOn()) return mdDone0.apply(this, arguments);
+      if (!lv) return false;
+      if (lv.bonus) return engLeaveBonus();   // a secret room's E: back to its door, as in the adventure
+      return mdStageDone();
+    };
+    Q.watchStep = function (scene) {   // the engine's step loop: in a run, the run's clock instead of the file's play time
+      if (!mdOn()) return mdWatch0 ? mdWatch0.apply(this, arguments) : undefined;
+      engQuiet = true;
+      if (MD.live && scene === 'level' && Q.level && !Q.talking() && !engClk.stop) MD.t = Math.round((MD.t + Q.DT) * 3600) / 3600;   // whole steps, as the stopwatch keeps them
+      if (MD.K.step) MD.K.step(MD, scene);
+    };
+    Q.toast = function (text, secs) { if (mdOn() && text === 'GAME SAVED') text = 'CHECKPOINT'; return mdToast0.call(this, text, secs); };   // a mug in a run saves nothing
+    Q.startLevel = function (id, opts) {
+      var r = mdStartLevel0.apply(this, arguments);
+      if (r && mdOn() && MD.live && Q.level && Q.level.id === id && MD.K.load) MD.K.load(MD, id, opts || {});
+      return r;
+    };
+
+    // ---------- for the screens and the kinds ----------
+    Q.mode = {
+      kind: function (id, def) { MD_KIND[id] = def; return def; },
+      start: mdStart, on: mdOn, rec: mdRec, store: mdStore, name: mdName,
+      run: function () { return mdOn() ? MD : null; },
+      quit: function () { if (mdOn()) mdEnd(); MD = null; return Q.go('modes'); },   // the pause's QUIT: nothing of the run is kept
+      restart: function () { var k = mdOn() ? MD.kind : '', r = mdOn() ? MD.route.id : ''; if (!k) return false; mdEnd(); return mdStart(k, r); },
+      route: function (kind, id) { var K = engOwn(MD_KIND, kind) ? MD_KIND[kind] : null; return K && K.route ? K.route(id) : null; },
+      clockNow: function () { return mdOn() ? MD.t : 0; }
+    };
+    Q.modeCheat = function (what, a, b) {   // for checks only (99-main.js's cheat 'mode'): a run started, its state, the records, the door, a stage done at once
+      var d;
+      if (what === 'start') return mdStart(a, b);
+      if (what === 'state') return mdOn() ? { on: MD.kind, route: MD.route.id, i: MD.i, n: MD.route.stages.length, stage: MD.route.stages[MD.i], t: MD.t, live: MD.live,
+        split: MD.split.slice(), sandbox: Q.SAVE !== MD.save0, st: MD.K.state ? MD.K.state(MD) : null } : { on: '' };
+      if (what === 'rec') return JSON.parse(JSON.stringify(mdRec()));
+      if (what === 'door') { d = engSpots && engSpots.doors && engSpots.doors[0]; if (!d || !Q.P) return false; return engCheat.to(d.tx, d.ty); }
+      if (what === 'stage') return mdOn() ? mdStageDone() : false;
+      if (what === 'hit') {   // the nearest enemy that a swing could beat, beaten (Q.damage, as a swing does): for a score check
+        var best = null, bd = 1e9, i, e, dd;
+        for (i = 0; i < Q.ents.length; i++) {
+          e = Q.ents[i]; if (!e || e.dead || !e.def || !Q.P || engOwn(ENG_READY, e.id) || e.def.boss || e.def.nohit || !(e.hp > 0)) continue;
+          dd = Math.abs(e.x - Q.P.x) + Math.abs(e.y - Q.P.y); if (dd < bd) { bd = dd; best = e; }
+        }
+        return best && Q.damage(best, 99, 'cheat') ? best.id : false;
+      }
+      if (what === 'hurt') { if (!Q.P) return false; Q.P.hurtT = 0; return Q.hurt(a || 1); }   // B29: a heart lost, as an enemy's touch costs one (the combo's reset), for checks
+      if (what === 'ui') {   // B29: what the screens show, read only (each screen's own At), for checks
+        var u = Q.ui, f = function (fn) { return typeof fn === 'function' ? fn() : null; };
+        return { scene: Q.scene, toast: f(u.toastNow), talking: !!Q.talking(), modes: f(BT.modesAt), srun: f(u.srunAt), srec: f(u.srecAt), sres: f(u.sresAt),
+          hscore: f(u.hscoreAt), hres: f(u.hresAt), title: f(u.titleAt), files: f(u.filesAt), players: f(BT.playersAt), arena: f(BT.arenaAt), fight: f(BT.fightAt) };
+      }
+      if (what === 'end') { if (mdOn()) mdEnd(); MD = null; return true; }
+      if (what === 'go') return Q.go(a, b || {});
+      return null;
+    };
+    // ===== 97-modes-hud.js =====
+    // ---------- 97-modes-hud.js (B27 GAME MODES, 11 Nov): what a run shows: its plate over the level, its own pause, and the small kit its screens share ----------
+    // The plate: the bottom right of the screen (any width), drawn after the HUD so a text box covers it. SPEED RUN: the stage (1-2  2/4) over the run's
+    // clock (m:ss.c, twice the size), and for 3 s after a split its difference from the best run's (green ahead, red behind, gold for a best segment).
+    // HIGH SCORE: the multiplier, the combo's progress to the next and the tries left, over the score (seven figures, twice the size); a gain floats above.
+    // 'mpause' (a run's START): the level under a veil, RESUME, RESTART and QUIT (both ask first; QUIT keeps nothing of the run), and the run so far.
+    // Screens share: U.mdTime, U.mdDelta, U.mdScore, U.mdLabel, U.mdMedal, U.mdBack (the battle menus' night sky and header) and U.mdSides (a wide screen).
+    (function () {
+      var U = Q.ui, MDM = { col: ['#3c4160', '#c77b3a', '#c9d3e3', '#ffd23f'], hi: ['#5d6378', '#f3b17a', '#ffffff', '#fff3c4'], name: ['NO MEDAL', 'BRONZE', 'SILVER', 'GOLD'] }, warned = false;
+      U.mdTime = function (secs, tenths) {   // m:ss.cc (tenths: m:ss.c); from an hour, h:mm:ss.cc. Cut, not rounded, as a stopwatch reads
+        var c = Math.floor(Math.max(0, +secs || 0) * 100 + 1e-6), h = Math.floor(c / 360000), m = Math.floor(c / 6000) % 60, s = Math.floor(c / 100) % 60, f = c % 100;
+        return (h ? h + ':' + (m < 10 ? '0' : '') : '') + m + ':' + (s < 10 ? '0' : '') + s + (tenths ? '.' + Math.floor(f / 10) : '.' + (f < 10 ? '0' : '') + f);
+      };
+      U.mdDelta = function (d) {   // a split against the best: -1.23 ahead, +0.85 behind; from a minute, m:ss.cc
+        var a = Math.abs(+d || 0), c = Math.floor(a * 100 + 1e-6), sg = d < 0 ? '-' : '+';
+        return c < 6000 ? sg + Math.floor(c / 100) + '.' + (c % 100 < 10 ? '0' : '') + (c % 100) : sg + U.mdTime(a);
+      };
+      U.mdScore = function (n) { var s = String(Math.max(0, Math.min(9999999, Math.floor(+n || 0)))); while (s.length < 7) s = '0' + s; return s; };
+      U.mdLabel = function (id) {   // a stage's number: 1-2, or 1-BOSS
+        var L = engOwn(Q.LEVEL, id) ? Q.LEVEL[id] : null, w = L ? Q.WORLD[L.world] : null, i;
+        if (!L) return String(id || '').toUpperCase();
+        if (L.boss || (w && w.boss === id)) return L.world + '-BOSS';
+        i = w && w.levels ? w.levels.indexOf(id) : -1;
+        return L.world + '-' + (i >= 0 ? i + 1 : '?');
+      };
+      U.mdName = function (id) { var L = engOwn(Q.LEVEL, id) ? Q.LEVEL[id] : null; return L && L.name ? String(L.name).toUpperCase() : String(id || '').toUpperCase(); };
+      U.mdFit = function (s, n) { var l; s = String(s || ''); if (s.length <= n) return s; l = Q.wrap(s, n); return l.length && l[0].length <= n ? l[0] : s.slice(0, n); };   // whole words in n letters
+      U.mdMedalName = function (m) { return MDM.name[m | 0] || ''; };
+      U.mdMedalCol = function (m) { return MDM.col[m | 0] || MDM.col[0]; };
+      U.mdMedal = function (g, x, y, m) {   // a 9 by 11 medal: its ribbon (red and blue), then the disc in its metal with a shine; none: a dim empty one
+        var r = [3, 5, 7, 7, 7, 5, 3], i, c = MDM.col[m | 0] || MDM.col[0];
+        U.fill(g, x + 1, y, 3, 3, '#0b0c10'); U.fill(g, x + 5, y, 3, 3, '#0b0c10');
+        U.fill(g, x + 2, y, 1, 3, m ? '#e0443a' : '#2a2c3a'); U.fill(g, x + 6, y, 1, 3, m ? '#2f7de1' : '#2a2c3a');
+        for (i = 0; i < 7; i++) U.fill(g, x + ((9 - r[i]) >> 1) - 1, y + 3 + i, r[i] + 2, 1, '#0b0c10');
+        U.fill(g, x + 3, y + 2, 3, 1, '#0b0c10'); U.fill(g, x + 3, y + 10, 3, 1, '#0b0c10');
+        for (i = 0; i < 7; i++) U.fill(g, x + ((9 - r[i]) >> 1), y + 3 + i, r[i], 1, c);
+        if (m) { U.fill(g, x + 3, y + 4, 2, 1, MDM.hi[m]); U.fill(g, x + 2, y + 5, 1, 2, MDM.hi[m]); }
+      };
+      U.mdBack = function (g, t, title) { BT.backdrop(g, t); if (title) BT.head(g, title); };   // GAME MODES' own night sky, its header in big letters
+      U.mdSides = function (g) {   // a wide screen's sides: the same sky and stars, the kit's foot band carried out
+        var C = U.mk.C;
+        BT.sides(g); U.fill(g, 0, 179, Q.W, 15, C.foot); U.fill(g, 0, 179, Q.W, 1, C.hi); U.fill(g, 0, 194, Q.W, 6, BT.SKY[BT.SKY.length - 1]);
+      };
+      U.mdChoices = function (g, x, y, w, list, sel) {   // a row of choices, the picked one on the kit's yellow bar (as the kit's questions draw theirs)
+        var K = U.mk, cw = Math.floor(w / list.length), i;
+        if (sel >= 0) K.bar(g, x + sel * cw + 3, y, cw - 6);
+        for (i = 0; i < list.length; i++) U.item(list[i], x + i * cw + (cw >> 1), y, i === sel, false, 'center', 1, 'bar');
+      };
+
+      // ---------- the plate ----------
+      function box(g, x, y, w, h, edge) { U.fill(g, x, y, w, h, edge || '#3a3d52'); U.fill(g, x + 1, y + 1, w - 2, h - 2, '#121318'); }
+      function speedPlate(g, R) {
+        var tm = U.mdTime(R.t, true), lab = U.mdLabel(R.route.stages[R.i]) + '  ' + (R.i + 1) + '/' + R.route.stages.length, d = R.st.delta, now = U.now();
+        var w = Math.max(U.width(tm, 2), U.width(lab)) + 8, h = 29, x = Q.W - 2 - w, y = 198 - h, dw;
+        box(g, x, y, w, h);
+        U.text(lab, x + 4, y + 3, '#8f9ac8'); U.text(tm, x + 4, y + 12, R.live ? '#e8f0ff' : '#ffd23f', 2);
+        if (d && now - d.at < 3) {   // the split just taken, on a tab above the plate
+          dw = U.width(d.s) + 8; box(g, Q.W - 2 - dw, y - 10, dw, 11, d.col);
+          U.text(d.s, Q.W - 2 - dw + 4, y - 8, d.col);
+        }
+      }
+      function scorePlate(g, R) {
+        var S = R.st, sc = U.mdScore(S.score), mul = 'X' + S.mult, w = U.width(sc, 2) + 8, h = 29, x = Q.W - 2 - w, y = 198 - h, i, pip = S.combo % 5, tr = 'TRIES ' + S.tries, gw;
+        box(g, x, y, w, h, S.mult > 1 ? '#c99a12' : '#3a3d52');
+        U.text(mul, x + 4, y + 3, S.mult > 1 ? '#ffd23f' : '#8f9ac8');
+        for (i = 0; i < 4; i++) U.fill(g, x + 6 + U.width(mul) + i * 5, y + 5, 3, 3, S.mult >= 5 ? '#ffd23f' : i < pip ? '#2ec4b6' : '#2a2c3a');   // kills toward the next multiplier
+        U.text(tr, x + w - 4, y + 3, '#c3c7d4', 1, 'right');
+        U.text(sc, x + 4, y + 12, '#e8f0ff', 2);
+        if (S.gain && U.now() - S.gain.at < 0.9) { gw = U.width('+' + S.gain.n); U.text('+' + S.gain.n, Q.W - 4 - gw, y - 9 - Math.round((U.now() - S.gain.at) * 6), '#ffd23f'); }
+      }
+      var hud0 = Q.ui.hud;
+      Q.ui.hud = function (g) {   // the HUD as it was, then a run's plate
+        var r = hud0.apply(this, arguments), R = Q.mode && Q.mode.run();
+        if (R) { try { if (R.kind === 'speed') speedPlate(g, R); else scorePlate(g, R); } catch (e) { if (!warned) { warned = true; Q.warn('modes plate: ' + e); } } }
+        return r;
+      };
+
+      // ---------- the run's pause ----------
+      var MP = { sel: 0, ask: '', askSel: 0 }, LIST = ['RESUME', 'RESTART', 'QUIT'];
+      var HELP = { RESUME: 'BACK TO THE RUN', RESTART: 'FROM THE FIRST STAGE AGAIN', QUIT: 'TO GAME MODES. NOT RECORDED' };
+      function resume() { U.mk.snd('back'); U.later(function () { Q.go('level', { resume: true }); }); }   // next frame: the level never sees this press
+      Q.defScene('mpause', {
+        wide: true,
+        enter: function () { U.entered(); MP.sel = 0; MP.ask = ''; U.mk.snd('open'); },
+        update: function () {
+          var R = Q.mode.run();
+          if (U.runLater()) return;
+          if (!R) { Q.go('modes'); return; }   // nothing to go back to
+          if (MP.ask) {
+            if (U.press('left') || U.press('right') || U.press('up') || U.press('down')) { MP.askSel = 1 - MP.askSel; U.mk.snd('move'); }
+            if (U.press('b')) { MP.ask = ''; U.mk.snd('back'); return; }
+            if (U.press('a') || U.press('start')) {
+              if (!MP.askSel) { MP.ask = ''; U.mk.snd('back'); return; }
+              U.mk.snd('pick');
+              if (MP.ask === 'RESTART') U.later(function () { Q.mode.restart(); }); else Q.mode.quit();
+              MP.ask = '';
+            }
+            return;
+          }
+          if (U.press('start') || U.press('b')) { resume(); return; }
+          MP.sel = U.menuMove(MP.sel, LIST.length);
+          if (U.press('a')) { if (MP.sel === 0) resume(); else { MP.ask = LIST[MP.sel]; MP.askSel = 0; U.mk.snd('open'); } }
+        },
+        draw: function (g) {
+          var C = U.mk.C;
+          U.under(g, 'level');
+          U.fill(g, 0, 0, Q.W, 27, C.foot); U.fill(g, 0, 27, Q.W, 1, C.hi); U.fill(g, 0, 179, Q.W, 21, C.foot); U.fill(g, 0, 179, Q.W, 1, C.hi);
+          Q.col(g, menu);
+        }
+      });
+      function menu(g) {   // the kit's windows in the centred column: the menu at the left, the run so far at the right
+        var K = U.mk, C = K.C, R = Q.mode.run(), rows = [], i, info, y;
+        if (!R) return;
+        for (i = 0; i < LIST.length; i++) rows.push({ label: LIST[i] });
+        U.text('PAUSED', 160, 7, C.cream, 2, 'center');
+        K.window(g, 2, 30, 118, 21 + LIST.length * 12 + 2, 'MENU', 'mpause-menu', function () { K.list(g, 2, 49, 118, rows, MP.ask ? -1 : MP.sel, 'mpause-menu', { row: 12, pad: 12, right: 7 }); });
+        info = R.K.info ? R.K.info(R) : { title: '', rows: [] };
+        K.window(g, 123, 30, 195, 146, info.title, 'mpause-info', function () {
+          for (i = 0; i < info.rows.length && i < 13; i++) {
+            y = 49 + i * 10;
+            if (info.rows[i][0]) U.text(info.rows[i][0], 129, y, C.muted);
+            if (info.rows[i][1]) U.text(info.rows[i][1], 312, y, info.rows[i][2] || C.cream, 1, 'right');
+          }
+        }, { noLight: true });
+        K.foot(g, MP.ask ? '' : HELP[LIST[MP.sel]], MP.ask ? 'A: CHOOSE  B: NO' : 'A: CHOOSE  B: BACK');
+        if (MP.ask === 'RESTART') K.ask(g, 'mpause-ask', 'RESTART', ['START THIS RUN AGAIN?', 'THE CLOCK GOES BACK TO 0.'], ['NO', 'YES'], MP.askSel);
+        else if (MP.ask) K.ask(g, 'mpause-ask', 'QUIT', ['QUIT THIS RUN?', 'IT WILL NOT BE RECORDED.'], ['NO', 'YES'], MP.askSel, { danger: true });
+      }
+    })();
+    // ===== 97-modes-score.js =====
+    // ---------- 97-modes-score.js (B27 GAME MODES, 11 Nov): HIGH SCORE: its rules, its start screen ('hscore') and its TOP 5 ('htop') ----------
+    // One run through the 16 stages from 1-1, a new conductor (LV 1, no moves; he learns them from the bosses, as in the story), three tries: a game over
+    // spends one and goes back to the last checkpoint with full hearts; the last one ends the run. Points (97-modes.js keeps the run, this file the score):
+    //   an enemy the level's map places: 100 x its XP (1 at least); the ones chutes and bosses keep making score nothing (no farming);
+    //   a token 10, a memo 500; the combo: every enemy beaten without getting hurt adds one, every 5 raise the multiplier (x2 at 5, up to x5 at 20) on
+    //   enemies, tokens and memos; a hurt or a fall puts it back to x1, and so does a game over;
+    //   each stage cleared 1000, and 50 for every whole second its own clock is under the stage's par (Mario's 50 a second, against our par);
+    //   a boss 1000 x its XP; all 16 cleared: 10000 for each try left. Seven figures at most.
+    // The table: the five best runs, each { n: three letters, s: score, at: the stage it ended in or CLEAR, clear }; a run with points goes in under any
+    // equal score with the last initials used, and the results screen lets them be changed (97-modes-score-b.js). Only an ended run is recorded.
+    (function () {
+      var U = Q.ui, TRIES = 3;
+      function route(id) { return id === 'all' ? { id: 'all', name: 'HIGH SCORE', title: 'ALL 16 STAGES', stages: U.parLevels(0), kit: { lv: 1, moves: [] } } : null; }
+      function mult(c) { return Math.min(5, 1 + Math.floor(c / 5)); }
+      function live() { var R = Q.mode.run(); return R && R.live && R.kind === 'score' ? R : null; }
+      function add(R, part, n) { var S = R.st; n = Math.max(0, Math.floor(n)); if (!n) return; S.score = Math.min(9999999, S.score + n); S.parts[part] = (S.parts[part] || 0) + n; S.gain = { n: n, at: U.now() }; }
+      function insert(top, e) { var i = 0; while (i < top.length && top[i].s >= e.s) i++; if (i >= 5) return -1; top.splice(i, 0, e); if (top.length > 5) top.length = 5; return i; }
+      U.mdScoreTop = function () { return Q.mode.rec().score; };
+
+      Q.mode.kind('score', {
+        results: 'hres', route: route,
+        begin: function (R) { R.st = { score: 0, combo: 0, mult: 1, top: 0, kills: 0, tries: TRIES, left: {}, parts: { kill: 0, token: 0, memo: 0, clear: 0, time: 0, boss: 0, tries: 0 }, gain: null }; },
+        toast: function () { return 'HIGH SCORE: THREE TRIES. GO!'; },
+        load: function (R, id) {   // a stage (or a secret room, or a retry) loads: the enemies its map places, by kind, are the ones that score
+          var left = {}, i, p, put = engSpots && engSpots.put ? engSpots.put : [];
+          for (i = 0; i < put.length; i++) { p = put[i]; if (p && p.enemy) left[p.enemy] = (left[p.enemy] || 0) + 1; }
+          R.st.left[id] = left;
+        },
+        stage: function (R, i) {   // a stage cleared: 1000, and 50 a second under its par on its own clock
+          var id = R.route.stages[i], par = U.par(id), t = engClk.t;
+          add(R, 'clear', 1000);
+          if (par > 0 && t < par) add(R, 'time', Math.floor(par - t) * 50);
+        },
+        over: function (R) {
+          var S = R.st;
+          S.tries--; S.combo = 0; S.mult = 1;
+          if (S.tries <= 0) return 'end';
+          Q.toast(S.tries === 1 ? 'LAST TRY. THE COMBO STARTS AGAIN.' : S.tries + ' TRIES LEFT. THE COMBO STARTS AGAIN.', 2.2);
+          return '';
+        },
+        finish: function (R, how) {
+          var S = R.st, rec = Q.mode.rec().score, clear = how === 'clear', e, rank = -1, k, parts = {};
+          if (clear && S.tries > 0) add(R, 'tries', S.tries * 10000);
+          rec.runs++;
+          e = { n: rec.last, s: S.score, at: clear ? 'CLEAR' : U.mdLabel(R.route.stages[R.i]), clear: clear ? 1 : 0 };
+          if (S.score > 0) rank = insert(rec.top, e);
+          for (k in S.parts) if (engOwn(S.parts, k)) parts[k] = S.parts[k];
+          return { score: S.score, parts: parts, clear: clear, at: e.at, rank: rank, combo: S.top, kills: S.kills, tries: S.tries, name: rec.last, stage: R.i + 1, n: R.route.stages.length };
+        },
+        info: function (R) {
+          var S = R.st, rec = Q.mode.rec().score, rows = [];
+          rows.push(['STAGE', (R.i + 1) + '/' + R.route.stages.length + '  ' + U.mdLabel(R.route.stages[R.i])]);
+          rows.push(['', U.mdFit(U.mdName(R.route.stages[R.i]), 30), '#c3c7d4']);
+          rows.push(['SCORE', U.mdScore(S.score), '#ffffff']);
+          rows.push(['MULTIPLIER', 'X' + S.mult, S.mult > 1 ? '#ffd23f' : null]);
+          rows.push(['COMBO', S.combo + (S.top ? '  (BEST ' + S.top + ')' : '')]);
+          rows.push(['TRIES LEFT', String(S.tries)]);
+          rows.push(['ENEMIES BEATEN', String(S.kills)]);
+          rows.push(['TOP SCORE', rec.top.length ? rec.top[0].n + ' ' + U.mdScore(rec.top[0].s) : 'NONE YET']);
+          return { title: 'HIGH SCORE', rows: rows };
+        },
+        state: function (R) { var S = R.st; return { score: S.score, combo: S.combo, mult: S.mult, tries: S.tries, kills: S.kills, parts: S.parts, left: S.left[Q.level ? Q.level.id : ''] || null }; }
+      });
+      Q.on('kill', function (d) {   // an enemy beaten: points only for one its map placed (so many of each kind), with the combo
+        var R = live(), lv = Q.level, left, def, S;
+        if (!R || !lv || !d) return;
+        left = R.st.left[lv.id];
+        if (!left || !(left[d.id] > 0)) return;
+        left[d.id]--; S = R.st;
+        S.combo++; S.kills++; S.mult = mult(S.combo); if (S.combo > S.top) S.top = S.combo;
+        def = engOwn(Q.ENEMY, d.id) ? Q.ENEMY[d.id] : null;
+        add(R, 'kill', 100 * Math.max(1, def && def.xp > 0 ? def.xp | 0 : 1) * S.mult);
+      });
+      Q.on('pickup', function (d) { var R = live(); if (R && d && d.n > 0) add(R, 'token', 10 * d.n * R.st.mult); });   // a heart is n 0: no points
+      Q.on('memo', function () { var R = live(); if (R) add(R, 'memo', 500 * R.st.mult); });
+      function hit(d) { var R = live(); if (R && d && (d.n | 0) > 0) { R.st.combo = 0; R.st.mult = 1; } }
+      Q.on('hurt', hit); Q.on('fall', hit);
+      Q.on('boss', function (d) { var R = live(), def = d && engOwn(Q.ENEMY, d.id) ? Q.ENEMY[d.id] : null; if (R) add(R, 'boss', 1000 * (def && def.xp > 0 ? def.xp | 0 : 10)); });
+
+      // ---------- 'hscore': START and TOP 5 at the left, the rules at the right ----------
+      var HS = { sel: 0, t: 0 }, ROWS = ['START', 'TOP 5'], HELP = { START: 'ALL 16 STAGES, THREE TRIES', 'TOP 5': 'THE FIVE BEST RUNS' };
+      var RULES = [['ENEMY', '100 X ITS XP'], ['TOKEN', '10'], ['MEMO', '500'], ['STAGE CLEARED', '1000'], ['UNDER PAR', '50 A SECOND'], ['BOSS', '1000 X ITS XP'],
+        ['TRY LEFT AT THE END', '10000']];
+      U.hscoreAt = function () { return { sel: HS.sel, row: ROWS[HS.sel] }; };   // for checks
+      Q.defScene('hscore', {
+        enter: function (o) { U.entered(); U.cancel(); U.clearToasts(); HS.t = 0; if (o && o.sel >= 0) HS.sel = Q.clamp(o.sel | 0, 0, ROWS.length - 1); Q.music('title'); },
+        update: function (dt) {
+          HS.t += dt;
+          if (U.runLater()) return;
+          if (U.press('b')) { U.mk.snd('back'); Q.go('modes'); return; }
+          HS.sel = U.menuMove(HS.sel, ROWS.length);
+          if (U.press('a') || U.press('start')) {
+            U.mk.snd('pick');
+            if (ROWS[HS.sel] === 'TOP 5') { Q.go('htop'); return; }
+            U.later(function () { if (!Q.mode.start('score', 'all')) Q.go('hscore'); });   // next frame, so 1-1 never reads this press
+          }
+        },
+        draw: function (g) {
+          var K = U.mk, C = K.C, rec = Q.mode.rec().score, rows = [], i, y, b = rec.top[0];
+          U.mdBack(g, HS.t, 'HIGH SCORE');
+          for (i = 0; i < ROWS.length; i++) rows.push({ label: ROWS[i] });
+          K.window(g, 6, 32, 130, 21 + rows.length * 12 + 2, 'MENU', 'hscore-menu', function () { K.list(g, 6, 51, 130, rows, HS.sel, 'hscore-menu', { row: 12, pad: 12, right: 7 }); });
+          K.window(g, 6, 86, 130, 90, 'TO BEAT', 'hscore-best', function () {
+            if (!b) { U.text('NO SCORE YET.', 71, 112, C.dim, 1, 'center'); U.text('THE TABLE FILLS', 71, 130, C.help, 1, 'center'); U.text('WITH YOUR RUNS.', 71, 140, C.help, 1, 'center'); return; }
+            U.text(b.n, 71, 108, '#ffd23f', 3, 'center'); U.text(U.mdScore(b.s), 71, 136, '#ffffff', 2, 'center');
+            U.text(b.clear ? 'ALL CLEAR' : 'REACHED ' + b.at, 71, 156, C.muted, 1, 'center');
+          }, { noLight: true });
+          K.window(g, 140, 32, 174, 144, 'THE RULES', 'hscore-rules', function () {
+            U.text('FROM 1-1 TO 4-BOSS: ALL 16.', 146, 51, C.help); U.text('A NEW CONDUCTOR, 3 TRIES.', 146, 61, C.help);
+            for (i = 0; i < RULES.length; i++) { y = 76 + i * 10; U.text(RULES[i][0], 146, y, C.muted); U.text(RULES[i][1], 308, y, C.cream, 1, 'right'); }
+            U.fill(g, 146, 147, 162, 1, C.hi);
+            U.text('THE COMBO: 5 IN A ROW WITH', 146, 151, '#ffd23f'); U.text('NO HURT: X2. UP TO X5.', 146, 161, '#ffd23f');
+          }, { noLight: true });
+          K.foot(g, HELP[ROWS[HS.sel]], 'A: CHOOSE  B: BACK');
+          U.drawTalk(g);
+        },
+        sides: function (g) { U.mdSides(g); }
+      });
+
+      // ---------- 'htop': TOP 5 ----------
+      var HT = { t: 0, back: 'hscore' };
+      U.drawTop5 = function (g, x, y, w, hot) {   // the five rows: rank, initials, score, where the run ended; hot: the row to light up (-1: none). Under 200 wide: small letters
+        var C = U.mk.C, top = Q.mode.rec().score.top, i, ry, e, on, k = w < 200 ? 1 : 2, rh = k === 2 ? 18 : 17, dy = k === 2 ? -3 : 0, sx = k === 2 ? x + w - 56 : x + w - 42;
+        for (i = 0; i < 5; i++) {
+          ry = y + i * rh; e = top[i]; on = i === hot;
+          if (on) { U.fill(g, x, ry - 4, w, 15, Math.floor(U.now() * 3) % 3 ? '#3a3410' : '#262838'); U.fill(g, x, ry - 4, 2, 15, '#ffd23f'); }
+          U.text(String(i + 1), x + 7, ry, i === 0 ? '#ffd23f' : C.muted, 1);
+          if (!e) { U.text('---', x + 20, ry + dy + (k === 2 ? 2 : 0), C.dim, k); U.text('-------', sx, ry, C.dim, 1, 'right'); continue; }
+          U.text(e.n, x + 20, ry + dy, on ? '#ffd23f' : C.cream, k);
+          U.text(U.mdScore(e.s), sx, ry + dy, on ? '#ffd23f' : '#ffffff', k, 'right');
+          U.text(e.clear ? 'CLEAR' : e.at, x + w - 3, ry, e.clear ? '#ffd23f' : C.muted, 1, 'right');
+        }
+      };
+      Q.defScene('htop', {
+        enter: function (o) { U.entered(); HT.t = 0; HT.back = o && o.back ? o.back : 'hscore'; },
+        update: function (dt) { HT.t += dt; if (U.runLater()) return; if (U.press('b') || U.press('a') || U.press('start')) { U.mk.snd('back'); Q.go(HT.back, { sel: 1 }); } },
+        draw: function (g) {
+          var K = U.mk, C = K.C, rec = Q.mode.rec().score;
+          U.mdBack(g, HT.t, 'TOP 5');
+          K.window(g, 30, 34, 260, 140, 'HIGH SCORE', 'htop-win', function () {
+            U.drawTop5(g, 38, 60, 244, -1);
+            U.fill(g, 38, 150, 244, 1, C.hi);
+            U.text(rec.runs + (rec.runs === 1 ? ' RUN PLAYED' : ' RUNS PLAYED') + ' IN THIS BROWSER', 160, 157, C.muted, 1, 'center');
+          }, { noLight: true });
+          K.foot(g, 'KEPT IN THIS BROWSER, BESIDE YOUR FILES', 'B: BACK');
+          U.drawTalk(g);
+        },
+        sides: function (g) { U.mdSides(g); }
+      });
+    })();
+    // ===== 97-modes-score-b.js =====
+    // ---------- 97-modes-score-b.js (B27 GAME MODES, 11 Nov): HIGH SCORE's results ('hres', opened by 97-modes.js with { r: the run's results }) ----------
+    // GAME OVER or ALL CLEAR!, the score counting up (0.9 s; a press skips it) with where it came from, how far the run got and its best combo. A run that
+    // made the TOP 5 (it is in the table already, under the last initials used) then takes three letters, the arcade way: UP and DOWN change the letter
+    // (A to Z, round and round), LEFT and RIGHT move, A goes on to the next letter and from the last one finishes, B steps back, START finishes; they are
+    // stored at once and kept as the next run's starting letters. Then the table with that run lit, and AGAIN or GAME MODES; B: the HIGH SCORE screen.
+    (function () {
+      var U = Q.ui, HR = { t: 0, r: null, ph: 'count', sel: 0, nm: ['A', 'A', 'A'], cur: 0, counted: false }, CH = ['AGAIN', 'GAME MODES'], COUNT = 0.9;
+      var ABC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', PARTS = [['kill', 'ENEMIES'], ['token', 'TOKENS'], ['memo', 'MEMOS'], ['clear', 'STAGES'], ['time', 'UNDER PAR'], ['boss', 'BOSSES'], ['tries', 'TRIES LEFT']];
+      U.hresAt = function () { var r = HR.r; return r ? { ph: HR.ph, rank: r.rank, name: HR.nm.join(''), cur: HR.cur, score: r.score, clear: r.clear, at: r.at, sel: HR.sel, counted: HR.counted, parts: JSON.parse(JSON.stringify(r.parts)) } : null; };   // for checks (B29: and the parts)
+      function entry() { var r = HR.r, top = Q.mode.rec().score.top, e = r && r.rank >= 0 ? top[r.rank] : null; return e && e.s === r.score ? e : null; }   // the run's row in the table
+      function done() {   // the initials are in: into the table and kept for next time, stored at once
+        var rec = Q.mode.rec().score, e = entry(), n = Q.mode.name(HR.nm.join(''));
+        if (e) e.n = n;
+        rec.last = n; Q.mode.store();
+        HR.ph = 'table'; HR.sel = 0; U.mk.snd('pick');
+      }
+      function letter(d) { var i = ABC.indexOf(HR.nm[HR.cur]); HR.nm[HR.cur] = ABC.charAt(((i < 0 ? 0 : i) + d + 26) % 26); Q.sfx('tick'); }
+      Q.defScene('hres', {
+        enter: function (o) {
+          var r = o && o.r && o.r.parts ? o.r : null;
+          U.entered(); HR.r = r; HR.t = 0; HR.ph = 'count'; HR.sel = 0; HR.cur = 0; HR.counted = false;
+          HR.nm = String(r && r.name ? r.name : 'AAA').split('').slice(0, 3); while (HR.nm.length < 3) HR.nm.push('A');
+          Q.music('map');
+        },
+        update: function (dt) {
+          var r = HR.r;
+          HR.t += dt;
+          if (U.runLater()) return;
+          if (!r) { Q.go('hscore'); return; }
+          if (!HR.counted && HR.t >= COUNT) { HR.counted = true; Q.sfx(r.rank === 0 ? 'lvup' : 'select'); if (r.rank >= 0 && entry()) HR.ph = 'name'; else HR.ph = 'table'; }
+          if (HR.t < 0.3) return;
+          if (!HR.counted) { if (U.press('a') || U.press('b') || U.press('start')) HR.t = COUNT; return; }   // the count is skipped first
+          if (HR.ph === 'name') {
+            if (U.press('up')) letter(1);
+            if (U.press('down')) letter(-1);
+            if (U.press('left') && HR.cur > 0) { HR.cur--; U.mk.snd('move'); }
+            if (U.press('right') && HR.cur < 2) { HR.cur++; U.mk.snd('move'); }
+            if (U.press('b') && HR.cur > 0) { HR.cur--; U.mk.snd('back'); }
+            if (U.press('start')) { done(); return; }
+            if (U.press('a')) { if (HR.cur < 2) { HR.cur++; U.mk.snd('move'); } else done(); }
+            return;
+          }
+          if (U.press('left') || U.press('right')) { HR.sel = 1 - HR.sel; U.mk.snd('move'); }
+          if (U.press('b')) { U.mk.snd('back'); Q.go('hscore'); return; }
+          if (U.press('a') || U.press('start')) {
+            U.mk.snd('pick');
+            if (CH[HR.sel] === 'AGAIN') U.later(function () { if (!Q.mode.start('score', 'all')) Q.go('hscore'); });
+            else Q.go('modes');
+          }
+        },
+        draw: function (g) {
+          var K = U.mk, C = K.C, r = HR.r, k = Q.clamp(HR.t / COUNT, 0, 1), i, y, v;
+          U.mdBack(g, HR.t, r && r.clear ? 'ALL CLEAR!' : 'GAME OVER');
+          if (!r) { U.drawTalk(g); return; }
+          K.window(g, 6, 32, 150, 126, 'SCORE', 'hres-score', function () {
+            U.text(U.mdScore(r.score * k), 81, 52, '#ffffff', 2, 'center');
+            for (i = 0, y = 72; i < PARTS.length; i++) {
+              v = r.parts[PARTS[i][0]] || 0;
+              if (PARTS[i][0] === 'tries' && !r.clear) continue;
+              U.text(PARTS[i][1] + (PARTS[i][0] === 'kill' ? ' ' + r.kills : ''), 12, y, C.muted); U.text(String(Math.floor(v * k)), 150, y, v ? C.cream : C.dim, 1, 'right');
+              y += 9;
+            }
+            U.fill(g, 10, 140, 142, 1, C.hi);
+            U.text(r.clear ? 'ALL 16 CLEARED' : 'REACHED ' + r.at, 12, 145, r.clear ? '#ffd23f' : C.help); U.text('COMBO ' + r.combo, 150, 145, C.help, 1, 'right');
+          });
+          K.window(g, 160, 32, 154, 126, HR.ph === 'name' ? 'NEW HIGH SCORE' : 'TOP 5', 'hres-' + (HR.ph === 'name' ? 'name' : 'top'), function () {
+            if (!HR.counted) { U.text('...', 237, 90, C.dim, 2, 'center'); return; }
+            if (HR.ph === 'name') { initials(g); return; }
+            U.drawTop5(g, 166, 54, 142, r.rank);
+            if (r.rank < 0) U.text(r.score > 0 ? 'NOT IN THE TOP 5 YET' : 'NO POINTS THIS TIME', 237, 145, C.muted, 1, 'center');
+          }, { noLight: true, accent: HR.ph === 'name' ? C.yel : null });
+          if (HR.ph === 'table' && HR.counted) { U.mdChoices(g, 6, 165, 308, CH, HR.sel); K.foot(g, CH[HR.sel] === 'AGAIN' ? 'ANOTHER RUN FROM 1-1' : 'BACK TO GAME MODES', 'A: CHOOSE  B: BACK'); }
+          else if (HR.ph === 'name') K.foot(g, 'THREE LETTERS FOR THE TABLE', 'START: DONE');
+          else K.foot(g, '', 'A: SKIP');
+          U.drawTalk(g);
+        },
+        sides: function (g) { U.mdSides(g); }
+      });
+      function initials(g) {   // RANK n, then the three letters three times their size, the one being set between two blinking arrows
+        var C = U.mk.C, r = HR.r, i, x, on = Math.floor(U.now() * 3) % 3 > 0;
+        U.text('RANK ' + (r.rank + 1), 237, 52, '#ffd23f', 2, 'center');
+        for (i = 0; i < 3; i++) {
+          x = 205 + i * 24;
+          if (i === HR.cur) { U.fill(g, x - 3, 76, 21, 27, '#262838'); if (on) { U.arrow(g, x + 5, 71, '#ffd23f', true); U.arrow(g, x + 5, 106, '#ffd23f'); } U.fill(g, x - 1, 101, 17, 2, '#ffd23f'); }
+          U.text(HR.nm[i], x, 79, i === HR.cur ? '#ffd23f' : '#ffffff', 3);
+        }
+        U.text('UP, DOWN: THE LETTER', 237, 118, C.help, 1, 'center');
+        U.text('LEFT, RIGHT: MOVE', 237, 128, C.help, 1, 'center');
+        U.text('A: NEXT   START: DONE', 237, 138, C.muted, 1, 'center');
+      }
+    })();
+    // ===== 97-modes-speed.js =====
+    // ---------- 97-modes-speed.js (B27 GAME MODES, 11 Nov): SPEED RUN: its routes and rules, its records, the route screen ('srun') and RECORDS ('srec') ----------
+    // A route: one world's three levels and its boss (WORLD 1 to 4), or all 16 back to back (ALL 16), on one clock (97-modes.js: falls, game overs and secret
+    // rooms count; the pause, a text box and a door's fade do not). A game over goes straight back to the last checkpoint with full hearts, the clock running on.
+    // Each route starts the conductor where the story has him at that world: WORLD 1 and ALL 16 at LV 1 with no moves (ALL 16 learns them from the bosses,
+    // as the story does), WORLD 2 at LV 3 with QUICK KEYS, WORLD 3 at LV 5 with PAUSE TO THINK too, WORLD 4 at LV 7 with FIRM HAND too.
+    // Par: the sum of its stages' Q.PAR. Medals on Trackmania's ladder with our par as its bronze (our par is the bot's time x 1.5, as its bronze is the
+    // author time x 1.5): SILVER at par x 1.2 / 1.5 and GOLD at par x 1.06 / 1.5, rounded up to whole seconds, each at or under. Records for each route:
+    // best (the personal best), split (that run's time at each stage's end, to race against), seg (each stage's best segment from any finished run), medal
+    // (the best won) and runs (finished). Only a finished run is recorded.
+    (function () {
+      var U = Q.ui, ROUTES = [
+        { id: 'w1', n: 1, lv: 1, moves: [] }, { id: 'w2', n: 2, lv: 3, moves: ['dash'] }, { id: 'w3', n: 3, lv: 5, moves: ['dash', 'hover'] },
+        { id: 'w4', n: 4, lv: 7, moves: ['dash', 'hover', 'pound'] }, { id: 'all', n: 0, lv: 1, moves: [] }
+      ];
+      var HELP = { w1: 'THREE LEVELS AND THE BOSS, ONE CLOCK', w2: 'THREE LEVELS AND THE BOSS, ONE CLOCK', w3: 'THREE LEVELS AND THE BOSS, ONE CLOCK',
+        w4: 'THREE LEVELS AND THE BOSS, ONE CLOCK', all: 'ALL 16 STAGES BACK TO BACK', rec: 'BEST TIMES, SPLITS AND MEDALS' };
+      function r3(v) { return Math.round((+v || 0) * 1000) / 1000; }
+      function worldName(n) { var w = Q.WORLD[n]; return w && w.name ? String(w.name).toUpperCase() : 'WORLD ' + n; }
+      function medals(par) { return { gold: Math.ceil(par * 1.06 / 1.5 - 1e-9), silver: Math.ceil(par * 1.2 / 1.5 - 1e-9), bronze: par }; }
+      function medalOf(t, M) { return t <= M.gold ? 3 : t <= M.silver ? 2 : t <= M.bronze ? 1 : 0; }
+      function route(id) {
+        var r = null, i, out, p = 0;
+        for (i = 0; i < ROUTES.length; i++) if (ROUTES[i].id === id) r = ROUTES[i];
+        if (!r) return null;
+        out = { id: r.id, n: r.n, name: r.n ? 'WORLD ' + r.n : 'ALL 16', title: r.n ? worldName(r.n) : 'THE WHOLE ADVENTURE', stages: U.parLevels(r.n || 0), kit: { lv: r.lv, moves: r.moves.slice() } };
+        for (i = 0; i < out.stages.length; i++) p += U.par(out.stages[i]);
+        out.par = p; out.medals = medals(p);
+        return out;
+      }
+      function recRead(id) { var e = Q.mode.rec().speed[id]; return e || { best: 0, split: [], seg: [], medal: 0, runs: 0 }; }   // to show (makes nothing)
+      function recOf(id) { var sp = Q.mode.rec().speed; if (!sp[id]) sp[id] = { best: 0, split: [], seg: [], medal: 0, runs: 0 }; return sp[id]; }
+      U.mdSpeed = { route: route, rec: recRead, medalOf: medalOf, ids: function () { return ROUTES.map(function (r) { return r.id; }); } };
+
+      Q.mode.kind('speed', {
+        results: 'sres', route: route,
+        begin: function (R) { var e = recRead(R.route.id); R.st = { pb: e.best > 0 ? e.split.slice() : [], seg: e.seg.slice(), delta: null, gold: [] }; },
+        toast: function (R) { return 'SPEED RUN: ' + R.route.name + '. GO!'; },
+        stage: function (R, i) {   // a split: against the best run's, gold when it is a best segment (a first run shows its segment)
+          var S = R.st, t = R.split[i], seg = r3(t - (i ? R.split[i - 1] : 0)), pb = S.pb[i], best = S.seg[i], gold = best > 0 && seg < best;
+          S.gold[i] = gold;
+          S.delta = { s: pb > 0 ? U.mdDelta(r3(t) - pb) : U.mdTime(seg), col: pb > 0 ? (gold ? '#ffd23f' : r3(t) <= pb ? '#46e08a' : '#ff6b6b') : '#e8f0ff', at: U.now() };
+          if (i + 1 < R.route.stages.length) Q.sfx(gold ? 'secret' : 'tick');
+        },
+        over: function () { Q.toast('BACK TO THE CHECKPOINT. THE CLOCK RUNS ON.', 2); return ''; },
+        finish: function (R) {   // the records: best segments from this run, the best and its splits when it is one, the best medal; and what the results show
+          var e = recOf(R.route.id), n = R.route.stages.length, t = r3(R.t), M = R.route.medals, medal = medalOf(t, M), prev = e.best, prevSplit = e.split.slice(), gold = [], i, seg, nb;
+          e.runs++;
+          while (e.seg.length < n) e.seg.push(0);
+          for (i = 0; i < n; i++) { seg = r3(R.split[i] - (i ? R.split[i - 1] : 0)); gold[i] = !(e.seg[i] > 0) || seg < e.seg[i]; if (gold[i]) e.seg[i] = seg; }
+          nb = !(prev > 0) || t < prev;
+          if (nb) { e.best = t; e.split = R.split.map(r3); }
+          if (medal > e.medal) e.medal = medal;
+          return { route: R.route.id, name: R.route.name, title: R.route.title, stages: R.route.stages.slice(), t: t, par: R.route.par, medals: M, medal: medal,
+            newBest: nb, first: e.runs === 1, prev: prev, prevSplit: prevSplit, split: R.split.map(r3), gold: gold };
+        },
+        info: function (R) {   // the pause's right window
+          var e = recRead(R.route.id), M = R.route.medals, rows = [], i, pb;
+          rows.push(['STAGE', (R.i + 1) + '/' + R.route.stages.length + '  ' + U.mdLabel(R.route.stages[R.i])]);
+          rows.push(['', U.mdFit(U.mdName(R.route.stages[R.i]), 30), '#c3c7d4']);
+          rows.push(['TIME', U.mdTime(R.t), '#ffffff']);
+          rows.push(['BEST', e.best > 0 ? U.mdTime(e.best) : 'NONE YET']);
+          rows.push(['PAR', U.mss(R.route.par)]);
+          rows.push(['GOLD, SILVER', U.mss(M.gold) + ', ' + U.mss(M.silver)]);
+          for (i = Math.max(0, R.split.length - 5); i < R.split.length; i++) {
+            pb = R.st.pb[i];
+            rows.push([U.mdLabel(R.route.stages[i]), U.mdTime(R.split[i]) + (pb > 0 ? '  ' + U.mdDelta(r3(R.split[i]) - pb) : ''), pb > 0 ? (r3(R.split[i]) <= pb ? '#46e08a' : '#ff6b6b') : null]);
+          }
+          return { title: 'SPEED RUN: ' + R.route.name, rows: rows };
+        },
+        state: function (R) { return { pb: R.st.pb.slice(), delta: R.st.delta ? R.st.delta.s : '', par: R.route.par, medals: R.route.medals }; }
+      });
+
+      // ---------- 'srun': the routes at the left, the picked one's stages, par, medals, best and start at the right ----------
+      var SR = { sel: 0, t: 0 }, ROWS = ['w1', 'w2', 'w3', 'w4', 'all', 'rec'];
+      U.srunAt = function () { return { sel: SR.sel, row: ROWS[SR.sel] }; };   // for checks
+      Q.defScene('srun', {
+        enter: function (o) { U.entered(); U.cancel(); U.clearToasts(); SR.t = 0; if (o && o.sel >= 0) SR.sel = Q.clamp(o.sel | 0, 0, ROWS.length - 1); Q.music('title'); },
+        update: function (dt) {
+          var id;
+          SR.t += dt;
+          if (U.runLater()) return;
+          if (U.press('b')) { U.mk.snd('back'); Q.go('modes'); return; }
+          SR.sel = U.menuMove(SR.sel, ROWS.length);
+          if (U.press('a') || U.press('start')) {
+            id = ROWS[SR.sel]; U.mk.snd('pick');
+            if (id === 'rec') { Q.go('srec', { route: 'w1' }); return; }
+            U.later(function () { if (!Q.mode.start('speed', id)) Q.go('srun'); });   // next frame, so the first stage never reads this press
+          }
+        },
+        draw: function (g) {
+          var K = U.mk, C = K.C, rows = [], i, id, e, pick = ROWS[SR.sel], R = route(pick === 'rec' ? 'all' : pick), pe = recRead(R.id);
+          U.mdBack(g, SR.t, 'SPEED RUN');
+          for (i = 0; i < ROWS.length; i++) {
+            id = ROWS[i];
+            if (id === 'rec') { rows.push({ label: 'RECORDS' }); continue; }
+            e = recRead(id);
+            rows.push({ label: route(id).name, count: e.best > 0 ? U.mdTime(e.best, true) : '-:--', medal: e.medal, draw: e.medal ? medalRow : null });
+          }
+          K.window(g, 6, 32, 130, 21 + rows.length * 12 + 2, 'ROUTES', 'srun-list', function () { K.list(g, 6, 51, 130, rows, SR.sel, 'srun-list', { row: 12, pad: 12, right: 7 }); });
+          function medalRow(g2, x, y, on) { var r = rows[(y - 51) / 12 | 0]; if (r) U.mdMedal(g2, 136 - 7 - U.width(r.count) - 12, y - 2, r.medal); }
+          K.window(g, 140, 32, 174, 144, pick === 'rec' ? 'RECORDS' : R.title, 'srun-info', function () { info(g, R, pe, pick === 'rec'); }, { noLight: true });
+          K.foot(g, HELP[pick] || '', pick === 'rec' ? 'A: OPEN  B: BACK' : 'A: GO  B: BACK');
+          U.drawTalk(g);
+        },
+        sides: function (g) { U.mdSides(g); }
+      });
+      function info(g, R, e, rec) {   // the right window: the route's stages, its par and medals, the best, and how he starts
+        var C = U.mk.C, x = 146, r = 308, y = 51, i, M = R.medals, names = ['GOLD', 'SILVER', 'BRONZE'], lim = [M.gold, M.silver, M.bronze], m, ab;
+        if (rec) {
+          for (i = 0; i < ROUTES.length; i++) { m = recRead(ROUTES[i].id); U.text(route(ROUTES[i].id).name, x, y + i * 12, C.cream); U.mdMedal(g, 250, y - 2 + i * 12, m.medal); U.text(m.runs + (m.runs === 1 ? ' RUN' : ' RUNS'), r, y + i * 12, C.muted, 1, 'right'); }
+          U.text('EACH ROUTE: ITS BEST, ITS', x, 124, C.help); U.text('SPLITS, ITS BEST SEGMENTS', x, 134, C.help); U.text('AND THE SUM OF THEM.', x, 144, C.help);
+          return;
+        }
+        if (R.n) for (i = 0; i < R.stages.length; i++) { U.text(U.mdLabel(R.stages[i]), x, y + i * 10, U.worldCol ? U.worldCol(R.n) : C.teal); U.text(U.mdFit(U.mdName(R.stages[i]), 20), x + 40, y + i * 10, C.help); }
+        else { m = Q.wrap('ALL 16 STAGES BACK TO BACK, 1-1 TO 4-BOSS. EACH AGENT HE SAVES TEACHES A MOVE, AS IN THE STORY.', 27); for (i = 0; i < m.length && i < 4; i++) U.text(m[i], x, y + i * 10, C.help); }   // B29: 27 letters a line fit the window (it ran past it)
+        y = 95; U.fill(g, x, y - 4, r - x, 1, C.hi);
+        U.text('PAR', x, y, C.muted); U.text(U.mss(R.par), r, y, C.cream, 1, 'right');
+        for (i = 0; i < 3; i++) {
+          U.mdMedal(g, x, y + 9 + i * 11, 3 - i);
+          U.text(names[i], x + 13, y + 11 + i * 11, e.medal === 3 - i ? '#ffd23f' : C.help);
+          U.text('AT ' + U.mss(lim[i]) + ' OR UNDER', r, y + 11 + i * 11, e.medal >= 3 - i ? '#ffd23f' : C.muted, 1, 'right');
+        }
+        y = 141; U.fill(g, x, y - 4, r - x, 1, C.hi);
+        U.text('YOUR BEST', x, y, C.muted); U.text(e.best > 0 ? U.mdTime(e.best) : 'NO RUN YET', r, y, e.best > 0 ? C.yel : C.dim, 1, 'right');
+        U.text('START: LV ' + R.kit.lv, x, y + 13, C.muted);
+        for (i = 0; i < R.kit.moves.length; i++) { ab = R.kit.moves[i]; Q.spr(g, 'ic-' + ab, 0, r - 12 - (R.kit.moves.length - 1 - i) * 14, y + 10); }
+        if (!R.kit.moves.length) U.text('NO MOVES YET', r, y + 13, C.dim, 1, 'right');
+      }
+
+      // ---------- 'srec': RECORDS, a route a tab: its best and medal, its splits and segments, each stage's best segment and their sum ----------
+      var RC = { r: 0, t: 0 }, RIDS = ['w1', 'w2', 'w3', 'w4', 'all'];
+      U.srecAt = function () { return { route: RIDS[RC.r] }; };   // for checks
+      Q.defScene('srec', {
+        enter: function (o) { U.entered(); RC.t = 0; if (o && o.route && RIDS.indexOf(o.route) >= 0) RC.r = RIDS.indexOf(o.route); },
+        update: function (dt) {
+          RC.t += dt;
+          if (U.runLater()) return;
+          if (U.press('b') || U.press('a')) { U.mk.snd('back'); Q.go('srun', { sel: 5 }); return; }
+          if (U.press('left')) { RC.r = (RC.r + RIDS.length - 1) % RIDS.length; U.mk.snd('tab'); }
+          if (U.press('right')) { RC.r = (RC.r + 1) % RIDS.length; U.mk.snd('tab'); }
+        },
+        draw: function (g) {
+          var K = U.mk, R = route(RIDS[RC.r]);
+          U.mdBack(g, RC.t, 'BEST TIMES');
+          K.tabs(g, 6, 31, 308, ['WORLD 1', 'WORLD 2', 'WORLD 3', 'WORLD 4', 'ALL 16'], RC.r, false);
+          K.window(g, 6, 46, 308, 131, R.title, 'srec-' + R.id, function () { table(g, R, recRead(R.id)); }, { noLight: true });
+          K.foot(g, 'LEFT AND RIGHT: ROUTE', 'B: BACK');
+          U.drawTalk(g);
+        },
+        sides: function (g) { U.mdSides(g); }
+      });
+      function table(g, R, e) {
+        var C = U.mk.C, n = R.stages.length, sob = 0, all = true, i, x, y, col, seg, two = n > 8;
+        for (i = 0; i < n; i++) { if (e.seg[i] > 0) sob += e.seg[i]; else all = false; }
+        U.mdMedal(g, 14, 63, e.medal);
+        U.text('BEST', 28, 66, C.muted); U.text(e.best > 0 ? U.mdTime(e.best) : '-:--.--', 58, 63, e.best > 0 ? '#ffffff' : C.dim, 2);
+        U.text(e.medal ? U.mdMedalName(e.medal) : 'NO MEDAL YET', 306, 63, e.medal ? '#ffd23f' : C.dim, 1, 'right');
+        U.text(e.runs + (e.runs === 1 ? ' RUN FINISHED' : ' RUNS FINISHED'), 306, 72, C.muted, 1, 'right');
+        U.text('SUM OF BEST SEGMENTS ' + (all && sob > 0 ? U.mdTime(sob) : '-'), 14, 84, all && sob > 0 ? '#ffd23f' : C.muted);
+        U.text('PAR ' + U.mss(R.par), 306, 84, C.muted, 1, 'right');
+        U.fill(g, 12, 93, 296, 1, C.hi);
+        if (two) { for (i = 0; i < 2; i++) { U.text('SPLIT', 100 + i * 148, 97, C.dim, 1, 'right'); U.text('BEST SEG', 154 + i * 148, 97, C.dim, 1, 'right'); } }   // B29: the columns spaced so the headers do not touch
+        else { U.text('YOUR BEST RUN', 14, 97, C.dim); U.text('SPLIT', 205, 97, C.dim, 1, 'right'); U.text('SEGMENT', 255, 97, C.dim, 1, 'right'); U.text('BEST', 306, 97, C.dim, 1, 'right'); }   // the best segment (gold): BEST SEG is wider than its column
+        for (i = 0; i < n; i++) {
+          x = two ? (i < 8 ? 14 : 162) : 14; y = 108 + (two ? i % 8 : i) * (two ? 8 : 12);
+          seg = e.split[i] > 0 ? e.split[i] - (i ? e.split[i - 1] || 0 : 0) : 0; col = e.seg[i] > 0 && seg > 0 && Math.abs(seg - e.seg[i]) < 0.002 ? '#ffd23f' : C.cream;
+          U.text(U.mdLabel(R.stages[i]), x, y, U.worldCol ? U.worldCol(Q.LEVEL[R.stages[i]] ? Q.LEVEL[R.stages[i]].world : 1) : C.teal);
+          if (two) { U.text(e.split[i] > 0 ? U.mdTime(e.split[i]) : '-', x + 86, y, C.cream, 1, 'right'); U.text(e.seg[i] > 0 ? U.mdTime(e.seg[i]) : '-', x + 140, y, '#ffd23f', 1, 'right'); continue; }
+          U.text(U.mdFit(U.mdName(R.stages[i]), 17), x + 40, y, C.help);
+          U.text(e.split[i] > 0 ? U.mdTime(e.split[i]) : '-', 205, y, C.cream, 1, 'right');   // the name (17 letters, to 155), then three times 9 px apart
+          U.text(seg > 0 ? U.mdTime(seg) : '-', 255, y, col, 1, 'right');
+          U.text(e.seg[i] > 0 ? U.mdTime(e.seg[i]) : '-', 306, y, '#ffd23f', 1, 'right');
+        }
+      }
+    })();
+    // ===== 97-modes-speed-b.js =====
+    // ---------- 97-modes-speed-b.js (B27 GAME MODES, 11 Nov): SPEED RUN's results ('sres', opened by 97-modes.js with { r: the run's results }) ----------
+    // The time counts up (0.9 s; a press skips it), then the medal it won against the route's par, the best (NEW BEST!, FIRST RUN!, or the best and how far
+    // off), and the splits: each stage's time at its end with its difference from the best run before this one (green ahead, red behind) and gold for a best
+    // segment. AGAIN (the same route, at once), RECORDS (its tab), GAME MODES; B: the route screen.
+    (function () {
+      var U = Q.ui, RS = { t: 0, r: null, sel: 0, counted: false }, CH = ['AGAIN', 'RECORDS', 'GAME MODES'], COUNT = 0.9;
+      var HELP = { AGAIN: 'THE SAME ROUTE, FROM THE TOP', RECORDS: "THIS ROUTE'S BEST TIMES", 'GAME MODES': 'BACK TO GAME MODES' };
+      U.sresAt = function () { var r = RS.r; return r ? { route: r.route, t: r.t, medal: r.medal, newBest: r.newBest, first: r.first, sel: RS.sel, counted: RS.counted, split: r.split.slice() } : null; };   // for checks
+      Q.defScene('sres', {
+        enter: function (o) { U.entered(); RS.r = o && o.r && o.r.split ? o.r : null; RS.t = 0; RS.sel = 0; RS.counted = false; Q.music('map'); },
+        update: function (dt) {
+          var r = RS.r, id;
+          RS.t += dt;
+          if (U.runLater()) return;
+          if (!r) { Q.go('srun'); return; }
+          if (!RS.counted && RS.t >= COUNT) { RS.counted = true; Q.sfx(r.newBest || r.medal >= 3 ? 'lvup' : 'select'); }
+          if (RS.t < 0.3) return;
+          if (!RS.counted) { if (U.press('a') || U.press('b') || U.press('start')) RS.t = COUNT; return; }   // the count is skipped first
+          if (U.press('left')) { RS.sel = (RS.sel + CH.length - 1) % CH.length; U.mk.snd('move'); }
+          if (U.press('right')) { RS.sel = (RS.sel + 1) % CH.length; U.mk.snd('move'); }
+          if (U.press('b')) { U.mk.snd('back'); Q.go('srun', { sel: Math.max(0, U.mdSpeed.ids().indexOf(r.route)) }); return; }
+          if (U.press('a') || U.press('start')) {
+            U.mk.snd('pick'); id = r.route;
+            if (CH[RS.sel] === 'AGAIN') U.later(function () { if (!Q.mode.start('speed', id)) Q.go('srun'); });
+            else if (CH[RS.sel] === 'RECORDS') Q.go('srec', { route: id });
+            else Q.go('modes');
+          }
+        },
+        draw: function (g) {
+          var K = U.mk, C = K.C, r = RS.r, k = Q.clamp(RS.t / COUNT, 0, 1), y, s, nx;
+          U.mdBack(g, RS.t, r ? r.name + ' FINISHED' : 'FINISHED');
+          if (!r) { U.drawTalk(g); return; }
+          K.window(g, 6, 32, 132, 126, 'TIME', 'sres-time', function () {
+            U.text(U.mdTime(r.t * k), 72, 53, '#ffffff', 2, 'center');
+            if (!RS.counted) return;
+            g.save(); g.translate(14, 74); g.scale(2, 2); U.mdMedal(g, 0, 0, r.medal); g.restore();
+            U.text(r.medal ? U.mdMedalName(r.medal) : 'NO MEDAL', 36, r.medal ? 76 : 80, r.medal ? U.mdMedalCol(r.medal) : C.muted, r.medal ? 2 : 1);
+            nx = r.medal >= 3 ? '' : r.medal === 2 ? 'GOLD AT ' + U.mss(r.medals.gold) : r.medal === 1 ? 'SILVER AT ' + U.mss(r.medals.silver) : 'BRONZE AT ' + U.mss(r.medals.bronze);
+            U.text('PAR ' + U.mss(r.par), 36, 95, C.muted); if (nx) U.text(nx, 12, 106, C.help);
+            y = 121; U.fill(g, 10, y - 4, 124, 1, C.hi);
+            if (r.first) s = 'FIRST RUN!'; else if (r.newBest) s = 'NEW BEST!'; else s = '';
+            if (s) { if (Math.floor(RS.t * 3) % 3) U.text(s, 72, y + 2, '#ffd23f', 1, 'center'); if (!r.first) U.text('WAS ' + U.mdTime(r.prev), 72, y + 13, C.muted, 1, 'center'); }
+            else { U.text('BEST ' + U.mdTime(r.prev), 72, y + 2, C.cream, 1, 'center'); U.text(U.mdDelta(r.t - r.prev), 72, y + 13, '#ff6b6b', 1, 'center'); }
+          });
+          K.window(g, 142, 32, 172, 126, 'SPLITS', 'sres-splits', function () { splits(g, r); }, { noLight: true });
+          if (RS.counted) { U.mdChoices(g, 6, 165, 308, CH, RS.sel); K.foot(g, HELP[CH[RS.sel]], 'A: CHOOSE  B: ROUTES'); }
+          else K.foot(g, '', 'A: SKIP');
+          U.drawTalk(g);
+        },
+        sides: function (g) { U.mdSides(g); }
+      });
+      function splits(g, r) {   // each stage's split; against the best before this run (green ahead, red behind); gold: a best segment
+        var C = U.mk.C, n = r.split.length, two = n > 8, i, x, y, pb, col, d;
+        for (i = 0; i < n; i++) {
+          pb = r.prevSplit[i] > 0 ? r.prevSplit[i] : 0; d = pb ? r.split[i] - pb : 0;
+          col = r.gold[i] && !r.first ? '#ffd23f' : pb ? (d <= 0 ? '#46e08a' : '#ff6b6b') : C.cream;
+          if (two) {
+            x = i < 8 ? 148 : 232; y = 51 + (i % 8) * 12;
+            U.text(U.mdLabel(r.stages[i]), x, y, C.help); U.text(U.mdTime(r.split[i], true), x + 78, y, col, 1, 'right');
+            continue;
+          }
+          y = 51 + i * 24;
+          U.text(U.mdLabel(r.stages[i]), 148, y, C.help); U.text(U.mdFit(U.mdName(r.stages[i]), 20), 190, y, C.dim);   // B29: 4 px clear of 1-BOSS
+          U.text(U.mdTime(r.split[i]), 262, y + 10, col, 1, 'right');
+          if (pb) U.text(U.mdDelta(d), 308, y + 10, col, 1, 'right');
+          else if (r.gold[i] && !r.first) U.text('BEST', 308, y + 10, col, 1, 'right');
+        }
+        if (two) U.text('GOLD: A BEST SEGMENT', 228, 149, C.dim, 1, 'center');
+      }
+    })();
     // ===== 99-main.js =====
     // ---------- 99-main.js (ENGINE): Baton Quest on the 9F computer: NFX.arcade.add, start, the frame (fixed steps), stop, state() and cheat ----------
     // Presses: the runtime's api.pressed is true for one frame. A frame that runs no step (a fast screen) keeps its presses for the next frame that does;
@@ -15823,7 +16620,8 @@
       star: function (id) { return engStarWin(id); },
       won: function () { var s = engSave(), k; s.won = true; for (k in Q.LEVEL) if (engOwn(Q.LEVEL, k) && Q.LEVEL[k].bonus && Q.LEVEL[k].world >= 1) s.flags['bonus-' + k] = true; Q.saveGame(); return Q.encoreOpen() && Q.rootOpen(); },
       encore: function () { if (!Q.encoreOpen()) engCheat.won(); return Q.encore(); },
-      root: function () { if (!Q.rootOpen()) engCheat.won(); return Q.startLevel('root-1'); }
+      root: function () { if (!Q.rootOpen()) engCheat.won(); return Q.startLevel('root-1'); },
+      mode: function (what, a, b) { return Q.modeCheat ? Q.modeCheat(what, a, b) : null; }   // version 125 (B27): GAME MODES' runs, for checks (97-modes.js)
     };
 
     NFX.arcade.add({
