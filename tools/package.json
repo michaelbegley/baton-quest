@@ -1,0 +1,6 @@
+{
+  "name": "baton-quest-tools",
+  "private": true,
+  "description": "Checks for Baton Quest: npm install --prefix tools, then node tools/lint.js and node tools/smoke.js",
+  "devDependencies": { "acorn": "8.14.0" }
+}
