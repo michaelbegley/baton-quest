@@ -6846,7 +6846,7 @@
         nx = Q.wrap('ONE THING NEXT  ' + L.next, NEXTW).slice(0, 2);
         for (i = 0, j = 0; i < rows.length; i++) j += rows[i][1].length;
         h = 19 + 3 + j * 10 + 3 + nx.length * 9 + 6 + 5;
-        top = CK.dock === 'top' ? TOP : 197 - h;
+        top = CK.top = CK.dock === 'top' ? TOP : 197 - h;
         CK.want = aim(CPX + 15, top + 41, p);   // from the middle of its glass at twice its size
         needle(dt, CK.want, CK.t < 0.7);
         if (CK.t >= 0.7) marker(g, p, t);
@@ -6884,9 +6884,9 @@
         if (what === 'forget') { if (Q.SAVE) delete Q.SAVE.compass; CK.meet = null; return true; }
         if (what === 'open') { if (Q.scene !== 'map' || CK.open || Q.talking()) return false; openCheck(); return true; }
         if (what === 'close') { if (CK.open) closeCheck(); return true; }
-        return { scene: Q.scene, open: CK.open, t: Math.round(CK.t * 100) / 100, lines: CK.lines, next: CK.next, spot: p, dock: CK.dock, angle: Math.round(CK.ang * 1000) / 1000,
+        return { scene: Q.scene, open: CK.open, t: Math.round(CK.t * 100) / 100, lines: CK.lines, next: CK.next, spot: p, dock: CK.dock, top: CK.top, glass: CK.top === undefined ? null : { x: CPX + 15, y: CK.top + 41 }, angle: Math.round(CK.ang * 1000) / 1000,
           want: Math.round(CK.want * 1000) / 1000, meet: CK.meet ? CK.meet.cue : null, talk: U.talkAt ? U.talkAt() : null, rec: r ? JSON.parse(JSON.stringify(r)) : null,
-          drifting: CP.drifting(), stopAt: U.mapAt ? U.mapAt() : null };
+          drifting: CP.drifting(), stopAt: U.mapAt ? U.mapAt() : null, name: U.whoName('compass'), face: U.whoFace('compass') };
       };
     })();
     // ===== 74-ui-shop.js =====
