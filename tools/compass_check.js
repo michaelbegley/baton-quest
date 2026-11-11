@@ -95,14 +95,15 @@ function four(t, tag, c, e) { ['moved', 'slipped', 'drifted', 'next'].forEach((k
   t.ok(st.tokens === pre.tokens + 50 && diff(pre, st).indexOf('tokens') >= 0, 'C. control: the game\'s own save stores the 50 tokens, and the store read sees the change', [st.tokens, diff(pre, st)]);
   await close(t);
 
-  // D: FRESH and DONE (at 320, WIDESCREEN off, so the canvas's pixels are the map's own)
-  for (const [name, at, dock] of [['FRESH', 1, 'top'], ['DONE', 4, 'bottom']]) {
+  // D: FRESH, W2 and DONE (at 320, WIDESCREEN off, so the canvas's pixels are the map's own)
+  for (const [name, at, dock] of [['FRESH', 1, 'top'], ['W2', 2, 'top'], ['DONE', 4, 'bottom']]) {
     t = await open('D ' + name, { save: CL.files[name](), settings: { wide: 'off' } });
     t.ok(await toMap(t), 'D. ' + name + ': the map'); await scene(t);
     await t.press('KeyC'); await t.wait(2000); c = await info(t);
     four(t, 'D. ' + name, c, CL.EXPECT[name]);
     t.ok(c.next && c.next.at === at && settled(c, at), 'D. ' + name + ': the needle settles on stop ' + at + ': ' + c.angle + ' rad', { spot: c.spot, angle: c.angle, want: c.want });
     t.ok(c.dock === dock, 'D. ' + name + ': the panel docks at the ' + dock, c.dock);
+    if (dock === 'top') t.ok(c.bottom <= 92 && c.top === Math.max(1, Math.min(17, 92 - (c.bottom - c.top))), 'D. ' + name + ': docked at the top it ends by y 92, above the low stops\' chips (' + c.top + ' to ' + c.bottom + ')', [c.top, c.bottom]);
     const corners = [[c.spot.x - 20, c.spot.y + 7], [c.spot.x + 19, c.spot.y + 7], [c.spot.x - 16, c.spot.y + 7], [c.spot.x + 15, c.spot.y + 7]];   // the brackets' bottom corners (marker(): 40 by 53 from spot.x - 20, spot.y - 45)
     let lit = 0;
     for (let k = 0; k < 12; k++) {

@@ -28,6 +28,9 @@ const files = {
   MID: () => base({ cleared: set(W[0].concat(W[1], ['w3-1'])), saved: ['c1', 'c2'], abilities: ['dash', 'hover'], lv: 5, xp: 90, tokens: 64, maxHp: 4, hp: 4, power: 2,
     memos: set(['m1-1a', 'm1-1b', 'm1-2a', 'm1-3a', 'm1-3b', 'm2-1a', 'm2-1b', 'm2-2a', 'm2-2b', 'm2-3a', 'm3-1a']), flags: { cat2: true, 'bonus-w2-bonus': true },
     time: 3125, stars: { onboarded: true, c1: true, c2: true }, watch: { run: 777201, split: [900, 2400, 0, 0], clear: 0, code: 0 } }),
+  // world 1 done and 2-1: a memo left in 1-2 and 2-1, world 1's cat, both doors; the next thing low on the map (stop 2), SLIPPED on two lines: the panel docks at the top
+  W2: () => base({ cleared: set(W[0].concat(['w2-1'])), saved: ['c1'], abilities: ['dash'], lv: 3, tokens: 30, memos: set(['m1-1a', 'm1-1b', 'm1-2a', 'm1-3a', 'm1-3b', 'm2-1b']),
+    time: 1500, stars: { onboarded: true, c1: true }, watch: { run: 777401, split: [900, 0, 0, 0], clear: 0, code: 0 } }),
   // the story done: every level, all three back; a memo in 3-2 and 4-1, the cat in 4-2 and the secret door in 4-1 still to find
   DONE: () => base({ cleared: set([].concat(W[0], W[1], W[2], W[3])), won: true, saved: ['c1', 'c2', 'c3'], abilities: ['dash', 'hover', 'pound'], lv: 9, xp: 300,
     tokens: 210, maxHp: 6, hp: 6, power: 4, memos: set(ALLMEMOS.filter((m) => m !== 'm3-2b' && m !== 'm4-1a')), flags: { cat1: true, cat2: true, cat3: true,
@@ -39,6 +42,8 @@ const EXPECT = {
   FRESH: { moved: 'FIRST CHECK. A CLEAN SLATE.', slipped: 'NOTHING LEFT BEHIND.', drifted: 'FIRST CHECK. MEASURING FROM NOW.', next: '1-1, THE LOBBY OF UNREAD.', at: 1 },
   MID: { moved: 'FIRST CHECK: 9 LEVELS, 11 MEMOS.', slipped: 'MEMOS: 1-2, 2-3, 3-1. THE CAT: 1-3, 3-1. SECRET DOORS: 1-2, 3-1.',
     drifted: 'FIRST CHECK. MEASURING FROM NOW.', next: '3-2, THE WINDY BUCKET.', at: 3 },
+  W2: { moved: 'FIRST CHECK: 5 LEVELS, 6 MEMOS.', slipped: 'MEMOS: 1-2, 2-1. THE CAT: 1-3. SECRET DOORS: 1-2, 2-1.', drifted: 'FIRST CHECK. MEASURING FROM NOW.',
+    next: '2-2, CABLE CANYON.', at: 2 },
   DONE: { moved: 'FIRST CHECK: 16 LEVELS, 22 MEMOS.', slipped: 'MEMOS: 3-2, 4-1. THE CAT: 4-2. A SECRET DOOR: 4-1.',
     drifted: 'FIRST CHECK. MEASURING FROM NOW.', next: 'THE SECRET DOOR IN 4-1, THE LATER PILE.', at: 4 }
 };
