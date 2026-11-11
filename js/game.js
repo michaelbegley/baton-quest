@@ -16153,7 +16153,7 @@
     (function () {
       var U = Q.ui, HR = { t: 0, r: null, ph: 'count', sel: 0, nm: ['A', 'A', 'A'], cur: 0, counted: false }, CH = ['AGAIN', 'GAME MODES'], COUNT = 0.9;
       var ABC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', PARTS = [['kill', 'ENEMIES'], ['token', 'TOKENS'], ['memo', 'MEMOS'], ['clear', 'STAGES'], ['time', 'UNDER PAR'], ['boss', 'BOSSES'], ['tries', 'TRIES LEFT']];
-      U.hresAt = function () { var r = HR.r; return r ? { ph: HR.ph, rank: r.rank, name: HR.nm.join(''), cur: HR.cur, score: r.score, clear: r.clear, at: r.at, sel: HR.sel, counted: HR.counted } : null; };   // for checks
+      U.hresAt = function () { var r = HR.r; return r ? { ph: HR.ph, rank: r.rank, name: HR.nm.join(''), cur: HR.cur, score: r.score, clear: r.clear, at: r.at, sel: HR.sel, counted: HR.counted, parts: JSON.parse(JSON.stringify(r.parts)) } : null; };   // for checks (B29: and the parts)
       function entry() { var r = HR.r, top = Q.mode.rec().score.top, e = r && r.rank >= 0 ? top[r.rank] : null; return e && e.s === r.score ? e : null; }   // the run's row in the table
       function done() {   // the initials are in: into the table and kept for next time, stored at once
         var rec = Q.mode.rec().score, e = entry(), n = Q.mode.name(HR.nm.join(''));

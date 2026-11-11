@@ -80,6 +80,17 @@ const XP = { spam: 1, unsub: 2, ooo: 2, flag: 2 };   // world 1's enemies' XP (8
   r = await scoreRun(3, 0); R = await h.rec();
   t.ok(r.rank === 1 && R.score.top.length === 5 && R.score.top[1].s === r.score && R.score.top[4].n === names[2], 'a better one: second place, the last one drops off', R.score.top);
   t.ok(R.score.runs === 8, 'eight runs counted', R.score.runs);
+  await t.cheat('mode', 'start', 'score', 'all'); await t.wait(300);   // ALL CLEAR: every stage cleared, each boss beaten, no try spent
+  for (let i = 0; i < 16; i++) {
+    m = await h.md(); if (m.on !== 'score') break;
+    if (/boss$/.test(m.stage)) { await t.wait(300); await t.cheat('beatBoss'); await h.until(async () => { const v = await h.md(); return v.on !== 'score' || v.i !== m.i; }, 8000); }
+    else { await t.wait(150); await t.cheat('mode', 'stage'); }
+  }
+  u = await h.at('hres', 8000); await h.until(async () => { const v = await h.ui(); return v.hres && v.hres.counted ? v : null; }, 2500);
+  st = (await h.ui()).hres; await h.key('start'); R = await h.rec(); m = R.score.top[0];
+  t.ok(st.clear && st.at === 'CLEAR' && st.rank === 0 && m.clear === 1 && m.at === 'CLEAR' && m.s === st.score, 'ALL CLEAR!: all 16 cleared, first place, CLEAR in the table', { st, top: m });
+  t.ok(st.parts.tries === 30000 && st.parts.boss === 118000 && st.parts.clear === 16000 && st.parts.time > 0, 'its parts: 10000 for each of 3 tries left, the four bosses at 1000 x XP (10, 23, 35, 50: 118000), 1000 for each of 16 stages, time under par', st.parts);
+  await t.cheat('mode', 'go', 'modes'); await t.wait(200);
 
   // ---- the adventure right after a run: FILE 3 again, its stopwatch, LIGHT WORKLOAD, its saves; then a run's records never move ----
   await h.key('b'); await h.menu(); u = await h.ui();
