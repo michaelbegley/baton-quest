@@ -66,7 +66,7 @@
         Q.emit('cat', { n: n });   // n: how many of the four cats he has found
         Q.spawn('pickup', e.x + 1, e.y - 12, { kind: 'bigtoken', vy: -150 });
         Q.fx('confetti', e.x + e.w / 2, e.y); Q.sfx('meow'); if (engOwn(Q.SFX, 'secret')) Q.sfx('secret');
-        if (Q.SCRIPT[id]) Q.say(id); else Q.toast('MRRP.', 2);
+        if (Q.SCRIPT[id]) Q.sayStory(id); else Q.toast('MRRP.', 2);   // version 127: story talk, quiet in a HIGH SCORE or SPEED RUN run (55's Q.sayStory)
         Q.saveGame();
       }
     };

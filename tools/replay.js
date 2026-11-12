@@ -6,6 +6,7 @@
 // GAME MODES, whose words may change). Played: each level of the adventure from a fresh save with every move and keys from a seeded script, and a
 // BATTLE MODE match from the title (the human's keys scripted, three CPUs). Two controls run first: NEW against itself (it must match: the harness is
 // steady), and NEW against itself with one key changed (it must differ: the harness can see a difference). NEW defaults to js/game.js.
+// Required by another check (version 126: tools/playthrough.js, tools/creep_lines.js), it runs nothing and hands over its harness: copy, script, compare, segment.
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..'), RUNTIME = fs.readFileSync(path.join(ROOT, 'js', 'runtime.js'), 'utf8');
@@ -117,7 +118,7 @@ function segment(oldCode, newCode, name, frames, perturb) {   // a level (or 'ba
   return { name, frames: n, diff: d, screens: Array.from(screens), errors: A.errors.concat(B.errors) };
 }
 
-(function main() {
+function main() {
   const args = process.argv.slice(2), opt = {};
   const files = args.filter((a) => !a.startsWith('--'));
   args.filter((a) => a.startsWith('--')).forEach((a) => { const m = a.match(/^--(\w+)=(.*)$/); if (m) opt[m[1]] = m[2]; });
@@ -139,4 +140,6 @@ function segment(oldCode, newCode, name, frames, perturb) {   // a level (or 'ba
   }
   console.log('\nRESULT replay: ' + (only.length + 2 - bad) + ' of ' + (only.length + 2) + ' as expected');
   process.exitCode = bad ? 1 : 0;
-})();
+}
+if (require.main === module) main();
+module.exports = { copy, script, xorshift, seedOf, compare, segment, LEVELS, NAMES };   // version 126: the harness for other checks (tools/playthrough.js, tools/creep_lines.js)

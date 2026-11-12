@@ -24,6 +24,7 @@ MENU (top right on a computer) has the settings: VIEW (auto, full window or hand
 | Jump (A) | Space, Z or K | A | Bottom button |
 | Baton (B), hold for a note | X or J | B | Right button |
 | Dash (C) | C or L | C | Left or top button, or a bumper |
+| Compass check | C on the map | C on the map | The dash button |
 | Drop through a thin shelf | Down | Down | Down |
 | Open a door | Up | Up | Up |
 | Pause | Enter or P | START | Start |
